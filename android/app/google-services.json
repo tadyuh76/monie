@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "96021417055",
+    "project_id": "monie-4d954",
+    "storage_bucket": "monie-4d954.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96021417055:android:13f000629d7014c90e1fea",
+        "android_client_info": {
+          "package_name": "com.example.monie"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5OormMn2LAfowawty4T4N6JbiSmWqp1g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
