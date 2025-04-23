@@ -11,7 +11,8 @@ class UserAdapter extends TypeAdapter<UserModel> {
       id: reader.readString(),
       email: reader.readString(),
       name: reader.readString(),
-      photoUrl: reader.readString(),
+      photoUrl: reader.readBool() ? reader.readString() : null,
+      emailVerified: reader.readBool(),
     );
   }
 
@@ -20,6 +21,14 @@ class UserAdapter extends TypeAdapter<UserModel> {
     writer.writeString(obj.id);
     writer.writeString(obj.email);
     writer.writeString(obj.name);
-    writer.writeString(obj.photoUrl ?? '');
+
+    // Handle nullable photoUrl
+    final hasPhotoUrl = obj.photoUrl != null;
+    writer.writeBool(hasPhotoUrl);
+    if (hasPhotoUrl) {
+      writer.writeString(obj.photoUrl!);
+    }
+
+    writer.writeBool(obj.emailVerified);
   }
 }

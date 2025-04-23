@@ -9,7 +9,7 @@ abstract class AuthLocalDataSource {
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
-  final Box<UserModel> userBox;
+  final Box<dynamic> userBox;
 
   AuthLocalDataSourceImpl({required this.userBox});
 
@@ -18,21 +18,31 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     try {
       final user = userBox.get('current_user');
       if (user != null) {
-        return user;
+        // Handle the case where the user might be stored as a Map
+        if (user is Map) {
+          return UserModel.fromJson(Map<String, dynamic>.from(user));
+        }
+        // Handle the case where user is already a UserModel
+        if (user is UserModel) {
+          return user;
+        }
+        throw CacheException(message: 'Invalid user data format in cache');
       } else {
         throw CacheException(message: 'No cached user found');
       }
     } catch (e) {
-      throw CacheException(message: 'Failed to get cached user');
+      throw CacheException(
+        message: 'Failed to get cached user: ${e.toString()}',
+      );
     }
   }
 
   @override
   Future<void> cacheUser(UserModel user) async {
     try {
-      await userBox.put('current_user', user);
+      await userBox.put('current_user', user.toJson());
     } catch (e) {
-      throw CacheException(message: 'Failed to cache user');
+      throw CacheException(message: 'Failed to cache user: ${e.toString()}');
     }
   }
 
@@ -41,7 +51,9 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     try {
       await userBox.delete('current_user');
     } catch (e) {
-      throw CacheException(message: 'Failed to remove user from cache');
+      throw CacheException(
+        message: 'Failed to remove user from cache: ${e.toString()}',
+      );
     }
   }
 }

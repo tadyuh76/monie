@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:monie/core/widgets/theme_toggle.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -32,6 +33,9 @@ class _DashboardPageState extends State<DashboardPage> {
         appBar: AppBar(
           title: const Text('Dashboard'),
           actions: [
+            // Add theme toggle
+            const ThemeToggle(),
+            // Logout button
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () {
