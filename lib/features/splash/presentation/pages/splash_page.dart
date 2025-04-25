@@ -27,7 +27,7 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
+    return BlocListener<AuthBloc, BLoCAuthState>(
       listener: (context, state) {
         if (state is Authenticated) {
           context.go('/dashboard');

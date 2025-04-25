@@ -1,16 +1,16 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:monie/core/di/injection_container.dart' as di;
 import 'package:monie/core/routes/app_router.dart';
+import 'package:monie/core/supabase/supabase_service.dart';
 import 'package:monie/core/theme/app_theme.dart';
 import 'package:monie/core/theme/cubit/theme_cubit.dart';
 import 'package:monie/core/utils/error_logger.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
-import 'package:monie/firebase/firebase_options.dart';
 import 'package:monie/hive/adapters/user_adapter.dart';
 import 'package:monie/hive/boxes/boxes.dart';
 
@@ -26,20 +26,21 @@ void main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
+      // Load environment variables
+      await dotenv.load(fileName: '.env');
+
       // Initialize Hive first as it's critical
       await Hive.initFlutter();
       Hive.registerAdapter(UserAdapter());
       await HiveBoxes.init();
 
       try {
-        // Initialize Firebase
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-        debugPrint('Firebase initialized successfully');
+        // Initialize Supabase
+        await SupabaseService.initialize();
+        debugPrint('Supabase initialized successfully');
       } catch (e) {
-        debugPrint('Error initializing Firebase: $e');
-        // Continue with app initialization - dependency injection will use mocks if Firebase init fails
+        debugPrint('Error initializing Supabase: $e');
+        // Continue with app initialization - dependency injection will use mocks if Supabase init fails
       }
 
       // Initialize dependency injection
@@ -98,7 +99,7 @@ class MainApp extends StatelessWidget {
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
-          return BlocListener<AuthBloc, AuthState>(
+          return BlocListener<AuthBloc, BLoCAuthState>(
             listener: (context, state) {
               // Reset auth bloc state to initial when user is unauthenticated
               // This ensures a clean login screen experience

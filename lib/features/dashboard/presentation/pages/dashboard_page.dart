@@ -23,7 +23,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
+    return BlocListener<AuthBloc, BLoCAuthState>(
       listener: (context, state) {
         if (state is Unauthenticated) {
           context.go('/login');
@@ -46,7 +46,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
         drawer: Drawer(
-          child: BlocBuilder<AuthBloc, AuthState>(
+          child: BlocBuilder<AuthBloc, BLoCAuthState>(
             builder: (context, state) {
               if (state is Authenticated) {
                 return ListView(
@@ -105,7 +105,7 @@ class _DashboardPageState extends State<DashboardPage> {
             },
           ),
         ),
-        body: BlocBuilder<AuthBloc, AuthState>(
+        body: BlocBuilder<AuthBloc, BLoCAuthState>(
           builder: (context, state) {
             // Handle initial state more gracefully
             if (state is AuthInitial) {

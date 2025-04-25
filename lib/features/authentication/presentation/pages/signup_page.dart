@@ -44,7 +44,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthBloc, AuthState>(
+    return BlocConsumer<AuthBloc, BLoCAuthState>(
       listener: (context, state) {
         if (state is Authenticated) {
           context.go('/dashboard');
@@ -66,7 +66,7 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget _buildSignupForm(BuildContext context, AuthState state) {
+  Widget _buildSignupForm(BuildContext context, BLoCAuthState state) {
     final isLoading = state is AuthLoading;
 
     return Form(

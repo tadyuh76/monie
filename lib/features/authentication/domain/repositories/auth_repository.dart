@@ -18,4 +18,11 @@ abstract class AuthRepository {
   Future<Either<Failure, bool>> isEmailVerified();
   Future<Either<Failure, void>> sendEmailVerification();
   Future<Either<Failure, void>> updateEmail(String newEmail);
+
+  Future<Either<Failure, void>> resetPassword(String email);
+  Future<Either<Failure, void>> confirmPasswordReset({
+    required String password,
+    required String token,
+  });
+  Future<Either<Failure, bool>> isRecoveryTokenValid(String token);
 }

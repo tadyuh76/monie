@@ -188,4 +188,66 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(message: e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> resetPassword(String email) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: 'No internet connection'));
+    }
+
+    try {
+      await remoteDataSource.resetPassword(email);
+      return const Right(null);
+    } on AuthException catch (e) {
+      ErrorLogger.logError('AuthRepository.resetPassword', e, null);
+      return Left(AuthFailure(message: e.message));
+    } catch (e, stackTrace) {
+      ErrorLogger.logError('AuthRepository.resetPassword', e, stackTrace);
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> confirmPasswordReset({
+    required String password,
+    required String token,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: 'No internet connection'));
+    }
+
+    try {
+      await remoteDataSource.confirmPasswordReset(
+        password: password,
+        token: token,
+      );
+      return const Right(null);
+    } on AuthException catch (e) {
+      ErrorLogger.logError('AuthRepository.confirmPasswordReset', e, null);
+      return Left(AuthFailure(message: e.message));
+    } catch (e, stackTrace) {
+      ErrorLogger.logError(
+        'AuthRepository.confirmPasswordReset',
+        e,
+        stackTrace,
+      );
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> isRecoveryTokenValid(String token) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: 'No internet connection'));
+    }
+
+    try {
+      final isValid = await remoteDataSource.isRecoveryTokenValid(token);
+      return Right(isValid);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
 }

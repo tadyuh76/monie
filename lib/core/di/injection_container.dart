@@ -1,42 +1,30 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:monie/core/network/network_info.dart';
+import 'package:monie/core/supabase/supabase_auth_service.dart';
 import 'package:monie/core/theme/cubit/theme_cubit.dart';
 import 'package:monie/features/authentication/data/datasources/auth_local_datasource.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_datasource.dart';
-import 'package:monie/features/authentication/data/datasources/auth_remote_datasource_mock.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
 import 'package:monie/features/authentication/domain/repositories/auth_repository.dart';
 import 'package:monie/features/authentication/domain/usecases/check_email_verified.dart';
 import 'package:monie/features/authentication/domain/usecases/get_signed_in_user.dart';
-import 'package:monie/features/authentication/domain/usecases/is_email_verified.dart';
-import 'package:monie/features/authentication/domain/usecases/is_signed_in.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_in.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
 import 'package:monie/features/authentication/domain/usecases/update_email.dart';
 import 'package:monie/features/authentication/domain/usecases/verify_email.dart';
+import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
+import 'package:monie/features/authentication/domain/usecases/confirm_password_reset.dart';
+import 'package:monie/features/authentication/domain/usecases/check_recovery_token.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
-import 'package:monie/firebase/services/firebase_auth_service.dart';
 import 'package:monie/hive/adapters/user_adapter.dart';
 import 'package:monie/hive/boxes/boxes.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-final GetIt sl = GetIt.instance;
-
-// Check if Firebase is available by testing if we can access Firebase Auth
-bool get _isFirebaseAvailable {
-  try {
-    FirebaseAuth.instance;
-    return true;
-  } catch (e) {
-    debugPrint('Firebase is not available: $e');
-    return false;
-  }
-}
+final sl = GetIt.instance;
 
 Future<void> init() async {
   debugPrint('Initializing dependency injection...');
@@ -86,12 +74,8 @@ Future<void> _registerExternalDependencies() async {
     );
   }
 
-  if (_isFirebaseAvailable) {
-    // Firebase services
-    sl.registerLazySingleton(() => FirebaseAuth.instance);
-    sl.registerLazySingleton(() => FirebaseFirestore.instance);
-    sl.registerLazySingleton(() => FirebaseAuthService(firebaseAuth: sl()));
-  }
+  // Supabase services
+  sl.registerLazySingleton(() => SupabaseAuthService());
 }
 
 void _registerCoreDependencies() {
@@ -140,6 +124,9 @@ Future<void> _initAuthFeature() async {
       checkEmailVerified: sl(),
       verifyEmail: sl(),
       updateEmail: sl(),
+      resetPassword: sl(),
+      confirmPasswordReset: sl(),
+      checkRecoveryToken: sl(),
     ),
   );
 
@@ -166,11 +153,14 @@ void _registerAuthUseCases() {
   if (!sl.isRegistered<UpdateEmail>()) {
     sl.registerLazySingleton(() => UpdateEmail(sl()));
   }
-  if (!sl.isRegistered<IsSignedIn>()) {
-    sl.registerLazySingleton(() => IsSignedIn(sl()));
+  if (!sl.isRegistered<ResetPassword>()) {
+    sl.registerLazySingleton(() => ResetPassword(sl()));
   }
-  if (!sl.isRegistered<IsEmailVerified>()) {
-    sl.registerLazySingleton(() => IsEmailVerified(sl()));
+  if (!sl.isRegistered<ConfirmPasswordReset>()) {
+    sl.registerLazySingleton(() => ConfirmPasswordReset(sl()));
+  }
+  if (!sl.isRegistered<CheckRecoveryToken>()) {
+    sl.registerLazySingleton(() => CheckRecoveryToken(sl()));
   }
 }
 
@@ -186,19 +176,15 @@ void _registerAuthDataSources() {
     );
   }
 
-  // Register remote data source based on Firebase availability
+  // Register remote data source using Supabase
   if (!sl.isRegistered<AuthRemoteDataSource>()) {
-    if (_isFirebaseAvailable) {
-      sl.registerLazySingleton<AuthRemoteDataSource>(
-        () => AuthRemoteDataSourceImpl(firebaseAuth: sl(), firestore: sl()),
-      );
-      debugPrint('Registered real remote data source');
-    } else {
-      sl.registerLazySingleton<AuthRemoteDataSource>(
-        () => AuthRemoteDataSourceMock(),
-      );
-      debugPrint('Registered mock remote data source');
-    }
+    sl.registerLazySingleton<AuthRemoteDataSource>(
+      () => AuthRemoteDataSourceImpl(
+        authService: sl(),
+        supabaseClient: Supabase.instance.client,
+      ),
+    );
+    debugPrint('Registered Supabase remote data source');
   }
 }
 

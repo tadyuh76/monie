@@ -1,7 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:monie/core/error/exceptions.dart';
+import 'package:monie/core/error/failures.dart';
+import 'package:monie/core/supabase/supabase_auth_service.dart';
 import 'package:monie/features/authentication/data/models/user_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract class AuthRemoteDataSource {
   Future<UserModel> signIn({required String email, required String password});
@@ -16,15 +17,22 @@ abstract class AuthRemoteDataSource {
   Future<bool> isEmailVerified();
   Future<void> sendEmailVerification();
   Future<void> updateEmail(String newEmail);
+
+  Future<void> resetPassword(String email);
+  Future<void> confirmPasswordReset({
+    required String password,
+    required String token,
+  });
+  Future<bool> isRecoveryTokenValid(String token);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  final firebase_auth.FirebaseAuth firebaseAuth;
-  final FirebaseFirestore firestore;
+  final SupabaseAuthService authService;
+  final SupabaseClient supabaseClient;
 
   AuthRemoteDataSourceImpl({
-    required this.firebaseAuth,
-    required this.firestore,
+    required this.authService,
+    required this.supabaseClient,
   });
 
   @override
@@ -33,34 +41,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
   }) async {
     try {
-      final userCredential = await firebaseAuth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      if (userCredential.user == null) {
-        throw AuthException(message: 'User not found');
-      }
-
-      final firebaseUser = userCredential.user!;
-      final userDoc =
-          await firestore.collection('users').doc(firebaseUser.uid).get();
-
-      if (!userDoc.exists) {
-        throw AuthException(message: 'User data not found');
-      }
-
-      final userData = userDoc.data() as Map<String, dynamic>;
-      return UserModel(
-        id: firebaseUser.uid,
-        email: firebaseUser.email ?? '',
-        name: userData['name'] ?? '',
-        photoUrl: userData['photoUrl'],
-        emailVerified: firebaseUser.emailVerified,
-      );
-    } on firebase_auth.FirebaseAuthException catch (e) {
-      throw AuthException(message: e.message ?? 'Authentication failed');
+      return await authService.signIn(email: email, password: password);
     } catch (e) {
+      if (e is AuthFailure) rethrow;
       throw ServerException(message: e.toString());
     }
   }
@@ -72,114 +55,63 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String name,
   }) async {
     try {
-      // Create the user first
-      final userCredential = await firebaseAuth.createUserWithEmailAndPassword(
+      return await authService.signUp(
         email: email,
         password: password,
-      );
-
-      if (userCredential.user == null) {
-        throw AuthException(message: 'Failed to create user');
-      }
-
-      final firebaseUser = userCredential.user!;
-
-      // Update user profile - wrap in try/catch to prevent this from causing the entire registration to fail
-      try {
-        await firebaseUser.updateDisplayName(name);
-      } catch (e) {
-        print('Warning: Could not update display name: $e');
-        // Continue with the process
-      }
-
-      // Send verification email - handle errors separately
-      try {
-        await firebaseUser.sendEmailVerification();
-      } catch (e) {
-        print('Warning: Could not send verification email: $e');
-        // Continue with the process
-      }
-
-      // Create user document in Firestore
-      try {
-        await firestore.collection('users').doc(firebaseUser.uid).set({
-          'email': email,
-          'name': name,
-          'createdAt': FieldValue.serverTimestamp(),
-          'emailVerified': false,
-        });
-      } catch (e) {
-        print('Warning: Could not create user document in Firestore: $e');
-        // We don't want to throw here as the user is already created in Auth
-      }
-
-      return UserModel(
-        id: firebaseUser.uid,
-        email: email,
         name: name,
-        emailVerified: false,
       );
-    } on firebase_auth.FirebaseAuthException catch (e) {
-      throw AuthException(message: e.message ?? 'Registration failed');
     } catch (e) {
-      throw ServerException(message: 'Registration error: ${e.toString()}');
+      if (e is AuthFailure) rethrow;
+      throw ServerException(message: e.toString());
     }
   }
 
   @override
   Future<void> signOut() async {
     try {
-      // Clear any cached credentials or tokens first
-      await Future.wait([
-        firebaseAuth.signOut(),
-        // Add any additional cleanup operations here if needed
-        // For example, clearing specific cached data
-      ]);
+      await supabaseClient.auth.signOut();
     } catch (e) {
-      throw AuthException(message: 'Failed to sign out: ${e.toString()}');
+      throw AuthFailure(message: 'Failed to sign out: ${e.toString()}');
     }
   }
 
   @override
   Future<bool> isSignedIn() async {
-    return firebaseAuth.currentUser != null;
+    return supabaseClient.auth.currentUser != null;
   }
 
   @override
   Future<UserModel> getCurrentUser() async {
-    final firebaseUser = firebaseAuth.currentUser;
+    final user = supabaseClient.auth.currentUser;
 
-    if (firebaseUser == null) {
-      throw AuthException(message: 'Not signed in');
+    if (user == null) {
+      throw AuthFailure(message: 'Not signed in');
     }
 
     try {
-      // Reload user to get latest data
-      await firebaseUser.reload();
+      // Get user metadata from Supabase user table
+      final userData =
+          await supabaseClient
+              .from('users')
+              .select()
+              .eq('id', user.id)
+              .single();
 
-      final userDoc =
-          await firestore.collection('users').doc(firebaseUser.uid).get();
-
-      if (!userDoc.exists) {
-        throw AuthException(message: 'User data not found');
-      }
-
-      final userData = userDoc.data() as Map<String, dynamic>;
-
-      // Update emailVerified status in Firestore if needed
-      if (userData['emailVerified'] != firebaseUser.emailVerified &&
-          firebaseUser.emailVerified) {
-        await firestore.collection('users').doc(firebaseUser.uid).update({
-          'emailVerified': firebaseUser.emailVerified,
-        });
+      // Update email verification status if needed
+      final emailVerified = user.emailConfirmedAt != null;
+      if (userData['email_verified'] != emailVerified && emailVerified) {
+        await supabaseClient
+            .from('users')
+            .update({'email_verified': emailVerified})
+            .eq('id', user.id);
       }
 
       return UserModel(
-        id: firebaseUser.uid,
-        email: firebaseUser.email ?? '',
+        id: user.id,
+        email: user.email ?? '',
         name: userData['name'] ?? '',
-        photoUrl: userData['photoUrl'],
-        emailVerified: firebaseUser.emailVerified,
+        photoUrl: userData['photo_url'],
+        emailVerified: emailVerified,
       );
     } catch (e) {
       throw ServerException(message: e.toString());
@@ -188,48 +120,63 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<bool> isEmailVerified() async {
-    final firebaseUser = firebaseAuth.currentUser;
-    if (firebaseUser == null) return false;
-
-    // Reload user to get latest state
-    await firebaseUser.reload();
-    return firebaseUser.emailVerified;
+    try {
+      return await authService.isEmailVerified();
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
   }
 
   @override
   Future<void> sendEmailVerification() async {
     try {
-      final firebaseUser = firebaseAuth.currentUser;
-      if (firebaseUser == null) {
-        throw AuthException(message: 'No user signed in');
-      }
-
-      await firebaseUser.sendEmailVerification();
-    } on firebase_auth.FirebaseAuthException catch (e) {
-      throw AuthException(
-        message: e.message ?? 'Failed to send verification email',
-      );
+      await authService.sendEmailVerification();
     } catch (e) {
-      throw ServerException(
-        message: 'Error sending verification: ${e.toString()}',
-      );
+      if (e is AuthFailure) rethrow;
+      throw ServerException(message: e.toString());
     }
   }
 
   @override
   Future<void> updateEmail(String newEmail) async {
     try {
-      final firebaseUser = firebaseAuth.currentUser;
-      if (firebaseUser == null) {
-        throw AuthException(message: 'No user signed in');
-      }
-
-      // Use verifyBeforeUpdateEmail instead of directly updating
-      await firebaseUser.verifyBeforeUpdateEmail(newEmail);
-    } on firebase_auth.FirebaseAuthException catch (e) {
-      throw AuthException(message: e.message ?? 'Failed to update email');
+      await authService.updateEmail(newEmail);
     } catch (e) {
-      throw ServerException(message: 'Error updating email: ${e.toString()}');
+      if (e is AuthFailure) rethrow;
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<void> resetPassword(String email) async {
+    try {
+      await authService.resetPassword(email: email);
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<void> confirmPasswordReset({
+    required String password,
+    required String token,
+  }) async {
+    try {
+      await authService.confirmPasswordReset(password: password, token: token);
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<bool> isRecoveryTokenValid(String token) async {
+    try {
+      return await authService.isRecoveryTokenValid(token);
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      throw ServerException(message: e.toString());
     }
   }
 }

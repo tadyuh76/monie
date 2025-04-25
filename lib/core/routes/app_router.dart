@@ -4,6 +4,8 @@ import 'package:monie/features/authentication/presentation/pages/login_page.dart
 import 'package:monie/features/authentication/presentation/pages/signup_page.dart';
 import 'package:monie/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:monie/features/splash/presentation/pages/splash_page.dart';
+import 'package:monie/features/authentication/presentation/pages/forgot_password_page.dart';
+import 'package:monie/features/authentication/presentation/pages/reset_password_page.dart';
 
 /// Router configuration for the app
 class AppRouter {
@@ -79,6 +81,38 @@ class AppRouter {
               },
             ),
       ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/reset-password/:token',
+        builder: (context, state) {
+          final token = state.pathParameters['token'] ?? '';
+          return ResetPasswordPage(token: token);
+        },
+      ),
     ],
+    redirect: (context, state) {
+      final uri = Uri.parse(state.uri.toString());
+
+      // Handle password reset deep links
+      if (state.uri.toString().startsWith(
+        'io.supabase.monie://reset-password',
+      )) {
+        final token = uri.queryParameters['token'] ?? '';
+        return '/reset-password/$token';
+      }
+
+      // Handle email verification deep links
+      if (state.uri.toString().startsWith(
+        'io.supabase.monie://email-verification',
+      )) {
+        // After email verification, redirect to dashboard or profile page
+        return '/dashboard';
+      }
+
+      return null; // No redirect needed
+    },
   );
 }

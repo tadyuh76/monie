@@ -4,6 +4,9 @@ import 'package:monie/core/usecases/usecase.dart';
 import 'package:monie/features/authentication/domain/entities/user.dart';
 import 'package:monie/features/authentication/domain/usecases/check_email_verified.dart';
 import 'package:monie/features/authentication/domain/usecases/get_signed_in_user.dart';
+import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
+import 'package:monie/features/authentication/domain/usecases/confirm_password_reset.dart';
+import 'package:monie/features/authentication/domain/usecases/check_recovery_token.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_in.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
@@ -62,19 +65,50 @@ class UpdateEmailEvent extends AuthEvent {
 
 class ResetAuthEvent extends AuthEvent {}
 
+class ForgotPasswordEvent extends AuthEvent {
+  final String email;
+
+  const ForgotPasswordEvent({required this.email});
+
+  @override
+  List<Object> get props => [email];
+}
+
+class ConfirmPasswordResetEvent extends AuthEvent {
+  final String password;
+  final String token;
+
+  const ConfirmPasswordResetEvent({
+    required this.password,
+    required this.token,
+  });
+
+  @override
+  List<Object> get props => [password, token];
+}
+
+class CheckRecoveryTokenEvent extends AuthEvent {
+  final String token;
+
+  const CheckRecoveryTokenEvent({required this.token});
+
+  @override
+  List<Object> get props => [token];
+}
+
 // States
-abstract class AuthState extends Equatable {
-  const AuthState();
+abstract class BLoCAuthState extends Equatable {
+  const BLoCAuthState();
 
   @override
   List<Object?> get props => [];
 }
 
-class AuthInitial extends AuthState {}
+class AuthInitial extends BLoCAuthState {}
 
-class AuthLoading extends AuthState {}
+class AuthLoading extends BLoCAuthState {}
 
-class Authenticated extends AuthState {
+class Authenticated extends BLoCAuthState {
   final User user;
 
   const Authenticated({required this.user});
@@ -83,9 +117,9 @@ class Authenticated extends AuthState {
   List<Object?> get props => [user];
 }
 
-class Unauthenticated extends AuthState {}
+class Unauthenticated extends BLoCAuthState {}
 
-class AuthError extends AuthState {
+class AuthError extends BLoCAuthState {
   final String message;
 
   const AuthError({required this.message});
@@ -94,11 +128,11 @@ class AuthError extends AuthState {
   List<Object?> get props => [message];
 }
 
-class EmailVerificationSent extends AuthState {}
+class EmailVerificationSent extends BLoCAuthState {}
 
-class EmailUpdateSent extends AuthState {}
+class EmailUpdateSent extends BLoCAuthState {}
 
-class EmailVerificationStatus extends AuthState {
+class EmailVerificationStatus extends BLoCAuthState {
   final bool isVerified;
 
   const EmailVerificationStatus({required this.isVerified});
@@ -107,8 +141,21 @@ class EmailVerificationStatus extends AuthState {
   List<Object?> get props => [isVerified];
 }
 
+class PasswordResetSent extends BLoCAuthState {}
+
+class PasswordResetConfirmed extends BLoCAuthState {}
+
+class RecoveryTokenStatus extends BLoCAuthState {
+  final bool isValid;
+
+  const RecoveryTokenStatus({required this.isValid});
+
+  @override
+  List<Object?> get props => [isValid];
+}
+
 // BLoC
-class AuthBloc extends Bloc<AuthEvent, AuthState> {
+class AuthBloc extends Bloc<AuthEvent, BLoCAuthState> {
   final SignIn signIn;
   final SignUp signUp;
   final SignOut signOut;
@@ -116,6 +163,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final CheckEmailVerified checkEmailVerified;
   final VerifyEmail verifyEmail;
   final UpdateEmail updateEmail;
+  final ResetPassword resetPassword;
+  final ConfirmPasswordReset confirmPasswordReset;
+  final CheckRecoveryToken checkRecoveryToken;
 
   AuthBloc({
     required this.signIn,
@@ -125,6 +175,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.checkEmailVerified,
     required this.verifyEmail,
     required this.updateEmail,
+    required this.resetPassword,
+    required this.confirmPasswordReset,
+    required this.checkRecoveryToken,
   }) : super(AuthInitial()) {
     on<CheckAuthStatusEvent>(_onCheckAuthStatus);
     on<SignInEvent>(_onSignIn);
@@ -134,11 +187,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SendEmailVerificationEvent>(_onSendEmailVerification);
     on<UpdateEmailEvent>(_onUpdateEmail);
     on<ResetAuthEvent>(_onResetAuth);
+    on<ForgotPasswordEvent>(_onForgotPassword);
+    on<ConfirmPasswordResetEvent>(_onConfirmPasswordReset);
+    on<CheckRecoveryTokenEvent>(_onCheckRecoveryToken);
   }
 
   Future<void> _onCheckAuthStatus(
     CheckAuthStatusEvent event,
-    Emitter<AuthState> emit,
+    Emitter<BLoCAuthState> emit,
   ) async {
     emit(AuthLoading());
     final userResult = await getSignedInUser();
@@ -148,7 +204,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  Future<void> _onSignIn(SignInEvent event, Emitter<AuthState> emit) async {
+  Future<void> _onSignIn(SignInEvent event, Emitter<BLoCAuthState> emit) async {
     emit(AuthLoading());
     final result = await signIn(
       SignInParams(email: event.email, password: event.password),
@@ -159,7 +215,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  Future<void> _onSignUp(SignUpEvent event, Emitter<AuthState> emit) async {
+  Future<void> _onSignUp(SignUpEvent event, Emitter<BLoCAuthState> emit) async {
     emit(AuthLoading());
     try {
       final result = await signUp(
@@ -173,10 +229,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       result.fold((failure) => emit(AuthError(message: failure.message)), (
         user,
       ) {
-        // After successful registration, we know email verification is needed
         emit(Authenticated(user: user));
-
-        // Immediately check email verification status
         add(CheckEmailVerificationEvent());
       });
     } catch (e) {
@@ -188,12 +241,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onSignOut(SignOutEvent event, Emitter<AuthState> emit) async {
+  Future<void> _onSignOut(
+    SignOutEvent event,
+    Emitter<BLoCAuthState> emit,
+  ) async {
     emit(AuthLoading());
 
     final result = await signOut(NoParams());
 
-    // Use a short delay to ensure UI transitions smoothly
     await Future.delayed(const Duration(milliseconds: 100));
 
     result.fold(
@@ -204,7 +259,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onCheckEmailVerification(
     CheckEmailVerificationEvent event,
-    Emitter<AuthState> emit,
+    Emitter<BLoCAuthState> emit,
   ) async {
     emit(AuthLoading());
     final result = await checkEmailVerified(NoParams());
@@ -216,7 +271,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onSendEmailVerification(
     SendEmailVerificationEvent event,
-    Emitter<AuthState> emit,
+    Emitter<BLoCAuthState> emit,
   ) async {
     emit(AuthLoading());
     final result = await verifyEmail(NoParams());
@@ -228,7 +283,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onUpdateEmail(
     UpdateEmailEvent event,
-    Emitter<AuthState> emit,
+    Emitter<BLoCAuthState> emit,
   ) async {
     emit(AuthLoading());
     final result = await updateEmail(
@@ -240,7 +295,47 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  void _onResetAuth(ResetAuthEvent event, Emitter<AuthState> emit) {
+  void _onResetAuth(ResetAuthEvent event, Emitter<BLoCAuthState> emit) {
     emit(AuthInitial());
+  }
+
+  Future<void> _onForgotPassword(
+    ForgotPasswordEvent event,
+    Emitter<BLoCAuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final result = await resetPassword(ResetPasswordParams(email: event.email));
+    result.fold(
+      (failure) => emit(AuthError(message: failure.message)),
+      (_) => emit(PasswordResetSent()),
+    );
+  }
+
+  Future<void> _onConfirmPasswordReset(
+    ConfirmPasswordResetEvent event,
+    Emitter<BLoCAuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final result = await confirmPasswordReset(
+      ConfirmPasswordResetParams(password: event.password, token: event.token),
+    );
+    result.fold(
+      (failure) => emit(AuthError(message: failure.message)),
+      (_) => emit(PasswordResetConfirmed()),
+    );
+  }
+
+  Future<void> _onCheckRecoveryToken(
+    CheckRecoveryTokenEvent event,
+    Emitter<BLoCAuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final result = await checkRecoveryToken(
+      CheckRecoveryTokenParams(token: event.token),
+    );
+    result.fold(
+      (failure) => emit(AuthError(message: failure.message)),
+      (isValid) => emit(RecoveryTokenStatus(isValid: isValid)),
+    );
   }
 }

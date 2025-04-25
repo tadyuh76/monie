@@ -5,33 +5,33 @@ import 'package:monie/core/theme/app_theme.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/widgets/auth_page_scaffold.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class ForgotPasswordPage extends StatefulWidget {
+  const ForgotPasswordPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
+  void _submitForm() {
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _isSubmitting = true;
+        print(_isSubmitting);
+      });
+
       context.read<AuthBloc>().add(
-        SignInEvent(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        ),
+        ForgotPasswordEvent(email: _emailController.text.trim()),
       );
     }
   }
@@ -40,9 +40,27 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<AuthBloc, BLoCAuthState>(
       listener: (context, state) {
-        if (state is Authenticated) {
-          context.go('/dashboard');
+        if (state is PasswordResetSent) {
+          setState(() {
+            _isSubmitting = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Password reset email has been sent. Please check your email.',
+              ),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
+          );
+
+          // Go back to login page
+          context.pop();
         } else if (state is AuthError) {
+          setState(() {
+            _isSubmitting = false;
+          });
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -52,17 +70,18 @@ class _LoginPageState extends State<LoginPage> {
         }
       },
       builder: (context, state) {
+        final isLoading = state is AuthLoading;
+
         return AuthPageScaffold(
-          title: 'Sign In',
-          showBackButton: false,
-          child: _buildLoginForm(context, state),
+          title: 'Reset Password',
+          child: _buildForgotPasswordForm(context, isLoading),
         );
       },
     );
   }
 
-  Widget _buildLoginForm(BuildContext context, BLoCAuthState state) {
-    final isLoading = state is AuthLoading;
+  Widget _buildForgotPasswordForm(BuildContext context, bool isLoading) {
+    final theme = Theme.of(context);
 
     return Form(
       key: _formKey,
@@ -70,14 +89,14 @@ class _LoginPageState extends State<LoginPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Welcome Back',
-            style: Theme.of(context).textTheme.headlineSmall,
+            'Forgot Your Password?',
+            style: theme.textTheme.headlineSmall,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Sign in to access your account',
-            style: Theme.of(context).textTheme.bodyMedium,
+            'Enter your email address and we\'ll send you instructions to reset your password.',
+            style: theme.textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -91,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
+            textInputAction: TextInputAction.done,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter your email';
@@ -106,66 +125,13 @@ class _LoginPageState extends State<LoginPage> {
             enabled: !isLoading,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 32),
 
-          // Password Field
-          TextFormField(
-            controller: _passwordController,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              prefixIcon: const Icon(Icons.lock_outline),
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              ),
-            ),
-            obscureText: _obscurePassword,
-            textInputAction: TextInputAction.done,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your password';
-              }
-              return null;
-            },
-            enabled: !isLoading,
-          ),
-
-          const SizedBox(height: 8),
-
-          // Forgot Password Link
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed:
-                  isLoading
-                      ? null
-                      : () {
-                        context.push('/forgot-password');
-                      },
-              child: Text(
-                'Forgot Password?',
-                style: TextStyle(
-                  color: AppTheme.primarySwatch.shade500,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Sign In Button
+          // Send Reset Link Button
           SizedBox(
             height: 50,
             child: ElevatedButton(
-              onPressed: isLoading ? null : _login,
+              onPressed: isLoading ? null : _submitForm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primarySwatch.shade500,
                 foregroundColor: Colors.white,
@@ -183,29 +149,24 @@ class _LoginPageState extends State<LoginPage> {
                           strokeWidth: 2,
                         ),
                       )
-                      : const Text('SIGN IN'),
+                      : const Text('SEND RESET LINK'),
             ),
           ),
 
           const SizedBox(height: 24),
 
-          // Register Link
+          // Back to Login Button
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Don\'t have an account?',
-                style: Theme.of(context).textTheme.bodyMedium,
+                'Remember your password?',
+                style: theme.textTheme.bodyMedium,
               ),
               TextButton(
-                onPressed:
-                    isLoading
-                        ? null
-                        : () {
-                          context.go('/register');
-                        },
+                onPressed: isLoading ? null : () => context.pop(),
                 child: Text(
-                  'Sign Up',
+                  'Back to Login',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primarySwatch.shade500,
