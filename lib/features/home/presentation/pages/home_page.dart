@@ -2,10 +2,15 @@ import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/core/utils/mock_data.dart';
+import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
+import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
+import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
+import 'package:monie/features/authentication/presentation/pages/login_page.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 
@@ -126,34 +131,104 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              _buildGreeting(context),
-              const SizedBox(height: 24),
-              _buildAccountsSection(context),
-              const SizedBox(height: 24),
-              _buildAccountSummary(context),
-              const SizedBox(height: 24),
-              _buildBudgetSection(context),
-              const SizedBox(height: 24),
-              _buildSummarySection(context),
-              const SizedBox(height: 24),
-              _buildNetWorthSection(context),
-              const SizedBox(height: 24),
-              _buildPieChartSection(context),
-              const SizedBox(height: 24),
-              _buildHeatMapSection(context),
-              const SizedBox(height: 24),
-              _buildRecentTransactionsSection(context),
-              const SizedBox(height: 100), // Extra space at the bottom
-            ],
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        // When user is signed out, navigate to login page
+        if (state is Unauthenticated) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            'Monie',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          actions: [
+            // Logout button
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: () {
+                // Show confirmation dialog
+                showDialog(
+                  context: context,
+                  builder:
+                      (context) => AlertDialog(
+                        backgroundColor: AppColors.surface,
+                        title: const Text(
+                          'Logout',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        content: const Text(
+                          'Are you sure you want to logout?',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              context.read<AuthBloc>().add(SignOutEvent());
+
+                              // Also manually navigate to login page for redundancy
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginPage(),
+                                ),
+                                (route) => false,
+                              );
+                            },
+                            child: Text(
+                              'Logout',
+                              style: TextStyle(color: AppColors.expense),
+                            ),
+                          ),
+                        ],
+                      ),
+                );
+              },
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                _buildGreeting(context),
+                const SizedBox(height: 24),
+                _buildAccountsSection(context),
+                const SizedBox(height: 24),
+                _buildAccountSummary(context),
+                const SizedBox(height: 24),
+                _buildBudgetSection(context),
+                const SizedBox(height: 24),
+                _buildSummarySection(context),
+                const SizedBox(height: 24),
+                _buildNetWorthSection(context),
+                const SizedBox(height: 24),
+                _buildPieChartSection(context),
+                const SizedBox(height: 24),
+                _buildHeatMapSection(context),
+                const SizedBox(height: 24),
+                _buildRecentTransactionsSection(context),
+                const SizedBox(height: 100), // Extra space at the bottom
+              ],
+            ),
           ),
         ),
       ),
@@ -755,20 +830,34 @@ class _HomePageState extends State<HomePage> {
 
         // Category icons positioned around the pie chart
         ...List.generate(expenseCategories.length, (index) {
-          // Calculate position based on the angle
-          final angle =
-              (270 + (index * (360 / expenseCategories.length))) *
-              (3.14159 / 180);
-          final radius = 90; // Radius where icons will be placed
-          final x = radius * cos(angle);
-          final y = radius * sin(angle);
+          // Calculate the middle angle of each pie section in radians
+          double totalValue = expenseCategories.fold(
+            0.0,
+            (sum, item) => sum + item['value'],
+          );
+
+          // Calculate the starting and ending angles for each category
+          double startAngle = 270.0; // Start from the top
+          for (int i = 0; i < index; i++) {
+            startAngle += (expenseCategories[i]['value'] / totalValue) * 360.0;
+          }
+
+          // Calculate the middle angle of this section
+          double middleAngle =
+              startAngle +
+              (expenseCategories[index]['value'] / totalValue) * 180.0;
+
+          // Convert to radians
+          double middleAngleRadians = middleAngle * (3.14159 / 180);
+
+          // Position at the edge of the chart with some padding
+          final radius = 110;
+          final x = radius * cos(middleAngleRadians);
+          final y = radius * sin(middleAngleRadians);
 
           return Positioned(
-            left:
-                140 +
-                x -
-                16, // Center + offset - half icon size, added more space
-            top: 140 + y - 16,
+            left: 170 + x - 16, // Center (180) + offset - half icon size (16)
+            top: 170 + y - 16,
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -921,20 +1010,34 @@ class _HomePageState extends State<HomePage> {
 
         // Category icons positioned around the pie chart
         ...List.generate(incomeCategories.length, (index) {
-          // Calculate position based on the angle
-          final angle =
-              (270 + (index * (360 / incomeCategories.length))) *
-              (3.14159 / 180);
-          final radius = 90; // Radius where icons will be placed
-          final x = radius * cos(angle);
-          final y = radius * sin(angle);
+          // Calculate the middle angle of each pie section in radians
+          double totalValue = incomeCategories.fold(
+            0.0,
+            (sum, item) => sum + item['value'],
+          );
+
+          // Calculate the starting and ending angles for each category
+          double startAngle = 270.0; // Start from the top
+          for (int i = 0; i < index; i++) {
+            startAngle += (incomeCategories[i]['value'] / totalValue) * 360.0;
+          }
+
+          // Calculate the middle angle of this section
+          double middleAngle =
+              startAngle +
+              (incomeCategories[index]['value'] / totalValue) * 180.0;
+
+          // Convert to radians
+          double middleAngleRadians = middleAngle * (3.14159 / 180);
+
+          // Position at the edge of the chart with some padding
+          final radius = 110;
+          final x = radius * cos(middleAngleRadians);
+          final y = radius * sin(middleAngleRadians);
 
           return Positioned(
-            left:
-                140 +
-                x -
-                16, // Center + offset - half icon size, added more space
-            top: 140 + y - 16,
+            left: 170 + x - 16, // Center (140) + offset - half icon size (16)
+            top: 170 + y - 16,
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(

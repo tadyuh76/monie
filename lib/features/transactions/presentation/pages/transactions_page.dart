@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/core/utils/category_utils.dart';
 import 'package:monie/core/utils/mock_data.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
+import 'package:monie/main.dart';
 
 class TransactionsPage extends StatelessWidget {
   const TransactionsPage({super.key});
@@ -57,6 +59,14 @@ class TransactionsPage extends StatelessWidget {
         child: InkWell(
           onTap: () {
             // Show add transaction dialog
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (BuildContext context) {
+                return const AddTransactionForm();
+              },
+            );
           },
           borderRadius: BorderRadius.circular(16),
           child: const Icon(Icons.add, color: AppColors.background, size: 30),
@@ -269,7 +279,10 @@ class TransactionsPage extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final isExpense = transaction.type == 'expense';
     final colorForType = isExpense ? AppColors.expense : AppColors.income;
-    final prefixSymbol = isExpense ? '-' : '↑';
+    final prefixSymbol = isExpense ? '-' : '+';
+
+    // Get category color - default to type color if category is not recognized
+    final categoryColor = CategoryUtils.getCategoryColor(transaction.category);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -279,20 +292,17 @@ class TransactionsPage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Icon or placeholder
+          // Category icon with appropriate color
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color:
-                  isExpense
-                      ? AppColors.expense.withValues(alpha: 0.2)
-                      : AppColors.income.withValues(alpha: 0.2),
+              color: categoryColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              isExpense ? Icons.shopping_basket : Icons.attach_money,
-              color: colorForType,
+              CategoryUtils.getCategoryIcon(transaction.category),
+              color: categoryColor,
             ),
           ),
           const SizedBox(width: 16),
@@ -306,30 +316,36 @@ class TransactionsPage extends StatelessWidget {
                   transaction.title,
                   style: textTheme.titleMedium?.copyWith(color: Colors.white),
                 ),
-                if (!isExpense && transaction.title == 'thhy')
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today,
-                        size: 14,
+                Row(
+                  children: [
+                    Text(
+                      transaction.category,
+                      style: textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'thhy',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.calendar_today,
+                      size: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      DateFormat('MMM d').format(transaction.date),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
 
           // Amount
           Text(
-            '$prefixSymbol \$${transaction.amount.toStringAsFixed(0)}',
+            '$prefixSymbol\$${transaction.amount.toStringAsFixed(0)}',
             style: textTheme.titleMedium?.copyWith(
               color: colorForType,
               fontWeight: FontWeight.bold,
