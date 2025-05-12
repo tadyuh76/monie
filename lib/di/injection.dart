@@ -23,6 +23,8 @@ import 'package:monie/features/transactions/domain/usecases/get_transactions_use
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/budgets/domain/usecases/get_budgets_usecase.dart';
+import 'package:monie/features/budgets/data/repositories/budget_repository_impl.dart';
+import 'package:monie/features/budgets/domain/repositories/budget_repository.dart';
 import 'package:monie/features/transactions/data/datasources/transaction_remote_data_source.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transactions_by_type_usecase.dart';
@@ -88,6 +90,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<CategoryRepository>(
     () => CategoryRepositoryImpl(remoteDataSource: getIt()),
   );
+  getIt.registerLazySingleton<BudgetRepository>(() => BudgetRepositoryImpl());
 
   // Use cases
   getIt.registerLazySingleton(() => GetAccountsUseCase(getIt()));

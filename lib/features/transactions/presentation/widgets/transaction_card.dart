@@ -148,7 +148,7 @@ class TransactionCard extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: categoryColor.withOpacity(0.2),
+        color: categoryColor.withValues(alpha: .2),
         shape: BoxShape.circle,
       ),
       child: Icon(iconData, color: categoryColor, size: 20),

@@ -8,9 +8,12 @@ import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/pages/auth_wrapper.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
+import 'package:monie/features/budgets/presentation/pages/budgets_page.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
+import 'package:monie/features/home/presentation/pages/home_page.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
+import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -74,7 +77,20 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.darkTheme,
         scaffoldMessengerKey: rootScaffoldMessengerKey,
         home: const AuthWrapper(),
+        routes: {
+          '/home': (context) => const HomePage(),
+          '/transactions': (context) => const TransactionsPage(),
+          '/budgets': (context) => const BudgetsPage(),
+        },
         debugShowCheckedModeBanner: false,
+        onGenerateRoute: (settings) {
+          // Handle dynamic routes here if needed in the future
+          return null;
+        },
+        onUnknownRoute: (settings) {
+          // Fallback for unknown routes
+          return MaterialPageRoute(builder: (context) => const HomePage());
+        },
       ),
     );
   }

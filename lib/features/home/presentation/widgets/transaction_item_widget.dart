@@ -51,7 +51,7 @@ class TransactionItemWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: .1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -64,7 +64,7 @@ class TransactionItemWidget extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: categoryColor.withOpacity(0.2),
+              color: categoryColor.withValues(alpha: .2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: categoryColor, size: 22),

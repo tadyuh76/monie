@@ -395,7 +395,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'expense'
-                        ? AppColors.expense.withOpacity(0.2)
+                        ? AppColors.expense.withValues(alpha: .2)
                         : AppColors.cardDark,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
@@ -436,7 +436,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'income'
-                        ? AppColors.income.withOpacity(0.2)
+                        ? AppColors.income.withValues(alpha: .2)
                         : AppColors.cardDark,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
@@ -565,7 +565,9 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: categoryColor.withOpacity(isSelected ? 0.3 : 0.1),
+                  color: categoryColor.withValues(
+                    alpha: isSelected ? 0.3 : 0.1,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected ? categoryColor : Colors.transparent,

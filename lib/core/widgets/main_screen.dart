@@ -24,8 +24,18 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomePage(),
+  // Create a method that can be used by child widgets to switch tabs
+  void _switchTab(int index) {
+    if (index >= 0 && index < _screens.length) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
+  }
+
+  // Use a getter for screens to rebuild them each time they're accessed
+  List<Widget> get _screens => [
+    HomePage(onSwitchTab: _switchTab),
     const TransactionsPage(),
     const BudgetsPage(),
     const GroupsPage(),
@@ -109,11 +119,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
             child: BottomNavigationBar(
               currentIndex: _currentIndex,
-              onTap: (index) {
-                setState(() {
-                  _currentIndex = index;
-                });
-              },
+              onTap: _switchTab,
               items: const [
                 BottomNavigationBarItem(
                   icon: Icon(Icons.home_rounded),

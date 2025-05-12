@@ -50,7 +50,7 @@ class CategoryUtils {
 
   // Convert color to hex string
   static String colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2)}';
+    return '#${color.toARGB32().toRadixString(16).substring(2)}';
   }
 
   // Build a category icon widget

@@ -309,7 +309,7 @@ class _TransactionFormState extends State<TransactionForm> {
               style: TextStyle(color: Colors.white70, fontSize: 16),
             ),
             const SizedBox(height: 8),
-            Container(
+            SizedBox(
               height: 120,
               child: GridView.builder(
                 scrollDirection: Axis.horizontal,
@@ -341,8 +341,8 @@ class _TransactionFormState extends State<TransactionForm> {
                     child: Container(
                       padding: EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: categoryColor.withOpacity(
-                          isSelected ? 0.3 : 0.1,
+                        color: categoryColor.withValues(
+                          alpha: isSelected ? 0.3 : 0.1,
                         ),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
