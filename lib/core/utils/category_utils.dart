@@ -1,42 +1,102 @@
 import 'package:flutter/material.dart';
+import 'package:monie/core/constants/transaction_categories.dart';
 
+/// Utility class for working with transaction categories
 class CategoryUtils {
-  static final List<Map<String, dynamic>> categories = [
-    {'name': 'Food', 'icon': Icons.restaurant, 'color': Colors.orange},
-    {'name': 'Transport', 'icon': Icons.directions_car, 'color': Colors.blue},
-    {'name': 'Shopping', 'icon': Icons.shopping_bag, 'color': Colors.purple},
-    {'name': 'Bills', 'icon': Icons.receipt_long, 'color': Colors.red},
-    {'name': 'Entertainment', 'icon': Icons.movie, 'color': Colors.pink},
-    {'name': 'Health', 'icon': Icons.medical_services, 'color': Colors.green},
-    {'name': 'Education', 'icon': Icons.school, 'color': Colors.amber},
-    {'name': 'Groceries', 'icon': Icons.shopping_cart, 'color': Colors.teal},
-    {'name': 'Rent', 'icon': Icons.home, 'color': Colors.brown},
-    {'name': 'Salary', 'icon': Icons.work, 'color': Colors.green},
-    {'name': 'Investment', 'icon': Icons.trending_up, 'color': Colors.blue},
-    {'name': 'Other', 'icon': Icons.more_horiz, 'color': Colors.grey},
-  ];
+  // Get all categories with their icons and colors
+  static List<Map<String, dynamic>> get categories {
+    return TransactionCategories.getAllCategories();
+  }
 
+  // Get expense categories
+  static List<Map<String, dynamic>> getExpenseCategories() {
+    return TransactionCategories.expenseCategories;
+  }
+
+  // Get income categories
+  static List<Map<String, dynamic>> getIncomeCategories() {
+    return TransactionCategories.incomeCategories;
+  }
+
+  // Get icon for a category name
   static IconData getCategoryIcon(String categoryName) {
     final category = categories.firstWhere(
       (c) => c['name'] == categoryName,
-      orElse: () => {'icon': Icons.more_horiz},
+      orElse: () => {'icon': Icons.help_outline},
     );
-    return category['icon'];
+    return category['icon'] as IconData;
   }
 
+  // Get color for a category name
   static Color getCategoryColor(String categoryName) {
     final category = categories.firstWhere(
       (c) => c['name'] == categoryName,
-      orElse: () => {'color': Colors.grey},
+      orElse: () => {'color': '#9E9E9E'},
     );
-    return category['color'];
+
+    if (category['color'] is Color) {
+      return category['color'] as Color;
+    } else if (category['color'] is String) {
+      return hexToColor(category['color'] as String);
+    }
+
+    return Colors.grey;
   }
 
+  // Convert hex string to color
+  static Color hexToColor(String hexString) {
+    return TransactionCategories.hexToColor(hexString);
+  }
+
+  // Convert color to hex string
+  static String colorToHex(Color color) {
+    return '#${color.value.toRadixString(16).substring(2)}';
+  }
+
+  // Build a category icon widget
   static Widget buildCategoryIcon(String categoryName, {double size = 24}) {
     return Icon(
       getCategoryIcon(categoryName),
       color: getCategoryColor(categoryName),
       size: size,
     );
+  }
+
+  // Build a category icon with specific color
+  static Widget buildCategoryIconWithColor(
+    String? categoryName,
+    String? colorHex, {
+    double size = 24,
+  }) {
+    if (categoryName == null) {
+      return Icon(Icons.more_horiz, color: Colors.grey, size: size);
+    }
+
+    Color color = Colors.grey;
+    if (colorHex != null) {
+      try {
+        color = hexToColor(colorHex);
+      } catch (e) {
+        color = getCategoryColor(categoryName);
+      }
+    } else {
+      color = getCategoryColor(categoryName);
+    }
+
+    return Icon(getCategoryIcon(categoryName), color: color, size: size);
+  }
+
+  // Get a list of category names with their hex color values - useful for exporting or displaying
+  static List<Map<String, String>> getCategoryColorsMap() {
+    return categories.map((category) {
+      String colorValue;
+      if (category['color'] is Color) {
+        colorValue = colorToHex(category['color'] as Color);
+      } else {
+        colorValue = category['color'] as String;
+      }
+
+      return {'name': category['name'] as String, 'color': colorValue};
+    }).toList();
   }
 }

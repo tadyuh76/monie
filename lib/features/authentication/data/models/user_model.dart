@@ -7,7 +7,10 @@ class UserModel extends domain.User {
   const UserModel({
     required super.id,
     required super.email,
-    super.username,
+    super.displayName,
+    super.profileImageUrl,
+    super.colorMode = 'light',
+    super.language = 'en',
     required super.emailVerified,
     required super.createdAt,
     super.lastSignInAt,
@@ -15,10 +18,16 @@ class UserModel extends domain.User {
 
   /// Convert from Supabase User to UserModel
   factory UserModel.fromSupabaseUser(supabase.User supabaseUser) {
+    // Get additional user fields from metadata
+    final userMetadata = supabaseUser.userMetadata ?? {};
+
     return UserModel(
       id: supabaseUser.id,
       email: supabaseUser.email!,
-      username: supabaseUser.userMetadata?['username'] as String?,
+      displayName: userMetadata['display_name'] as String?,
+      profileImageUrl: userMetadata['profile_image_url'] as String?,
+      colorMode: userMetadata['color_mode'] as String? ?? 'light',
+      language: userMetadata['language'] as String? ?? 'en',
       emailVerified: supabaseUser.emailConfirmedAt != null,
       createdAt: DateTime.parse(supabaseUser.createdAt),
       lastSignInAt:
@@ -33,7 +42,10 @@ class UserModel extends domain.User {
     return {
       'id': id,
       'email': email,
-      'username': username,
+      'display_name': displayName,
+      'profile_image_url': profileImageUrl,
+      'color_mode': colorMode,
+      'language': language,
       'emailVerified': emailVerified,
       'createdAt': createdAt.toIso8601String(),
       'lastSignInAt': lastSignInAt?.toIso8601String(),
@@ -45,7 +57,10 @@ class UserModel extends domain.User {
     return UserModel(
       id: json['id'],
       email: json['email'],
-      username: json['username'],
+      displayName: json['display_name'],
+      profileImageUrl: json['profile_image_url'],
+      colorMode: json['color_mode'] ?? 'light',
+      language: json['language'] ?? 'en',
       emailVerified: json['emailVerified'],
       createdAt: DateTime.parse(json['createdAt']),
       lastSignInAt:

@@ -20,6 +20,21 @@ class CategoryPieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Filter out categories with null values and ensure we have valid data
+    final validCategories =
+        categories
+            .where((category) => (category['value'] ?? 0.0) > 0.0)
+            .toList();
+
+    // Total value for percentage calculations
+    final double totalValue =
+        validCategories.isEmpty
+            ? 0.0
+            : validCategories.fold(
+              0.0,
+              (sum, item) => sum + (item['value'] ?? 0.0),
+            );
+
     // Colors for the indicator triangle
     final indicatorColor =
         isExpense
@@ -31,6 +46,38 @@ class CategoryPieChart extends StatelessWidget {
 
     // Color for the total amount
     final amountColor = isExpense ? AppColors.expense : AppColors.income;
+
+    // Handle empty data case
+    if (validCategories.isEmpty || totalValue <= 0) {
+      return SizedBox(
+        width: 280,
+        height: 280,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isExpense ? Icons.money_off : Icons.account_balance_wallet,
+              color: Colors.white54,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No $titleText data available',
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              Formatters.formatCurrency(totalAmount),
+              style: TextStyle(
+                color: amountColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Stack(
       alignment: Alignment.center,
@@ -44,10 +91,10 @@ class CategoryPieChart extends StatelessWidget {
               sectionsSpace: 3, // Slightly more space between sections
               centerSpaceRadius: 60,
               sections:
-                  categories.map((category) {
+                  validCategories.map((category) {
                     return PieChartSectionData(
                       color: category['color'],
-                      value: category['value'],
+                      value: category['value'] ?? 0.0,
                       title: '',
                       radius: 90,
                       showTitle: false,
@@ -83,25 +130,20 @@ class CategoryPieChart extends StatelessWidget {
         ),
 
         // Category icons positioned around the pie chart
-        ...List.generate(categories.length, (index) {
-          // Calculate the middle angle of each pie section in radians
-          double totalValue = categories.fold(
-            0.0,
-            (sum, item) => sum + item['value'],
-          );
-
-          // Calculate the starting and ending angles for each category
+        ...List.generate(validCategories.length, (index) {
+          // Calculate the starting angle for each category
           double startAngle = 270.0; // Start from the top
           for (int i = 0; i < index; i++) {
-            startAngle += (categories[i]['value'] / totalValue) * 360.0;
+            startAngle += (validCategories[i]['value'] / totalValue) * 360.0;
           }
 
           // Calculate the middle angle of this section
           double middleAngle =
-              startAngle + (categories[index]['value'] / totalValue) * 180.0;
+              startAngle +
+              (validCategories[index]['value'] / totalValue) * 180.0;
 
           // Convert to radians
-          double middleAngleRadians = middleAngle * (3.14159 / 180);
+          double middleAngleRadians = middleAngle * (pi / 180);
 
           // Position at the edge of the chart with some padding
           final radius = 110;
@@ -109,12 +151,12 @@ class CategoryPieChart extends StatelessWidget {
           final y = radius * sin(middleAngleRadians);
 
           return Positioned(
-            left: 170 + x - 16, // Center + offset - half icon size (16)
-            top: 170 + y - 16,
+            left: 140 + x, // Center + offset
+            top: 140 + y,
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: categories[index]['color'],
+                color: validCategories[index]['color'],
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.cardDark, width: 2),
                 boxShadow: [
@@ -126,12 +168,8 @@ class CategoryPieChart extends StatelessWidget {
                 ],
               ),
               child: Icon(
-                categories[index]['icon'],
-                // Special case for yellow category (typically investments)
-                color:
-                    categories[index]['color'] == const Color(0xFFFFD54F)
-                        ? Colors.black87
-                        : Colors.white,
+                validCategories[index]['icon'],
+                color: Colors.white,
                 size: 16,
               ),
             ),
@@ -140,32 +178,39 @@ class CategoryPieChart extends StatelessWidget {
 
         // Legend at the bottom
         Positioned(
-          bottom: -10,
+          bottom: 0,
           left: 0,
           right: 0,
-          child: SizedBox(
-            height: 40,
+          child: Container(
+            height: 36,
+            color: AppColors.background.withValues(alpha: 0.7),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: categories.length,
+              itemCount: validCategories.length,
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
               itemBuilder: (context, index) {
+                // Calculate percentage of this category
+                double percentage =
+                    (validCategories[index]['value'] / totalValue) * 100;
+
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
                         width: 10,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: categories[index]['color'],
+                          color: validCategories[index]['color'],
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${categories[index]['name']} (${categories[index]['value'].toInt()}%)',
+                        '${validCategories[index]['name']} (${percentage.round()}%)',
                         style: const TextStyle(
-                          color: Colors.white70,
+                          color: Colors.white,
                           fontSize: 10,
                         ),
                       ),

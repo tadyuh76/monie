@@ -3,63 +3,83 @@ import 'package:monie/features/transactions/domain/entities/transaction.dart';
 class TransactionModel extends Transaction {
   const TransactionModel({
     required super.id,
-    required super.title,
     required super.amount,
-    required super.currency,
     required super.date,
-    required super.category,
+    required super.description,
+    required super.title,
+    required super.userId,
+    super.categoryName,
+    super.categoryColor,
     super.accountId,
-    required super.type,
     super.budgetId,
-    super.description,
-    super.iconPath,
+    super.isRecurring,
+    super.receiptUrl,
+    super.createdAt,
+    super.updatedAt,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
     return TransactionModel(
-      id: json['id'],
-      title: json['title'],
-      amount: json['amount'].toDouble(),
-      currency: json['currency'],
+      id: json['transaction_id'],
+      amount: (json['amount'] as num).toDouble(),
       date: DateTime.parse(json['date']),
-      category: json['category'],
-      accountId: json['accountId'],
-      type: json['type'],
-      budgetId: json['budgetId'],
-      description: json['description'],
-      iconPath: json['iconPath'],
+      description: json['description'] ?? '',
+      title: json['title'] ?? '',
+      userId: json['user_id'],
+      categoryName: json['category_name'],
+      categoryColor: json['category_color'],
+      accountId: json['account_id'],
+      budgetId: json['budget_id'],
+      isRecurring: json['is_recurring'] ?? false,
+      receiptUrl: json['receipt_url'],
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'])
+              : null,
+      updatedAt:
+          json['updated_at'] != null
+              ? DateTime.parse(json['updated_at'])
+              : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'title': title,
+      'transaction_id': id,
       'amount': amount,
-      'currency': currency,
       'date': date.toIso8601String(),
-      'category': category,
-      'accountId': accountId,
-      'type': type,
-      'budgetId': budgetId,
       'description': description,
-      'iconPath': iconPath,
+      'title': title,
+      'user_id': userId,
+      'category_name': categoryName,
+      'category_color': categoryColor,
+      'account_id': accountId,
+      'budget_id': budgetId,
+      'is_recurring': isRecurring ?? false,
+      'receipt_url': receiptUrl,
+      'created_at':
+          createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      'updated_at':
+          updatedAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
     };
   }
 
   factory TransactionModel.fromEntity(Transaction entity) {
     return TransactionModel(
       id: entity.id,
-      title: entity.title,
       amount: entity.amount,
-      currency: entity.currency,
       date: entity.date,
-      category: entity.category,
-      accountId: entity.accountId,
-      type: entity.type,
-      budgetId: entity.budgetId,
       description: entity.description,
-      iconPath: entity.iconPath,
+      title: entity.title,
+      userId: entity.userId,
+      categoryName: entity.categoryName,
+      categoryColor: entity.categoryColor,
+      accountId: entity.accountId,
+      budgetId: entity.budgetId,
+      isRecurring: entity.isRecurring,
+      receiptUrl: entity.receiptUrl,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
     );
   }
 }

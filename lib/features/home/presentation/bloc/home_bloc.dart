@@ -100,12 +100,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         (sum, account) => sum + account.balance,
       );
 
+      // Calculate totals with updated transaction model
+      // Positive amounts are income, negative are expenses
       final totalExpense = transactions
-          .where((t) => t.type == 'expense')
-          .fold<double>(0, (sum, t) => sum + t.amount);
+          .where((t) => t.amount < 0)
+          .fold<double>(0, (sum, t) => sum + t.amount.abs());
 
       final totalIncome = transactions
-          .where((t) => t.type == 'income')
+          .where((t) => t.amount >= 0)
           .fold<double>(0, (sum, t) => sum + t.amount);
 
       // Sort transactions by date (newest first) and take only 5

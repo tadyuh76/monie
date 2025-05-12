@@ -4,7 +4,10 @@ import 'package:equatable/equatable.dart';
 class User extends Equatable {
   final String id;
   final String email;
-  final String? username;
+  final String? displayName;
+  final String? profileImageUrl;
+  final String colorMode;
+  final String language;
   final bool emailVerified;
   final DateTime createdAt;
   final DateTime? lastSignInAt;
@@ -12,7 +15,10 @@ class User extends Equatable {
   const User({
     required this.id,
     required this.email,
-    this.username,
+    this.displayName,
+    this.profileImageUrl,
+    this.colorMode = 'light',
+    this.language = 'en',
     required this.emailVerified,
     required this.createdAt,
     this.lastSignInAt,
@@ -22,7 +28,10 @@ class User extends Equatable {
   List<Object?> get props => [
     id,
     email,
-    username,
+    displayName,
+    profileImageUrl,
+    colorMode,
+    language,
     emailVerified,
     createdAt,
     lastSignInAt,

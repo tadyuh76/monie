@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/validator.dart';
+import 'package:monie/core/widgets/main_screen.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
@@ -9,7 +10,6 @@ import 'package:monie/features/authentication/presentation/pages/reset_password_
 import 'package:monie/features/authentication/presentation/pages/signup_page.dart';
 import 'package:monie/features/authentication/presentation/widgets/auth_button.dart';
 import 'package:monie/features/authentication/presentation/widgets/auth_input_field.dart';
-import 'package:monie/main.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -65,9 +65,13 @@ class _LoginPageState extends State<LoginPage> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is Authenticated) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const MainScreen()),
-          );
+          // Force navigation to main screen and clear the navigation stack
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const MainScreen()),
+              (route) => false,
+            );
+          });
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),

@@ -23,6 +23,19 @@ import 'package:monie/features/transactions/domain/usecases/get_transactions_use
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/budgets/domain/usecases/get_budgets_usecase.dart';
+import 'package:monie/features/transactions/data/datasources/transaction_remote_data_source.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_by_type_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_by_date_range_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/add_transaction_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/update_transaction_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/delete_transaction_usecase.dart';
+import 'package:monie/features/transactions/data/datasources/category_remote_data_source.dart';
+import 'package:monie/features/transactions/data/repositories/category_repository_impl.dart';
+import 'package:monie/features/transactions/domain/repositories/category_repository.dart';
+import 'package:monie/features/transactions/domain/usecases/create_category_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_categories_usecase.dart';
+import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -61,37 +74,72 @@ Future<void> configureDependencies() async {
 
   // Repository implementations
   getIt.registerLazySingleton<AccountRepository>(() => AccountRepositoryImpl());
+  getIt.registerLazySingleton<TransactionRemoteDataSource>(
+    () => TransactionRemoteDataSourceImpl(supabaseClientManager: getIt()),
+  );
   getIt.registerLazySingleton<TransactionRepository>(
-    () => TransactionRepositoryImpl(),
+    () => TransactionRepositoryImpl(remoteDataSource: getIt()),
+  );
+  getIt.registerLazySingleton<CategoryRemoteDataSource>(
+    () => CategoryRemoteDataSourceImpl(
+      supabaseClient: SupabaseClientManager.instance,
+    ),
+  );
+  getIt.registerLazySingleton<CategoryRepository>(
+    () => CategoryRepositoryImpl(remoteDataSource: getIt()),
   );
 
   // Use cases
   getIt.registerLazySingleton(() => GetAccountsUseCase(getIt()));
   getIt.registerLazySingleton(() => GetTransactionsUseCase(getIt()));
+  getIt.registerLazySingleton(() => GetTransactionByIdUseCase(getIt()));
+  getIt.registerLazySingleton(() => GetTransactionsByTypeUseCase(getIt()));
+  getIt.registerLazySingleton(() => GetTransactionsByDateRangeUseCase(getIt()));
+  getIt.registerLazySingleton(() => AddTransactionUseCase(getIt()));
+  getIt.registerLazySingleton(() => UpdateTransactionUseCase(getIt()));
+  getIt.registerLazySingleton(() => DeleteTransactionUseCase(getIt()));
   getIt.registerLazySingleton(() => GetBudgetsUseCase(getIt()));
+  getIt.registerLazySingleton(() => GetCategoriesUseCase(getIt()));
+  getIt.registerLazySingleton(() => CreateCategoryUseCase(getIt()));
 
   // BLoCs
-  getIt.registerFactory(
+  getIt.registerFactory<AuthBloc>(
     () => AuthBloc(
       getCurrentUser: getIt(),
-      signUp: getIt(),
       signIn: getIt(),
+      signUp: getIt(),
       signOut: getIt(),
+      resetPassword: getIt(),
       resendVerificationEmail: getIt(),
       isEmailVerified: getIt(),
-      resetPassword: getIt(),
       checkEmailExists: getIt(),
     ),
   );
 
-  getIt.registerFactory(
+  getIt.registerFactory<HomeBloc>(
     () =>
         HomeBloc(getAccountsUseCase: getIt(), getTransactionsUseCase: getIt()),
   );
 
-  getIt.registerFactory(
-    () => TransactionsBloc(getTransactionsUseCase: getIt()),
+  getIt.registerFactory<TransactionsBloc>(
+    () => TransactionsBloc(
+      getTransactionsUseCase: getIt(),
+      getTransactionsByTypeUseCase: getIt(),
+      getTransactionsByDateRangeUseCase: getIt(),
+      addTransactionUseCase: getIt(),
+      updateTransactionUseCase: getIt(),
+      deleteTransactionUseCase: getIt(),
+    ),
   );
 
-  getIt.registerFactory(() => BudgetsBloc(getBudgetsUseCase: getIt()));
+  getIt.registerFactory<BudgetsBloc>(
+    () => BudgetsBloc(getBudgetsUseCase: getIt()),
+  );
+
+  getIt.registerFactory<CategoriesBloc>(
+    () => CategoriesBloc(
+      getCategoriesUseCase: getIt(),
+      createCategoryUseCase: getIt(),
+    ),
+  );
 }

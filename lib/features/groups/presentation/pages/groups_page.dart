@@ -30,28 +30,6 @@ class GroupsPage extends StatelessWidget {
           ..._buildGroupsList(context),
         ],
       ),
-      floatingActionButton: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: InkWell(
-          onTap: () {
-            // Add new expense group
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: const Icon(Icons.add, color: AppColors.background, size: 30),
-        ),
-      ),
     );
   }
 

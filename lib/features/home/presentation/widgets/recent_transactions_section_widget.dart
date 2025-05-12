@@ -55,7 +55,7 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
             0,
             (sum, transaction) =>
                 sum +
-                (transaction.type == 'expense'
+                (transaction.amount < 0
                     ? -transaction.amount
                     : transaction.amount),
           );

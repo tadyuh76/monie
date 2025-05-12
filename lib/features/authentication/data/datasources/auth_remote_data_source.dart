@@ -9,7 +9,14 @@ abstract class AuthRemoteDataSource {
 
   /// Signs up a new user with email and password
   /// Email verification will be sent automatically
-  Future<void> signUp({required String email, required String password});
+  Future<void> signUp({
+    required String email,
+    required String password,
+    String? displayName,
+    String? profileImageUrl,
+    String colorMode = 'light',
+    String language = 'en',
+  });
 
   /// Signs in a user with email and password
   /// Only verified emails can sign in
@@ -61,7 +68,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> signUp({required String email, required String password}) async {
+  Future<void> signUp({
+    required String email,
+    required String password,
+    String? displayName,
+    String? profileImageUrl,
+    String colorMode = 'light',
+    String language = 'en',
+  }) async {
     try {
       // Check if the user already exists before signup
       bool userExists = false;
@@ -80,7 +94,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (userExists) {
         throw const AuthFailure(
-          message: 'Email already exists. Please sign in.',
+          message:
+              'This email is already registered. Please sign in or reset your password.',
         );
       }
 
@@ -93,6 +108,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: {
           // Disable automatic email verification
           'disable_email_confirmation': true,
+          // Store user profile data in metadata
+          'display_name': displayName,
+          'profile_image_url': profileImageUrl,
+          'color_mode': colorMode,
+          'language': language,
         },
       );
 
@@ -100,8 +120,35 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw const AuthFailure(message: 'Failed to sign up');
       }
 
+      // Insert record into users table - IMPORTANT for foreign key constraints
+      try {
+        await supabaseClient.client.from('users').upsert({
+          'user_id': response.user!.id,
+          'email': email,
+          'display_name': displayName,
+          'profile_image_url': profileImageUrl,
+          'color_mode': colorMode,
+          'language': language,
+        }, onConflict: 'user_id');
+
+        // Verify the user record exists before proceeding
+      } catch (e) {
+        // Log the error but continue - the auth record is created anyway
+
+        // Check for duplicate email constraint error
+        if (e.toString().contains(
+          'duplicate key value violates unique constraint "users_email_key"',
+        )) {
+          throw const AuthFailure(
+            message:
+                'This email is already registered. Please sign in or reset your password if you forgot it.',
+          );
+        }
+
+        throw AuthFailure(message: 'Failed to create user record: $e');
+      }
+
       // Manually send verification email only when needed
-      // But don't send it here - let the user choose when to request verification
     } on AuthException catch (e) {
       throw AuthFailure(message: e.message);
     } catch (e) {
@@ -134,7 +181,46 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw const AuthFailure(message: 'Failed to sign in');
       }
 
-      return UserModel.fromSupabaseUser(response.user!);
+      // Create a UserModel from the Supabase user
+      UserModel user = UserModel.fromSupabaseUser(response.user!);
+
+      // After successful authentication, ensure user data is in the users table
+      try {
+        // Using upsert to create if not exists or update if exists
+        await supabaseClient.client.from('users').upsert({
+          'user_id': response.user!.id,
+          'email': email,
+          'display_name': user.displayName,
+          'profile_image_url': user.profileImageUrl,
+          'color_mode': user.colorMode,
+          'language': user.language,
+        }, onConflict: 'user_id');
+
+        // Fetch the latest user data
+        final userData =
+            await supabaseClient.client
+                .from('users')
+                .select()
+                .eq('user_id', response.user!.id)
+                .single();
+
+        // Update user model with data from the users table if available
+        user = UserModel(
+          id: user.id,
+          email: user.email,
+          displayName: userData['display_name'],
+          profileImageUrl: userData['profile_image_url'],
+          colorMode: userData['color_mode'] ?? 'light',
+          language: userData['language'] ?? 'en',
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
+          lastSignInAt: user.lastSignInAt,
+        );
+      } catch (e) {
+        // Log error but continue with basic user data
+      }
+
+      return user;
     } on AuthException catch (e) {
       throw AuthFailure(message: e.message);
     } on EmailVerificationFailure {

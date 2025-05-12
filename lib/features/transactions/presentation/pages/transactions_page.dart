@@ -1,18 +1,183 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
-import 'package:monie/core/utils/category_utils.dart';
-import 'package:monie/core/utils/mock_data.dart';
+import 'package:monie/features/authentication/domain/entities/user.dart';
+import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
+import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
-import 'package:monie/main.dart';
+import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/categories_event.dart';
+import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
+import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
+import 'package:monie/features/transactions/presentation/widgets/transaction_card.dart';
+import 'package:monie/features/transactions/presentation/widgets/transaction_form.dart';
 
-class TransactionsPage extends StatelessWidget {
+class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final transactions = MockData.transactions;
+  State<TransactionsPage> createState() => _TransactionsPageState();
+}
 
+class _TransactionsPageState extends State<TransactionsPage> {
+  DateTime _selectedMonth = DateTime.now();
+  // We don't need the _showSnackBar method anymore as snackbars are handled globally
+
+  @override
+  void initState() {
+    super.initState();
+    // Load transactions for the current month
+    _filterByMonth(_selectedMonth);
+
+    // Load categories
+    context.read<CategoriesBloc>().add(const LoadCategories());
+  }
+
+  void _filterByMonth(DateTime month) {
+    context.read<TransactionsBloc>().add(FilterTransactionsByMonth(month));
+    setState(() {
+      _selectedMonth = month;
+    });
+  }
+
+  void _filterByType(String? type) {
+    context.read<TransactionsBloc>().add(FilterTransactionsByType(type));
+    setState(() {});
+  }
+
+  void _showAddTransactionSheet(BuildContext context, User user) {
+    // Use outer context's bloc
+    final transactionsBloc = BlocProvider.of<TransactionsBloc>(context);
+    final categoriesBloc = BlocProvider.of<CategoriesBloc>(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext modalContext) {
+        return BlocProvider.value(
+          value: transactionsBloc,
+          child: BlocProvider.value(
+            value: categoriesBloc,
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: AddTransactionForm(
+                onSubmit: (Map<String, dynamic> transaction) {
+                  // Dispatch add transaction event using the parent context's bloc
+                  transactionsBloc.add(
+                    AddNewTransaction(
+                      amount: transaction['amount'],
+                      description: transaction['description'] ?? '',
+                      title: transaction['title'],
+                      date: DateTime.parse(transaction['date']),
+                      userId: user.id,
+                      categoryName: transaction['category_name'],
+                      categoryColor: transaction['category_color'],
+                      accountId: null,
+                      budgetId: null,
+                      isIncome: transaction['amount'] >= 0,
+                    ),
+                  );
+
+                  // Note: We don't need to show a success message or refresh data here
+                  // That will be handled by the BlocListener in the page
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditTransactionSheet(
+    BuildContext context,
+    User user,
+    Transaction transaction,
+  ) {
+    // Get references to the blocs before opening the modal
+    final transactionsBloc = BlocProvider.of<TransactionsBloc>(context);
+    final categoriesBloc = BlocProvider.of<CategoriesBloc>(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext modalContext) {
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: transactionsBloc),
+            BlocProvider.value(value: categoriesBloc),
+          ],
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: TransactionForm(userId: user.id, transaction: transaction),
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteTransaction(BuildContext context, String transactionId) {
+    // Get reference to the transactions bloc
+    final transactionsBloc = BlocProvider.of<TransactionsBloc>(context);
+
+    showDialog(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Delete Transaction'),
+            content: const Text(
+              'Are you sure you want to delete this transaction?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  // Use the captured bloc reference
+                  transactionsBloc.add(
+                    DeleteExistingTransaction(transactionId),
+                  );
+                },
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        if (authState is Authenticated) {
+          return _buildScaffold(context, authState.user);
+        }
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, User user) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -26,117 +191,133 @@ class TransactionsPage extends StatelessWidget {
           ),
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.filter_list), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'all') {
+                _filterByType(null);
+              } else {
+                _filterByType(value);
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: 'all',
+                    child: Text('All Transactions'),
+                  ),
+                  const PopupMenuItem(value: 'income', child: Text('Income')),
+                  const PopupMenuItem(
+                    value: 'expense',
+                    child: Text('Expenses'),
+                  ),
+                ],
+            icon: const Icon(Icons.filter_list),
+          ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildMonthSelector(context),
-            _buildSummaryBar(context, transactions),
-            const SizedBox(height: 16),
-            _buildTransactionsList(context, transactions),
-            const SizedBox(height: 100), // Extra space at the bottom
-          ],
-        ),
+      body: BlocConsumer<TransactionsBloc, TransactionsState>(
+        listener: (context, state) {
+          if (state is TransactionActionSuccess) {
+            // Refresh UI after a successful action
+            _filterByMonth(_selectedMonth);
+          } else if (state is TransactionsError) {
+            // No need to show error, it will be handled globally
+          }
+        },
+        builder: (context, state) {
+          if (state is TransactionsLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is TransactionsLoaded) {
+            return _buildContent(context, state, user);
+          } else if (state is TransactionsError) {
+            return Center(child: Text('Error: ${state.message}'));
+          }
+          return const Center(child: CircularProgressIndicator());
+        },
       ),
-      floatingActionButton: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: InkWell(
-          onTap: () {
-            // Show add transaction dialog
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (BuildContext context) {
-                return const AddTransactionForm();
-              },
-            );
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: const Icon(Icons.add, color: AppColors.background, size: 30),
-        ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    TransactionsLoaded state,
+    User user,
+  ) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMonthSelector(context),
+          _buildSummaryBar(context, state),
+          const SizedBox(height: 16),
+          _buildTransactionsList(context, state, user),
+          const SizedBox(height: 100), // Extra space at the bottom
+        ],
       ),
     );
   }
 
   Widget _buildMonthSelector(BuildContext context) {
+    final currentMonth = DateTime.now();
+    List<DateTime> months = [];
+
+    // Generate the last 3 months and next 3 months
+    for (int i = -3; i <= 3; i++) {
+      months.add(DateTime(currentMonth.year, currentMonth.month + i, 1));
+    }
+
     return Container(
       height: 60,
       alignment: Alignment.center,
-      child: ListView(
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          _buildMonthTab(context, 'March', false),
-          _buildMonthTab(context, 'April', true),
-          _buildMonthTab(context, 'May', false),
-        ],
-      ),
-    );
-  }
+        itemCount: months.length,
+        itemBuilder: (context, index) {
+          final month = months[index];
+          final monthName = DateFormat('MMMM').format(month);
+          final isSelected =
+              month.month == _selectedMonth.month &&
+              month.year == _selectedMonth.year;
 
-  Widget _buildMonthTab(BuildContext context, String month, bool isSelected) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            month,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: isSelected ? Colors.white : AppColors.textSecondary,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          if (isSelected)
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              width: 24,
-              height: 3,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(2),
+          return GestureDetector(
+            onTap: () => _filterByMonth(month),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    monthName,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color:
+                          isSelected ? Colors.white : AppColors.textSecondary,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  if (isSelected)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      width: 24,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                ],
               ),
             ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSummaryBar(
-    BuildContext context,
-    List<Transaction> transactions,
-  ) {
-    double totalExpense = 0;
-    double totalIncome = 0;
-
-    for (var transaction in transactions) {
-      if (transaction.type == 'expense') {
-        totalExpense += transaction.amount;
-      } else {
-        totalIncome += transaction.amount;
-      }
-    }
-
-    final totalBalance = totalIncome - totalExpense;
-
+  Widget _buildSummaryBar(BuildContext context, TransactionsLoaded state) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
@@ -151,11 +332,18 @@ class TransactionsPage extends StatelessWidget {
           Column(
             children: [
               Text(
-                '↓ \$${totalExpense.toStringAsFixed(0)}',
+                '↓ \$${state.totalExpense.toStringAsFixed(0)}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.expense,
                   fontWeight: FontWeight.bold,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Expenses',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -164,11 +352,18 @@ class TransactionsPage extends StatelessWidget {
           Column(
             children: [
               Text(
-                '↑ \$${totalIncome.toStringAsFixed(0)}',
+                '↑ \$${state.totalIncome.toStringAsFixed(0)}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.income,
                   fontWeight: FontWeight.bold,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Income',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -177,11 +372,18 @@ class TransactionsPage extends StatelessWidget {
           Column(
             children: [
               Text(
-                '= \$${totalBalance.toStringAsFixed(0)}',
+                '= \$${state.netAmount.toStringAsFixed(0)}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Net',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -192,8 +394,39 @@ class TransactionsPage extends StatelessWidget {
 
   Widget _buildTransactionsList(
     BuildContext context,
-    List<Transaction> transactions,
+    TransactionsLoaded state,
+    User user,
   ) {
+    final transactions = state.transactions;
+
+    if (transactions.isEmpty) {
+      return SizedBox(
+        height: 200,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.receipt_long,
+                size: 48,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No transactions found',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () => _showAddTransactionSheet(context, user),
+                child: const Text('Add Transaction'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // Group transactions by date
     final Map<String, List<Transaction>> groupedTransactions = {};
 
@@ -211,14 +444,9 @@ class TransactionsPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ...groupedTransactions.entries.map((entry) {
-            // final isToday = entry.key.contains('April 30');
             final totalForDay = entry.value.fold<double>(
               0,
-              (sum, transaction) =>
-                  sum +
-                  (transaction.type == 'expense'
-                      ? -transaction.amount
-                      : transaction.amount),
+              (sum, transaction) => sum + transaction.amount,
             );
 
             return Column(
@@ -245,112 +473,26 @@ class TransactionsPage extends StatelessWidget {
                 ...entry.value.map((transaction) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
-                    child: _buildTransactionItem(context, transaction),
+                    child: TransactionCard(
+                      transaction: transaction,
+                      onEdit:
+                          () => _showEditTransactionSheet(
+                            context,
+                            user,
+                            transaction,
+                          ),
+                      onDelete:
+                          () => _confirmDeleteTransaction(
+                            context,
+                            transaction.id,
+                          ),
+                    ),
                   );
                 }),
                 const SizedBox(height: 16),
               ],
             );
           }),
-
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              'Total cash flow: \$178',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-          Center(
-            child: Text(
-              '3 transactions',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionItem(BuildContext context, Transaction transaction) {
-    final textTheme = Theme.of(context).textTheme;
-    final isExpense = transaction.type == 'expense';
-    final colorForType = isExpense ? AppColors.expense : AppColors.income;
-    final prefixSymbol = isExpense ? '-' : '+';
-
-    // Get category color - default to type color if category is not recognized
-    final categoryColor = CategoryUtils.getCategoryColor(transaction.category);
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          // Category icon with appropriate color
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: categoryColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              CategoryUtils.getCategoryIcon(transaction.category),
-              color: categoryColor,
-            ),
-          ),
-          const SizedBox(width: 16),
-
-          // Transaction details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction.title,
-                  style: textTheme.titleMedium?.copyWith(color: Colors.white),
-                ),
-                Row(
-                  children: [
-                    Text(
-                      transaction.category,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.calendar_today,
-                      size: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      DateFormat('MMM d').format(transaction.date),
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Amount
-          Text(
-            '$prefixSymbol\$${transaction.amount.toStringAsFixed(0)}',
-            style: textTheme.titleMedium?.copyWith(
-              color: colorForType,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
         ],
       ),
     );

@@ -72,6 +72,7 @@ Only when asked to write test, following these rules:
 - Avoid widget rebuilds with const and selective state management
 - Use extension methods for cleaner code
 - Follow immutability principles where possible
+- 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. 
 
 ## Feature Implementation Process
 - Define domain entities and use cases first

@@ -27,6 +27,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> signUp({
     required String email,
     required String password,
+    String? displayName,
+    String? profileImageUrl,
+    String colorMode = 'light',
+    String language = 'en',
   }) async {
     try {
       // First check if the email exists
@@ -43,7 +47,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // If email exists but is not verified, we can proceed
       // Or if the email doesn't exist, we can also proceed
-      await remoteDataSource.signUp(email: email, password: password);
+      await remoteDataSource.signUp(
+        email: email,
+        password: password,
+        displayName: displayName,
+        profileImageUrl: profileImageUrl,
+        colorMode: colorMode,
+        language: language,
+      );
       return const Right(null);
     } on AuthFailure catch (e) {
       return Left(e);

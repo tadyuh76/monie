@@ -2,43 +2,52 @@ import 'package:equatable/equatable.dart';
 
 class Transaction extends Equatable {
   final String id;
-  final String title;
   final double amount;
-  final String currency;
   final DateTime date;
-  final String category;
+  final String description;
+  final String title;
+  final String userId;
+  final String? categoryName;
+  final String? categoryColor;
   final String? accountId;
-  final String type; // 'income', 'expense'
   final String? budgetId;
-  final String? description;
-  final String? iconPath;
+  final bool? isRecurring;
+  final String? receiptUrl;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const Transaction({
     required this.id,
-    required this.title,
     required this.amount,
-    required this.currency,
     required this.date,
-    required this.category,
+    required this.description,
+    required this.title,
+    required this.userId,
+    this.categoryName,
+    this.categoryColor,
     this.accountId,
-    required this.type,
     this.budgetId,
-    this.description,
-    this.iconPath,
+    this.isRecurring,
+    this.receiptUrl,
+    this.createdAt,
+    this.updatedAt,
   });
 
   @override
   List<Object?> get props => [
     id,
-    title,
     amount,
-    currency,
     date,
-    category,
-    accountId,
-    type,
-    budgetId,
     description,
-    iconPath,
+    title,
+    userId,
+    categoryName,
+    categoryColor,
+    accountId,
+    budgetId,
+    isRecurring,
+    receiptUrl,
+    createdAt,
+    updatedAt,
   ];
 }

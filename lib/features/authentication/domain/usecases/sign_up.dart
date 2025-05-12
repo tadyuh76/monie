@@ -12,6 +12,10 @@ class SignUp {
     return await repository.signUp(
       email: params.email,
       password: params.password,
+      displayName: params.displayName,
+      profileImageUrl: params.profileImageUrl,
+      colorMode: params.colorMode,
+      language: params.language,
     );
   }
 }
@@ -19,9 +23,27 @@ class SignUp {
 class SignUpParams extends Equatable {
   final String email;
   final String password;
+  final String? displayName;
+  final String? profileImageUrl;
+  final String colorMode;
+  final String language;
 
-  const SignUpParams({required this.email, required this.password});
+  const SignUpParams({
+    required this.email,
+    required this.password,
+    this.displayName,
+    this.profileImageUrl,
+    this.colorMode = 'light',
+    this.language = 'en',
+  });
 
   @override
-  List<Object> get props => [email, password];
+  List<Object?> get props => [
+    email,
+    password,
+    displayName,
+    profileImageUrl,
+    colorMode,
+    language,
+  ];
 }

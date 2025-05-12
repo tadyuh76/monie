@@ -16,9 +16,9 @@ class SummarySectionWidget extends StatelessWidget {
     double totalIncome = 0;
 
     for (var transaction in transactions) {
-      if (transaction.type == 'expense') {
-        totalExpense += transaction.amount;
-      } else if (transaction.type == 'income') {
+      if (transaction.amount < 0) {
+        totalExpense += transaction.amount.abs();
+      } else {
         totalIncome += transaction.amount;
       }
     }
@@ -49,7 +49,7 @@ class SummarySectionWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${transactions.where((t) => t.type == 'expense').length} transactions',
+                  '${transactions.where((t) => t.amount < 0).length} transactions',
                   style: textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -83,7 +83,7 @@ class SummarySectionWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${transactions.where((t) => t.type == 'income').length} transaction',
+                  '${transactions.where((t) => t.amount >= 0).length} transaction',
                   style: textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),

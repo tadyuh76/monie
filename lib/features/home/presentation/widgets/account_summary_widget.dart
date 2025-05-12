@@ -24,11 +24,13 @@ class AccountSummaryWidget extends StatelessWidget {
 
     // Calculate income and expense
     final double totalIncome = transactions
-        .where((t) => t.type == 'income')
+        .where((t) => t.amount > 0)
         .fold(0, (sum, t) => sum + t.amount);
+
+    // For expenses, we want to display the absolute value
     final double totalExpense = transactions
-        .where((t) => t.type == 'expense')
-        .fold(0, (sum, t) => sum + t.amount);
+        .where((t) => t.amount < 0)
+        .fold(0, (sum, t) => sum + t.amount.abs());
 
     return Container(
       padding: const EdgeInsets.all(16),

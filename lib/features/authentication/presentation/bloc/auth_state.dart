@@ -86,17 +86,21 @@ class AuthInfo extends AuthState {
   List<Object?> get props => [message];
 }
 
-class EmailExistsState extends AuthState {
-  final bool exists;
-  final bool verified;
-  final String email;
+// Email exists state - can sign in if already verified
+class EmailExists extends AuthState {
+  final bool canSignIn;
 
-  const EmailExistsState({
-    required this.exists,
-    required this.verified,
-    required this.email,
-  });
+  const EmailExists({required this.canSignIn});
 
   @override
-  List<Object?> get props => [exists, verified, email];
+  List<Object?> get props => [canSignIn];
 }
+
+// Email does not exist state
+class EmailDoesNotExist extends AuthState {}
+
+// Email verification success state
+class VerificationSuccess extends AuthState {}
+
+// Email verification pending state
+class VerificationPending extends AuthState {}

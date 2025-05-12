@@ -1,9 +1,9 @@
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/features/authentication/domain/usecases/check_email_exists.dart';
 import 'package:monie/features/authentication/domain/usecases/get_current_user.dart';
 import 'package:monie/features/authentication/domain/usecases/is_email_verified.dart';
-import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
 import 'package:monie/features/authentication/domain/usecases/resend_verification_email.dart';
+import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_in.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
@@ -11,34 +11,42 @@ import 'package:monie/features/authentication/presentation/bloc/auth_event.dart'
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final GetCurrentUser getCurrentUser;
-  final SignUp signUp;
-  final SignIn signIn;
-  final SignOut signOut;
-  final ResendVerificationEmail resendVerificationEmail;
-  final IsEmailVerified isEmailVerified;
-  final ResetPassword resetPassword;
-  final CheckEmailExists checkEmailExists;
+  final GetCurrentUser _getCurrentUser;
+  final SignUp _signUp;
+  final SignIn _signIn;
+  final SignOut _signOut;
+  final ResendVerificationEmail _resendVerificationEmail;
+  final IsEmailVerified _isEmailVerified;
+  final ResetPassword _resetPassword;
+  final CheckEmailExists _checkEmailExists;
 
   // Track last email send time
   final Map<String, DateTime> _lastVerificationEmails = {};
 
   AuthBloc({
-    required this.getCurrentUser,
-    required this.signUp,
-    required this.signIn,
-    required this.signOut,
-    required this.resendVerificationEmail,
-    required this.isEmailVerified,
-    required this.resetPassword,
-    required this.checkEmailExists,
-  }) : super(AuthInitial()) {
+    required GetCurrentUser getCurrentUser,
+    required SignUp signUp,
+    required SignIn signIn,
+    required SignOut signOut,
+    required ResendVerificationEmail resendVerificationEmail,
+    required IsEmailVerified isEmailVerified,
+    required ResetPassword resetPassword,
+    required CheckEmailExists checkEmailExists,
+  }) : _getCurrentUser = getCurrentUser,
+       _signUp = signUp,
+       _signIn = signIn,
+       _signOut = signOut,
+       _resendVerificationEmail = resendVerificationEmail,
+       _isEmailVerified = isEmailVerified,
+       _resetPassword = resetPassword,
+       _checkEmailExists = checkEmailExists,
+       super(AuthInitial()) {
     on<GetCurrentUserEvent>(_onGetCurrentUser);
     on<SignUpEvent>(_onSignUp);
     on<SignInEvent>(_onSignIn);
     on<SignOutEvent>(_onSignOut);
     on<ResendVerificationEmailEvent>(_onResendVerificationEmail);
-    on<CheckEmailVerificationEvent>(_onCheckEmailVerification);
+    on<CheckVerificationStatusEvent>(_onCheckVerificationStatus);
     on<ResetPasswordEvent>(_onResetPassword);
     on<CheckEmailExistsEvent>(_onCheckEmailExists);
   }
@@ -48,85 +56,55 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    final result = await getCurrentUser();
-    result.fold(
-      (failure) => emit(Unauthenticated()),
-      (user) =>
-          user != null ? emit(Authenticated(user)) : emit(Unauthenticated()),
-    );
+
+    final result = await _getCurrentUser();
+
+    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      if (user != null) {
+        emit(Authenticated(user));
+      } else {
+        emit(Unauthenticated());
+      }
+    });
   }
 
   Future<void> _onSignUp(SignUpEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
-    final params = SignUpParams(email: event.email, password: event.password);
-    final result = await signUp(params);
 
-    await result.fold(
-      (failure) async {
-        // Check if this is an "Email already registered" error which is actually ok
-        if (failure.message.contains('already registered') ||
-            failure.message.contains('already exists')) {
-          // Just emit SignUpSuccess to let the UI navigate to verification page
-          emit(SignUpSuccess(event.email));
-        } else {
-          emit(AuthError(failure.message));
-        }
-      },
-      (_) async {
-        // Skip sign-in attempt since email verification is required
-        // Directly emit SignUpSuccess to navigate to the verification page
-        emit(SignUpSuccess(event.email));
-      },
+    final params = SignUpParams(
+      email: event.email,
+      password: event.password,
+      displayName: event.displayName,
+      profileImageUrl: event.profileImageUrl,
+      colorMode: event.colorMode,
+      language: event.language,
+    );
+
+    final result = await _signUp(params);
+
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (_) => emit(SignUpSuccess(event.email)),
     );
   }
 
   Future<void> _onSignIn(SignInEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
 
-    // First check if email exists and is verified
-    final existsParams = CheckEmailExistsParams(email: event.email);
-    final existsResult = await checkEmailExists(existsParams);
+    final params = SignInParams(email: event.email, password: event.password);
 
-    await existsResult.fold(
-      (failure) async {
-        // Continue with normal sign-in if we can't check verification status
-        final params = SignInParams(
-          email: event.email,
-          password: event.password,
-        );
-        final result = await signIn(params);
-        result.fold(
-          (failure) => emit(AuthError(failure.message)),
-          (user) => emit(Authenticated(user)),
-        );
-      },
-      (emailStatus) async {
-        final exists = emailStatus['exists'] ?? false;
-        final verified = emailStatus['verified'] ?? false;
+    final result = await _signIn(params);
 
-        if (exists && !verified) {
-          // Email exists but is not verified - direct to verification page
-          emit(SignUpSuccess(event.email));
-          return;
-        }
-
-        // Otherwise proceed with normal sign-in
-        final params = SignInParams(
-          email: event.email,
-          password: event.password,
-        );
-        final result = await signIn(params);
-        result.fold(
-          (failure) => emit(AuthError(failure.message)),
-          (user) => emit(Authenticated(user)),
-        );
-      },
-    );
+    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      emit(Authenticated(user));
+    });
   }
 
   Future<void> _onSignOut(SignOutEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
-    final result = await signOut();
+
+    final result = await _signOut();
+
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (_) => emit(Unauthenticated()),
@@ -150,8 +128,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
 
     emit(AuthLoading());
+
     final params = ResendVerificationEmailParams(email: event.email);
-    final result = await resendVerificationEmail(params);
+    final result = await _resendVerificationEmail(params);
 
     result.fold((failure) => emit(AuthError(failure.message)), (_) {
       // Track this email send time
@@ -160,8 +139,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
   }
 
-  Future<void> _onCheckEmailVerification(
-    CheckEmailVerificationEvent event,
+  Future<void> _onCheckVerificationStatus(
+    CheckVerificationStatusEvent event,
     Emitter<AuthState> emit,
   ) async {
     // Only emit loading state for non-silent checks
@@ -170,7 +149,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
 
     final params = IsEmailVerifiedParams(email: event.email);
-    final result = await isEmailVerified(params);
+    final result = await _isEmailVerified(params);
 
     result.fold(
       (failure) {
@@ -182,10 +161,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (isVerified) {
         if (isVerified) {
           // Always emit when verified (this triggers navigation)
-          emit(EmailVerificationStatus(isVerified));
+          emit(VerificationSuccess());
         } else if (!event.isSilent) {
           // Only emit non-verified status for explicit checks
-          emit(EmailVerificationStatus(isVerified));
+          emit(VerificationPending());
         }
       },
     );
@@ -196,8 +175,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
+
     final params = ResetPasswordParams(email: event.email);
-    final result = await resetPassword(params);
+    final result = await _resetPassword(params);
+
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (_) => emit(PasswordResetEmailSent(event.email)),
@@ -209,20 +190,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
+
     final params = CheckEmailExistsParams(email: event.email);
-    final result = await checkEmailExists(params);
+    final result = await _checkEmailExists(params);
 
-    result.fold((failure) => emit(AuthError(failure.message)), (emailStatus) {
-      final exists = emailStatus['exists'] ?? false;
-      final verified = emailStatus['verified'] ?? false;
-
-      emit(
-        EmailExistsState(
-          exists: exists,
-          verified: verified,
-          email: event.email,
-        ),
-      );
+    result.fold((failure) => emit(AuthError(failure.message)), (status) {
+      if (status['exists'] == true) {
+        if (status['verified'] == true) {
+          emit(EmailExists(canSignIn: true));
+        } else {
+          emit(EmailExists(canSignIn: false));
+        }
+      } else {
+        emit(EmailDoesNotExist());
+      }
     });
   }
 }

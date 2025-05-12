@@ -1,59 +1,59 @@
 import 'package:injectable/injectable.dart';
-import 'package:monie/core/utils/mock_data.dart';
+import 'package:monie/core/errors/exceptions.dart';
+import 'package:monie/features/transactions/data/datasources/transaction_remote_data_source.dart';
 import 'package:monie/features/transactions/data/models/transaction_model.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/domain/repositories/transaction_repository.dart';
 
 @Injectable(as: TransactionRepository)
 class TransactionRepositoryImpl implements TransactionRepository {
+  final TransactionRemoteDataSource remoteDataSource;
+
+  TransactionRepositoryImpl({required this.remoteDataSource});
+
   @override
   Future<List<Transaction>> getTransactions() async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    return MockData.transactions;
+    try {
+      return await remoteDataSource.getTransactions();
+    } on ServerException catch (e) {
+      throw Exception('Failed to get transactions: ${e.message}');
+    }
   }
 
   @override
   Future<Transaction> getTransactionById(String id) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    final transaction = MockData.transactions.firstWhere(
-      (transaction) => transaction.id == id,
-      orElse: () => throw Exception('Transaction not found'),
-    );
-
-    return transaction;
+    try {
+      return await remoteDataSource.getTransactionById(id);
+    } on ServerException catch (e) {
+      throw Exception('Failed to get transaction by ID: ${e.message}');
+    }
   }
 
   @override
   Future<List<Transaction>> getTransactionsByType(String type) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    return MockData.transactions
-        .where((transaction) => transaction.type == type)
-        .toList();
+    try {
+      return await remoteDataSource.getTransactionsByType(type);
+    } on ServerException catch (e) {
+      throw Exception('Failed to get transactions by type: ${e.message}');
+    }
   }
 
   @override
   Future<List<Transaction>> getTransactionsByAccountId(String accountId) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    return MockData.transactions
-        .where((transaction) => transaction.accountId == accountId)
-        .toList();
+    try {
+      return await remoteDataSource.getTransactionsByAccountId(accountId);
+    } on ServerException catch (e) {
+      throw Exception('Failed to get transactions by account ID: ${e.message}');
+    }
   }
 
   @override
   Future<List<Transaction>> getTransactionsByBudgetId(String budgetId) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    return MockData.transactions
-        .where((transaction) => transaction.budgetId == budgetId)
-        .toList();
+    try {
+      return await remoteDataSource.getTransactionsByBudgetId(budgetId);
+    } on ServerException catch (e) {
+      throw Exception('Failed to get transactions by budget ID: ${e.message}');
+    }
   }
 
   @override
@@ -61,47 +61,42 @@ class TransactionRepositoryImpl implements TransactionRepository {
     DateTime startDate,
     DateTime endDate,
   ) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    return MockData.transactions.where((transaction) {
-      return transaction.date.isAfter(
-            startDate.subtract(const Duration(days: 1)),
-          ) &&
-          transaction.date.isBefore(endDate.add(const Duration(days: 1)));
-    }).toList();
+    try {
+      return await remoteDataSource.getTransactionsByDateRange(
+        startDate,
+        endDate,
+      );
+    } on ServerException catch (e) {
+      throw Exception('Failed to get transactions by date range: ${e.message}');
+    }
   }
 
   @override
   Future<void> addTransaction(Transaction transaction) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    final transactionModel = TransactionModel.fromEntity(transaction);
-    MockData.transactions.add(transactionModel);
+    try {
+      final transactionModel = TransactionModel.fromEntity(transaction);
+      await remoteDataSource.addTransaction(transactionModel);
+    } on ServerException catch (e) {
+      throw Exception('Failed to add transaction: ${e.message}');
+    }
   }
 
   @override
   Future<void> updateTransaction(Transaction transaction) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    final index = MockData.transactions.indexWhere(
-      (t) => t.id == transaction.id,
-    );
-
-    if (index >= 0) {
-      MockData.transactions[index] = TransactionModel.fromEntity(transaction);
-    } else {
-      throw Exception('Transaction not found');
+    try {
+      final transactionModel = TransactionModel.fromEntity(transaction);
+      await remoteDataSource.updateTransaction(transactionModel);
+    } on ServerException catch (e) {
+      throw Exception('Failed to update transaction: ${e.message}');
     }
   }
 
   @override
   Future<void> deleteTransaction(String id) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    MockData.transactions.removeWhere((transaction) => transaction.id == id);
+    try {
+      await remoteDataSource.deleteTransaction(id);
+    } on ServerException catch (e) {
+      throw Exception('Failed to delete transaction: ${e.message}');
+    }
   }
 }

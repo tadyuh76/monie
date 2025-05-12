@@ -12,6 +12,10 @@ abstract class AuthRepository {
   Future<Either<Failure, void>> signUp({
     required String email,
     required String password,
+    String? displayName,
+    String? profileImageUrl,
+    String colorMode = 'light',
+    String language = 'en',
   });
 
   /// Signs in a user with email and password

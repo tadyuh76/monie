@@ -19,6 +19,7 @@ class SignupPage extends StatefulWidget {
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _displayNameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _confirmPasswordFocusNode = FocusNode();
@@ -37,6 +38,7 @@ class _SignupPageState extends State<SignupPage> {
   @override
   void dispose() {
     _emailController.dispose();
+    _displayNameController.dispose();
     _passwordController.removeListener(_onPasswordChanged);
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -90,10 +92,23 @@ class _SignupPageState extends State<SignupPage> {
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
+            // Friendlier error messages for specific cases
+            String message = state.message;
+
+            // Check for duplicate email errors
+            if (message.contains('duplicate key value') &&
+                message.contains('users_email_key')) {
+              message =
+                  'This email is already registered. Please sign in or reset your password.';
+            }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(message),
                 backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.all(16),
+                duration: const Duration(seconds: 5),
               ),
             );
           } else if (state is SignUpSuccess) {
@@ -102,35 +117,42 @@ class _SignupPageState extends State<SignupPage> {
                 builder: (context) => VerificationPage(email: state.email),
               ),
             );
-          } else if (state is EmailExistsState) {
-            if (state.exists) {
-              if (state.verified) {
-                // Email exists and is verified - show error message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'This email is already registered. Please sign in.',
-                    ),
-                    backgroundColor: Colors.red,
+          } else if (state is EmailExists) {
+            if (state.canSignIn) {
+              // Email exists and is verified - show error message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'This email is already registered. Please sign in.',
                   ),
-                );
-              } else {
-                // Email exists but is not verified - proceed to verification page
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => VerificationPage(email: state.email),
-                  ),
-                );
-              }
+                  backgroundColor: Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.all(16),
+                  duration: const Duration(seconds: 5),
+                ),
+              );
             } else {
-              // Email doesn't exist - proceed with sign up
-              context.read<AuthBloc>().add(
-                SignUpEvent(
-                  email: _emailController.text,
-                  password: _passwordController.text,
+              // Email exists but is not verified - proceed to verification page
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder:
+                      (context) =>
+                          VerificationPage(email: _emailController.text),
                 ),
               );
             }
+          } else if (state is EmailDoesNotExist) {
+            // Email doesn't exist - proceed with sign up
+            context.read<AuthBloc>().add(
+              SignUpEvent(
+                email: _emailController.text,
+                password: _passwordController.text,
+                displayName:
+                    _displayNameController.text.isNotEmpty
+                        ? _displayNameController.text
+                        : null,
+              ),
+            );
           }
         },
         builder: (context, state) {
@@ -175,6 +197,16 @@ class _SignupPageState extends State<SignupPage> {
                         prefixIcon: Icons.email_outlined,
                         validator: Validator.email,
                         textInputType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Display Name Field
+                      AuthInputField(
+                        controller: _displayNameController,
+                        labelText: 'Display Name (optional)',
+                        hintText: 'How you want to be called',
+                        prefixIcon: Icons.person_outline,
+                        textInputType: TextInputType.name,
                       ),
                       const SizedBox(height: 16),
 
