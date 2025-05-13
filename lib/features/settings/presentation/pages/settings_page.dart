@@ -6,6 +6,7 @@ import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
+import 'package:monie/features/settings/domain/models/user_profile.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_state.dart';
@@ -33,6 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isNewPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   final ImagePicker _imagePicker = ImagePicker();
+  UserProfile? _currentProfile;
 
   @override
   void initState() {
@@ -208,7 +210,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildBody(BuildContext context, SettingsState state) {
-    if (state is SettingsLoading || state is SettingsInitial) {
+    // Chỉ hiển thị loading indicator cho trạng thái khởi tạo hoặc đang tải profile
+    if (state is SettingsInitial || state is ProfileLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -252,12 +255,42 @@ class _SettingsPageState extends State<SettingsPage> {
     final authState = context.watch<AuthBloc>().state;
     final authName = authState is Authenticated ? authState.user.displayName : null;
     
+    // Trong trạng thái sau khi thay đổi theme hoặc language, giữ lại thông tin profile cũ
+    // Nếu không có profile, hiển thị trạng thái loading
     final profile = state is ProfileLoaded
         ? state.profile
         : state is ProfileUpdateSuccess
             ? state.profile
-            : null;
+            : state is SettingsUpdateSuccess && _currentProfile != null
+                ? _currentProfile
+                : null;
 
+    // Chỉ hiển thị loading khi state là ProfileLoading hoặc SettingsInitial
+    // Không hiển thị loading trong các trạng thái khác
+    if (profile == null && (state is ProfileLoading || state is SettingsInitial)) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                context.tr('settings_loading_profile'),
+                style: const TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Nếu profile là null nhưng state không phải loading, hiển thị placeholder
     if (profile == null) {
       return Container(
         width: double.infinity,
@@ -266,20 +299,23 @@ class _SettingsPageState extends State<SettingsPage> {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Center(
+        child: Center(
           child: Column(
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
+              const Icon(Icons.account_circle, size: 100, color: Colors.white54),
+              const SizedBox(height: 16),
               Text(
-                'Loading profile...',
-                style: TextStyle(color: Colors.white),
+                context.tr('settings_profile_unavailable'),
+                style: const TextStyle(color: Colors.white),
               ),
             ],
           ),
         ),
       );
     }
+
+    // Cache profile để sử dụng cho các state khác
+    _currentProfile = profile;
 
     // Use authName if available, otherwise fall back to profile name
     final displayName = authName ?? profile.displayName;

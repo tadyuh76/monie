@@ -76,6 +76,8 @@
   "settings_password_min_length": "Mật khẩu phải có ít nhất 6 ký tự",
   "settings_please_confirm_password": "Vui lòng xác nhận mật khẩu mới",
   "settings_passwords_not_match": "Mật khẩu không khớp",
+  "settings_loading_profile": "Đang tải hồ sơ...",
+  "settings_profile_unavailable": "Không thể tải hồ sơ",
   
   "common_loading": "Đang tải",
   "common_error": "Lỗi",

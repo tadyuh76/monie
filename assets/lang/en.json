@@ -76,6 +76,8 @@
   "settings_password_min_length": "Password must be at least 6 characters",
   "settings_please_confirm_password": "Please confirm your new password",
   "settings_passwords_not_match": "Passwords do not match",
+  "settings_loading_profile": "Loading profile...",
+  "settings_profile_unavailable": "Profile not available",
   
   "common_loading": "Loading",
   "common_error": "Error",

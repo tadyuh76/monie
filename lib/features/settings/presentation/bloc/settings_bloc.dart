@@ -122,10 +122,19 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       
       if (success) {
         _currentSettings = newSettings;
-        emit(SettingsUpdateSuccess(
-          message: 'Theme updated',
-          settings: _currentSettings,
-        ));
+        
+        // Giữ lại thông tin profile trong trạng thái thành công
+        if (_currentProfile != null) {
+          emit(ProfileLoaded(
+            profile: _currentProfile!,
+            settings: _currentSettings,
+          ));
+        } else {
+          emit(SettingsUpdateSuccess(
+            message: 'Theme updated',
+            settings: _currentSettings,
+          ));
+        }
       } else {
         emit(const SettingsError('Failed to update theme'));
       }
@@ -147,10 +156,19 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       
       if (success) {
         _currentSettings = newSettings;
-        emit(SettingsUpdateSuccess(
-          message: 'Language updated',
-          settings: _currentSettings,
-        ));
+        
+        // Giữ lại thông tin profile trong trạng thái thành công
+        if (_currentProfile != null) {
+          emit(ProfileLoaded(
+            profile: _currentProfile!,
+            settings: _currentSettings,
+          ));
+        } else {
+          emit(SettingsUpdateSuccess(
+            message: 'Language updated',
+            settings: _currentSettings,
+          ));
+        }
       } else {
         emit(const SettingsError('Failed to update language'));
       }
