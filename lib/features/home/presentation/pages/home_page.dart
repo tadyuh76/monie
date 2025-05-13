@@ -119,7 +119,7 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               children: [
                 Text(
-                  'Error loading budgets: ${state.message}',
+                  '${context.tr('common_error')}: ${state.message}',
                   style: const TextStyle(color: Colors.white),
                   textAlign: TextAlign.center,
                 ),
@@ -128,7 +128,7 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () {
                     context.read<BudgetsBloc>().add(const LoadBudgets());
                   },
-                  child: const Text('Retry'),
+                  child: Text(context.tr('common_retry')),
                 ),
               ],
             ),
@@ -143,24 +143,24 @@ class _HomePageState extends State<HomePage> {
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.account_balance_wallet_outlined,
                       color: Colors.white70,
                       size: 48,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
-                      'No active budgets',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                      context.tr('home_no_active_budgets'),
+                      style: const TextStyle(color: Colors.white70, fontSize: 16),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Create a budget to start tracking your spending',
-                      style: TextStyle(color: Colors.white54, fontSize: 14),
+                      context.tr('home_create_budget_hint'),
+                      style: const TextStyle(color: Colors.white54, fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -177,12 +177,12 @@ class _HomePageState extends State<HomePage> {
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const SizedBox(
+          child: SizedBox(
             height: 100,
             child: Center(
               child: Text(
-                'Loading budgets...',
-                style: TextStyle(color: Colors.white70),
+                context.tr('home_loading_budgets'),
+                style: const TextStyle(color: Colors.white70),
               ),
             ),
           ),

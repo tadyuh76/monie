@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/home/presentation/widgets/transaction_item_widget.dart';
@@ -41,7 +42,7 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: Text(
-            'Recent Transactions',
+            context.tr('home_recent_transactions'),
             style: textTheme.headlineMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -115,7 +116,7 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'View All Transactions',
+                    context.tr('home_see_all') + ' ' + context.tr('home_transactions'),
                     style: textTheme.labelLarge?.copyWith(
                       color: AppColors.primary,
                     ),

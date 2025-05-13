@@ -10,6 +10,8 @@
   "auth_have_account": "Đã có tài khoản?",
   "auth_sign_up": "Đăng ký",
   "auth_continue": "Tiếp tục",
+  "auth_logout": "Đăng xuất",
+  "auth_logout_confirm": "Bạn có chắc chắn muốn đăng xuất không?",
   
   "home_title": "Trang chủ",
   "home_welcome": "Chào mừng trở lại",
@@ -18,6 +20,13 @@
   "home_expense": "Chi tiêu",
   "home_recent_transactions": "Giao dịch gần đây",
   "home_see_all": "Xem tất cả",
+  "home_tab_switching_unavailable": "Chuyển tab không khả dụng",
+  "home_net_worth": "Giá trị ròng",
+  "home_transactions": "Giao dịch",
+  "home_active_budgets": "Ngân sách đang hoạt động",
+  "home_no_active_budgets": "Không có ngân sách nào đang hoạt động",
+  "home_create_budget_hint": "Tạo ngân sách để bắt đầu theo dõi chi tiêu của bạn",
+  "home_loading_budgets": "Đang tải ngân sách...",
   
   "transactions_title": "Giao dịch",
   "transactions_all": "Tất cả",
@@ -76,5 +85,6 @@
   "common_save": "Lưu",
   "common_delete": "Xóa",
   "common_edit": "Sửa",
-  "common_add": "Thêm"
+  "common_add": "Thêm",
+  "common_user": "Người dùng"
 } 

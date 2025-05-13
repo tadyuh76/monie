@@ -10,6 +10,8 @@
   "auth_have_account": "Already have an account?",
   "auth_sign_up": "Sign Up",
   "auth_continue": "Continue",
+  "auth_logout": "Logout",
+  "auth_logout_confirm": "Are you sure you want to logout?",
   
   "home_title": "Home",
   "home_welcome": "Welcome back",
@@ -18,6 +20,13 @@
   "home_expense": "Expense",
   "home_recent_transactions": "Recent Transactions",
   "home_see_all": "See all",
+  "home_tab_switching_unavailable": "Tab switching not available",
+  "home_net_worth": "Net Worth",
+  "home_transactions": "Transactions",
+  "home_active_budgets": "Active Budgets",
+  "home_no_active_budgets": "No active budgets",
+  "home_create_budget_hint": "Create a budget to start tracking your spending",
+  "home_loading_budgets": "Loading budgets...",
   
   "transactions_title": "Transactions",
   "transactions_all": "All",
@@ -76,5 +85,6 @@
   "common_save": "Save",
   "common_delete": "Delete",
   "common_edit": "Edit",
-  "common_add": "Add"
+  "common_add": "Add",
+  "common_user": "User"
 } 

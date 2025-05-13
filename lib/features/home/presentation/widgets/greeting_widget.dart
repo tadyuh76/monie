@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 
 class GreetingWidget extends StatelessWidget {
@@ -13,7 +14,7 @@ class GreetingWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Hi there',
+          context.tr('home_welcome'),
           style: textTheme.titleLarge?.copyWith(color: AppColors.textSecondary),
         ),
         Text(
