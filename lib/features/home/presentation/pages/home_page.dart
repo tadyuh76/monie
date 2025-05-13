@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_data.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
@@ -208,7 +209,7 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            'Monie',
+            context.tr('app_name'),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.bold,
@@ -229,18 +230,18 @@ class _HomePageState extends State<HomePage> {
                     builder:
                         (context) => AlertDialog(
                           backgroundColor: AppColors.surface,
-                          title: const Text(
-                            'Logout',
-                            style: TextStyle(color: Colors.white),
+                          title: Text(
+                            context.tr('auth_logout'),
+                            style: const TextStyle(color: Colors.white),
                           ),
-                          content: const Text(
-                            'Are you sure you want to logout?',
-                            style: TextStyle(color: Colors.white70),
+                          content: Text(
+                            context.tr('auth_logout_confirm'),
+                            style: const TextStyle(color: Colors.white70),
                           ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancel'),
+                              child: Text(context.tr('common_cancel')),
                             ),
                             TextButton(
                               onPressed: () {
@@ -256,7 +257,7 @@ class _HomePageState extends State<HomePage> {
                                 );
                               },
                               child: Text(
-                                'Logout',
+                                context.tr('auth_logout'),
                                 style: TextStyle(color: AppColors.expense),
                               ),
                             ),
@@ -267,26 +268,29 @@ class _HomePageState extends State<HomePage> {
               },
               itemBuilder:
                   (context) => [
-                    const PopupMenuItem<String>(
+                    PopupMenuItem<String>(
                       value: 'settings',
                       child: Row(
                         children: [
-                          Icon(Icons.settings, color: Colors.white),
-                          SizedBox(width: 8),
+                          const Icon(Icons.settings, color: Colors.white),
+                          const SizedBox(width: 8),
                           Text(
-                            'Settings',
-                            style: TextStyle(color: Colors.white),
+                            context.tr('settings_title'),
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ],
                       ),
                     ),
-                    const PopupMenuItem<String>(
+                    PopupMenuItem<String>(
                       value: 'logout',
                       child: Row(
                         children: [
-                          Icon(Icons.logout, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text('Logout', style: TextStyle(color: Colors.white)),
+                          const Icon(Icons.logout, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Text(
+                            context.tr('auth_logout'),
+                            style: const TextStyle(color: Colors.white)
+                          ),
                         ],
                       ),
                     ),
@@ -298,14 +302,26 @@ class _HomePageState extends State<HomePage> {
           child: BlocBuilder<HomeBloc, HomeState>(
             builder: (context, state) {
               if (state is HomeLoading) {
-                return const Center(child: CircularProgressIndicator());
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        context.tr('common_loading'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                );
               } else if (state is HomeError) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Error loading data: ${state.message}',
+                        '${context.tr('common_error')}: ${state.message}',
                         style: const TextStyle(color: Colors.white),
                         textAlign: TextAlign.center,
                       ),
@@ -314,7 +330,7 @@ class _HomePageState extends State<HomePage> {
                         onPressed: () {
                           context.read<HomeBloc>().add(const LoadHomeData());
                         },
-                        child: const Text('Retry'),
+                        child: Text(context.tr('common_retry')),
                       ),
                     ],
                   ),
@@ -324,8 +340,8 @@ class _HomePageState extends State<HomePage> {
                 final authState = context.watch<AuthBloc>().state;
                 final userName =
                     authState is Authenticated
-                        ? authState.user.displayName ?? 'User'
-                        : 'User';
+                        ? authState.user.displayName ?? context.tr('common_user')
+                        : context.tr('common_user');
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -368,8 +384,8 @@ class _HomePageState extends State<HomePage> {
                           } else {
                             // Fallback to traditional navigation if not provided
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Tab switching not available'),
+                              SnackBar(
+                                content: Text(context.tr('home_tab_switching_unavailable')),
                                 backgroundColor: Colors.orange,
                               ),
                             );

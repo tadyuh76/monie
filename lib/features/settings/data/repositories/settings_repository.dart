@@ -72,7 +72,7 @@ class SettingsRepository {
           return UserProfile(
             id: user.id,
             // Use display_name from database or name from auth metadata or email
-            displayName: response['display_name'] ?? nameFromAuth.isNotEmpty ? nameFromAuth : user.email?.split('@')[0] ?? 'User',
+            displayName: response['display_name'] ?? (nameFromAuth.isNotEmpty ? nameFromAuth : user.email?.split('@')[0] ?? 'User'),
             email: user.email ?? '',
             avatarUrl: response['avatar_url'] ?? userMetadata?['avatar_url'],
             phoneNumber: response['phone_number'] ?? user.phone,
@@ -98,63 +98,127 @@ class SettingsRepository {
 
   Future<bool> updateUserProfile(UserProfile profile) async {
     try {
+      print('SettingsRepo: updateUserProfile started for user ${profile.id}');
+      print('SettingsRepo: update data - name: ${profile.displayName}, phone: ${profile.phoneNumber}');
+      
       final User? user = _supabaseClient.client.auth.currentUser;
       
       if (user == null) {
+        print('SettingsRepo: ERROR - No authenticated user found');
         return false;
       }
 
-      // Update database profile
-      await _supabaseClient.client
-          .from('profiles')
-          .upsert({
-            'id': profile.id,
-            'display_name': profile.displayName,
-            'avatar_url': profile.avatarUrl,
-            'phone_number': profile.phoneNumber,
-            'updated_at': DateTime.now().toIso8601String(),
-            'email': profile.email,
-          });
+      print('SettingsRepo: Found authenticated user: ${user.id}');
+      
+      // Try both database and auth updates, prioritizing auth first
+      bool success = false;
+      
+      // First update auth metadata as it's more reliable
+      try {
+        print('SettingsRepo: Updating auth metadata');
+        await _supabaseClient.client.auth.updateUser(
+          UserAttributes(
+            data: {
+              'name': profile.displayName,
+              'avatar_url': profile.avatarUrl,
+            },
+          ),
+        );
+        print('SettingsRepo: Auth metadata updated successfully');
+        success = true;
+      } catch (authError) {
+        print('SettingsRepo: ERROR updating auth metadata: $authError');
+        // Continue to try database update even if auth update fails
+      }
+      
+      // Then update database profile
+      try {
+        print('SettingsRepo: Updating profile in database');
+        final response = await _supabaseClient.client
+            .from('profiles')
+            .upsert({
+              'id': profile.id,
+              'display_name': profile.displayName,
+              'avatar_url': profile.avatarUrl,
+              'phone_number': profile.phoneNumber,
+              'updated_at': DateTime.now().toIso8601String(),
+              'email': profile.email,
+            });
 
-      // Also update auth metadata where possible
-      await _supabaseClient.client.auth.updateUser(
-        UserAttributes(
-          data: {
-            'name': profile.displayName,
-            'avatar_url': profile.avatarUrl,
-          },
-        ),
-      );
-
-      return true;
+        print('SettingsRepo: Database profile updated successfully');
+        success = true;
+      } catch (dbError) {
+        print('SettingsRepo: ERROR updating profile in database: $dbError');
+        // If we haven't succeeded with auth update, this is a complete failure
+        if (!success) {
+          return false;
+        }
+      }
+      
+      // Refresh the user data to ensure it's up to date
+      try {
+        print('SettingsRepo: Refreshing user session');
+        await _supabaseClient.client.auth.refreshSession();
+        print('SettingsRepo: Session refreshed');
+      } catch (refreshError) {
+        print('SettingsRepo: Warning - Error refreshing session: $refreshError');
+        // This is not critical, we can still return success if earlier operations worked
+      }
+      
+      return success;
     } catch (e) {
-      print('Error updating user profile: $e');
+      print('SettingsRepo: ERROR updating user profile: $e');
       return false;
     }
   }
 
-  Future<bool> changePassword(String currentPassword, String newPassword) async {
+  Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
     try {
+      print('ChangePassword: Starting password change process');
       final User? user = _supabaseClient.client.auth.currentUser;
       
       if (user == null) {
-        return false;
+        print('ChangePassword: No current user found');
+        return {'success': false, 'error': 'User not authenticated'};
       }
 
-      // Verify current password by attempting a sign-in
-      await _supabaseClient.client.auth.signInWithPassword(
-        email: user.email!,
-        password: currentPassword,
-      );
+      if (user.email == null) {
+        print('ChangePassword: User has no email');
+        return {'success': false, 'error': 'User has no email address'};
+      }
 
-      // Change password
-      await _supabaseClient.client.auth.updateUser(
-        UserAttributes(password: newPassword),
-      );
+      print('ChangePassword: Found user with email ${user.email}');
+      
+      try {
+        // Verify current password by attempting a sign-in
+        print('ChangePassword: Verifying current password by signing in');
+        await _supabaseClient.client.auth.signInWithPassword(
+          email: user.email!,
+          password: currentPassword,
+        );
+      } catch (signInError) {
+        print('ChangePassword: Current password verification failed: $signInError');
+        return {'success': false, 'error': 'Current password is incorrect'};
+      }
 
-      return true;
+      print('ChangePassword: Current password verified successfully');
+      
+      try {
+        // Change password
+        print('ChangePassword: Updating password');
+        await _supabaseClient.client.auth.updateUser(
+          UserAttributes(password: newPassword),
+        );
+      } catch (updateError) {
+        print('ChangePassword: Password update failed: $updateError');
+        return {'success': false, 'error': 'Failed to update password: $updateError'};
+      }
+
+      print('ChangePassword: Password updated successfully');
+      return {'success': true};
     } catch (e) {
-      return false;
+      print('ChangePassword ERROR: ${e.toString()}');
+      return {'success': false, 'error': e.toString()};
     }
   }
 

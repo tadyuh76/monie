@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/themes/app_theme.dart';
 import 'package:monie/di/injection.dart';
@@ -92,6 +94,17 @@ class MyApp extends StatelessWidget {
                       : state is ProfileUpdateSuccess
                           ? state.settings.themeMode
                           : ThemeMode.dark;
+          
+          // Get language from settings state, default to English
+          final appLanguage = state is SettingsLoaded 
+              ? state.settings.language 
+              : state is ProfileLoaded 
+                  ? state.settings.language
+                  : state is SettingsUpdateSuccess
+                      ? state.settings.language
+                      : state is ProfileUpdateSuccess
+                          ? state.settings.language
+                          : AppLanguage.english;
                           
           return MaterialApp(
             title: 'Monie',
@@ -107,6 +120,20 @@ class MyApp extends StatelessWidget {
               '/settings': (context) => const SettingsPage(),
             },
             debugShowCheckedModeBanner: false,
+            
+            // Localization setup
+            locale: appLanguage.toLocale,
+            supportedLocales: const [
+              Locale('en', 'US'),
+              Locale('vi', 'VN'),
+            ],
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            
             onGenerateRoute: (settings) {
               // Handle dynamic routes here if needed in the future
               return null;

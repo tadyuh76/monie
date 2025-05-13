@@ -163,23 +163,29 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     UpdateDisplayNameEvent event,
     Emitter<SettingsState> emit,
   ) async {
+    print('SettingsBloc: UpdateDisplayName event received: ${event.displayName}');
     if (_currentProfile == null) {
+      print('SettingsBloc: ERROR - No user profile loaded');
       emit(const SettingsError('No user profile loaded'));
       return;
     }
 
     try {
+      print('SettingsBloc: Creating updated profile with name: ${event.displayName}');
       final updatedProfile = _currentProfile!.copyWith(
         displayName: event.displayName,
       );
       
+      print('SettingsBloc: Calling repository.updateUserProfile');
       final success = await _repository.updateUserProfile(updatedProfile);
       
       if (success) {
+        print('SettingsBloc: Profile update successful');
         _currentProfile = updatedProfile;
         
         // If auth bloc is available, trigger a refresh
         if (_authBloc != null) {
+          print('SettingsBloc: Triggering auth refresh');
           _authBloc!.add(RefreshUserEvent());
         }
         
@@ -189,9 +195,11 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           settings: _currentSettings,
         ));
       } else {
+        print('SettingsBloc: Profile update failed');
         emit(const SettingsError('Failed to update profile name'));
       }
     } catch (e) {
+      print('SettingsBloc: Error updating profile: ${e.toString()}');
       emit(SettingsError('Error updating profile: ${e.toString()}'));
     }
   }
@@ -238,19 +246,24 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     UpdatePhoneNumberEvent event,
     Emitter<SettingsState> emit,
   ) async {
+    print('SettingsBloc: UpdatePhoneNumber event received: ${event.phoneNumber}');
     if (_currentProfile == null) {
+      print('SettingsBloc: ERROR - No user profile loaded');
       emit(const SettingsError('No user profile loaded'));
       return;
     }
 
     try {
+      print('SettingsBloc: Creating updated profile with phone: ${event.phoneNumber}');
       final updatedProfile = _currentProfile!.copyWith(
         phoneNumber: event.phoneNumber,
       );
       
+      print('SettingsBloc: Calling repository.updateUserProfile');
       final success = await _repository.updateUserProfile(updatedProfile);
       
       if (success) {
+        print('SettingsBloc: Phone number update successful');
         _currentProfile = updatedProfile;
         emit(ProfileUpdateSuccess(
           message: 'Phone number updated',
@@ -258,9 +271,11 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           settings: _currentSettings,
         ));
       } else {
+        print('SettingsBloc: Phone number update failed');
         emit(const SettingsError('Failed to update phone number'));
       }
     } catch (e) {
+      print('SettingsBloc: Error updating phone number: ${e.toString()}');
       emit(SettingsError('Error updating phone number: ${e.toString()}'));
     }
   }
@@ -269,21 +284,36 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     ChangePasswordEvent event,
     Emitter<SettingsState> emit,
   ) async {
+    print('SettingsBloc: Password change requested');
+    emit(const SettingsLoading());
+    
     try {
-      final success = await _repository.changePassword(
+      final result = await _repository.changePassword(
         event.currentPassword,
         event.newPassword,
       );
       
-      if (success) {
+      if (result['success'] == true) {
+        print('SettingsBloc: Password change was successful');
         emit(const PasswordChangeSuccess(
           message: 'Password changed successfully',
         ));
       } else {
-        emit(const SettingsError('Failed to change password'));
+        print('SettingsBloc: Password change failed: ${result['error']}');
+        emit(SettingsError(result['error'] ?? 'Current password may be incorrect or another error occurred'));
       }
     } catch (e) {
-      emit(SettingsError('Error changing password: ${e.toString()}'));
+      print('SettingsBloc: Password change error: ${e.toString()}');
+      String errorMessage = 'Error changing password';
+      
+      // Provide more specific error messages
+      if (e.toString().contains('incorrect password')) {
+        errorMessage = 'Current password is incorrect';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error, please check your connection';
+      }
+      
+      emit(SettingsError('$errorMessage: ${e.toString()}'));
     }
   }
 } 

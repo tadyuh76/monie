@@ -10,6 +10,7 @@ import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_state.dart';
 import 'package:monie/features/settings/presentation/widgets/settings_section_widget.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -28,6 +29,9 @@ class _SettingsPageState extends State<SettingsPage> {
   final _passwordFormKey = GlobalKey<FormState>();
   bool _isEditingProfile = false;
   bool _isChangingPassword = false;
+  bool _isCurrentPasswordVisible = false;
+  bool _isNewPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -130,15 +134,23 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<SettingsBloc, SettingsState>(
+      listenWhen: (previous, current) {
+        print('SettingsPage: State transition from ${previous.runtimeType} to ${current.runtimeType}');
+        return true; // Listen to all state changes
+      },
       listener: (context, state) {
+        print('SettingsPage: State changed to ${state.runtimeType}');
+        
         if (state is SettingsError) {
+          print('SettingsPage: Error state with message: ${state.message}');
           _showErrorSnackBar(state.message);
         } else if (state is SettingsUpdateSuccess) {
           _showSuccessSnackBar(state.message);
         } else if (state is ProfileUpdateSuccess) {
+          print('SettingsPage: Profile updated successfully: ${state.profile.displayName}, ${state.profile.phoneNumber}');
           _showSuccessSnackBar(state.message);
           
-          // Update text controllers with new profile data
+          // Only close the form after a successful update
           if (_isEditingProfile) {
             setState(() {
               _isEditingProfile = false;
@@ -154,23 +166,42 @@ class _SettingsPageState extends State<SettingsPage> {
           });
         } else if (state is ProfileLoaded) {
           // Update text controllers with profile data
+          print('SettingsPage: Profile loaded - name: ${state.profile.displayName}, phone: ${state.profile.phoneNumber}');
           _displayNameController.text = state.profile.displayName;
           _phoneNumberController.text = state.profile.phoneNumber ?? '';
         }
       },
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          appBar: AppBar(
-            title: const Text('Settings'),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop(),
+        // Show loading indicator for password change and other operations
+        final bool isLoading = state is SettingsLoading;
+        
+        return Stack(
+          children: [
+            Scaffold(
+              backgroundColor: AppColors.background,
+              appBar: AppBar(
+                title: Text(
+                  context.tr('settings_title'),
+                  style: const TextStyle(color: Colors.white)
+                ),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              body: _buildBody(context, state),
             ),
-          ),
-          body: _buildBody(context, state),
+            // Show loading overlay when needed
+            if (isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.5),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+          ],
         );
       },
     );
@@ -189,7 +220,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildProfileSection(state),
           const SizedBox(height: 24),
           SettingsSectionWidget(
-            title: 'App Settings',
+            title: context.tr('settings_app_settings'),
             children: [
               _buildNotificationsToggle(state),
               const Divider(color: AppColors.divider),
@@ -201,7 +232,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 24),
           if (!_isEditingProfile && !_isChangingPassword)
             SettingsSectionWidget(
-              title: 'Account',
+              title: context.tr('settings_account'),
               children: [
                 _buildEditProfileButton(),
                 const Divider(color: AppColors.divider),
@@ -352,13 +383,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     : const AppSettings();
 
     return SwitchListTile(
-      title: const Text(
-        'Notifications',
-        style: TextStyle(color: Colors.white),
+      title: Text(
+        context.tr('settings_notifications'),
+        style: const TextStyle(color: Colors.white),
       ),
-      subtitle: const Text(
-        'Enable push notifications',
-        style: TextStyle(color: Colors.white70),
+      subtitle: Text(
+        context.tr('settings_enable_notifications'),
+        style: const TextStyle(color: Colors.white70),
       ),
       value: settings.notificationsEnabled,
       activeColor: AppColors.primary,
@@ -382,9 +413,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     : const AppSettings();
 
     return ListTile(
-      title: const Text(
-        'Theme',
-        style: TextStyle(color: Colors.white),
+      title: Text(
+        context.tr('settings_theme'),
+        style: const TextStyle(color: Colors.white),
       ),
       subtitle: Text(
         _getThemeModeName(settings.themeMode),
@@ -404,28 +435,6 @@ class _SettingsPageState extends State<SettingsPage> {
         },
         items: [
           DropdownMenuItem(
-            value: ThemeMode.system,
-            child: Row(
-              children: [
-                Icon(
-                  Icons.settings_suggest,
-                  color: settings.themeMode == ThemeMode.system
-                      ? AppColors.primary
-                      : Colors.white,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'System',
-                  style: TextStyle(
-                    color: settings.themeMode == ThemeMode.system
-                        ? AppColors.primary
-                        : Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          DropdownMenuItem(
             value: ThemeMode.light,
             child: Row(
               children: [
@@ -437,7 +446,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'Light',
+                  context.tr('settings_theme_light'),
                   style: TextStyle(
                     color: settings.themeMode == ThemeMode.light
                         ? AppColors.primary
@@ -459,7 +468,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'Dark',
+                  context.tr('settings_theme_dark'),
                   style: TextStyle(
                     color: settings.themeMode == ThemeMode.dark
                         ? AppColors.primary
@@ -476,12 +485,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String _getThemeModeName(ThemeMode mode) {
     switch (mode) {
-      case ThemeMode.system:
-        return 'System';
       case ThemeMode.light:
-        return 'Light';
+        return context.tr('settings_theme_light');
       case ThemeMode.dark:
-        return 'Dark';
+        return context.tr('settings_theme_dark');
+      case ThemeMode.system:
+        return context.tr('settings_theme_light'); // Default to Light if system is somehow set
     }
   }
 
@@ -497,9 +506,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     : const AppSettings();
 
     return ListTile(
-      title: const Text(
-        'Language',
-        style: TextStyle(color: Colors.white),
+      title: Text(
+        context.tr('settings_language'),
+        style: const TextStyle(color: Colors.white),
       ),
       subtitle: Text(
         _getLanguageName(settings.language),
@@ -533,7 +542,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'English',
+                  context.tr('settings_language_english'),
                   style: TextStyle(
                     color: settings.language == AppLanguage.english
                         ? AppColors.primary
@@ -558,7 +567,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'Vietnamese',
+                  context.tr('settings_language_vietnamese'),
                   style: TextStyle(
                     color: settings.language == AppLanguage.vietnamese
                         ? AppColors.primary
@@ -576,16 +585,19 @@ class _SettingsPageState extends State<SettingsPage> {
   String _getLanguageName(AppLanguage language) {
     switch (language) {
       case AppLanguage.english:
-        return 'English';
+        return context.tr('settings_language_english');
       case AppLanguage.vietnamese:
-        return 'Vietnamese';
+        return context.tr('settings_language_vietnamese');
     }
   }
 
   Widget _buildEditProfileButton() {
     return ListTile(
       leading: const Icon(Icons.edit, color: Colors.white),
-      title: const Text('Edit Profile', style: TextStyle(color: Colors.white)),
+      title: Text(
+        context.tr('settings_edit_profile'),
+        style: const TextStyle(color: Colors.white)
+      ),
       onTap: () {
         setState(() {
           _isEditingProfile = true;
@@ -598,8 +610,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildChangePasswordButton() {
     return ListTile(
       leading: const Icon(Icons.lock, color: Colors.white),
-      title:
-          const Text('Change Password', style: TextStyle(color: Colors.white)),
+      title: Text(
+        context.tr('settings_change_password'),
+        style: const TextStyle(color: Colors.white)
+      ),
       onTap: () {
         setState(() {
           _isChangingPassword = true;
@@ -607,6 +621,37 @@ class _SettingsPageState extends State<SettingsPage> {
         });
       },
     );
+  }
+
+  // New method to handle profile updates
+  void _saveProfileChanges() {
+    print('SettingsPage: _saveProfileChanges called');
+    if (_formKey.currentState!.validate()) {
+      print('SettingsPage: Form validation passed');
+      
+      // Get the trimmed values
+      final name = _displayNameController.text.trim();
+      final phone = _phoneNumberController.text.trim();
+      
+      print('SettingsPage: Saving name: "$name", phone: "$phone"');
+      
+      // First update the name
+      context.read<SettingsBloc>().add(
+            UpdateDisplayNameEvent(displayName: name),
+          );
+      
+      // Then update the phone if provided
+      if (phone.isNotEmpty) {
+        context.read<SettingsBloc>().add(
+              UpdatePhoneNumberEvent(phoneNumber: phone),
+            );
+      }
+      
+      // Note: We don't immediately close the form here
+      // Let the BlocListener handle it based on the success state
+    } else {
+      print('SettingsPage: Form validation failed');
+    }
   }
 
   Widget _buildEditProfileForm(SettingsState state) {
@@ -620,22 +665,43 @@ class _SettingsPageState extends State<SettingsPage> {
     if (userName != null && _displayNameController.text.isEmpty) {
       _displayNameController.text = userName;
     }
+
+    // Check if we're currently saving profile changes
+    final bool isSaving = state is SettingsLoading;
+    
+    final errorStyle = const TextStyle(color: Colors.red, fontSize: 13.0, fontWeight: FontWeight.w500);
     
     return Form(
       key: _formKey,
       child: SettingsSectionWidget(
-        title: 'Edit Profile',
+        title: context.tr('settings_edit_profile'),
         children: [
           TextFormField(
             controller: _displayNameController,
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              labelStyle: TextStyle(color: Colors.white70),
+            decoration: InputDecoration(
+              labelText: context.tr('settings_name'),
+              labelStyle: const TextStyle(color: Colors.white),
+              enabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              errorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedErrorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
             ),
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white, fontSize: 16),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your name';
+                return context.tr('settings_please_enter_name');
               }
               return null;
             },
@@ -643,11 +709,27 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _phoneNumberController,
-            decoration: const InputDecoration(
-              labelText: 'Phone Number',
-              labelStyle: TextStyle(color: Colors.white70),
+            decoration: InputDecoration(
+              labelText: context.tr('settings_phone_number'),
+              labelStyle: const TextStyle(color: Colors.white),
+              enabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              errorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedErrorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
             ),
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white, fontSize: 16),
             keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: 24),
@@ -662,33 +744,45 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey[800],
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 2,
                   ),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    context.tr('settings_cancel'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      context.read<SettingsBloc>().add(
-                            UpdateDisplayNameEvent(
-                              displayName: _displayNameController.text.trim(),
-                            ),
-                          );
-                      if (_phoneNumberController.text.isNotEmpty) {
-                        context.read<SettingsBloc>().add(
-                              UpdatePhoneNumberEvent(
-                                phoneNumber: _phoneNumberController.text.trim(),
-                              ),
-                            );
-                      }
-                    }
-                  },
+                  onPressed: isSaving ? null : _saveProfileChanges,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 3,
+                    disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
                   ),
-                  child: const Text('Save'),
+                  child: isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.0,
+                        ),
+                      )
+                    : Text(
+                        context.tr('settings_save'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                 ),
               ),
             ],
@@ -699,22 +793,53 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildChangePasswordForm() {
+    final errorStyle = const TextStyle(color: Colors.red, fontSize: 13.0, fontWeight: FontWeight.w500);
+    
     return Form(
       key: _passwordFormKey,
       child: SettingsSectionWidget(
-        title: 'Change Password',
+        title: context.tr('settings_change_password'),
         children: [
           TextFormField(
             controller: _currentPasswordController,
-            decoration: const InputDecoration(
-              labelText: 'Current Password',
-              labelStyle: TextStyle(color: Colors.white70),
+            decoration: InputDecoration(
+              labelText: context.tr('settings_current_password'),
+              labelStyle: const TextStyle(color: Colors.white),
+              hintStyle: const TextStyle(color: Colors.white70),
+              errorStyle: errorStyle,
+              enabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              errorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedErrorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isCurrentPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isCurrentPasswordVisible = !_isCurrentPasswordVisible;
+                  });
+                },
+              ),
             ),
-            style: const TextStyle(color: Colors.white),
-            obscureText: true,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            obscureText: !_isCurrentPasswordVisible,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your current password';
+                return context.tr('settings_please_enter_current_password');
               }
               return null;
             },
@@ -722,18 +847,47 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _newPasswordController,
-            decoration: const InputDecoration(
-              labelText: 'New Password',
-              labelStyle: TextStyle(color: Colors.white70),
+            decoration: InputDecoration(
+              labelText: context.tr('settings_new_password'),
+              labelStyle: const TextStyle(color: Colors.white),
+              hintStyle: const TextStyle(color: Colors.white70),
+              errorStyle: errorStyle,
+              enabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              errorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedErrorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isNewPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isNewPasswordVisible = !_isNewPasswordVisible;
+                  });
+                },
+              ),
             ),
-            style: const TextStyle(color: Colors.white),
-            obscureText: true,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            obscureText: !_isNewPasswordVisible,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter a new password';
+                return context.tr('settings_please_enter_new_password');
               }
               if (value.length < 6) {
-                return 'Password must be at least 6 characters';
+                return context.tr('settings_password_min_length');
               }
               return null;
             },
@@ -741,18 +895,47 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _confirmPasswordController,
-            decoration: const InputDecoration(
-              labelText: 'Confirm New Password',
-              labelStyle: TextStyle(color: Colors.white70),
+            decoration: InputDecoration(
+              labelText: context.tr('settings_confirm_password'),
+              labelStyle: const TextStyle(color: Colors.white),
+              hintStyle: const TextStyle(color: Colors.white70),
+              errorStyle: errorStyle,
+              enabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              errorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedErrorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 2),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                  });
+                },
+              ),
             ),
-            style: const TextStyle(color: Colors.white),
-            obscureText: true,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            obscureText: !_isConfirmPasswordVisible,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please confirm your new password';
+                return context.tr('settings_please_confirm_password');
               }
               if (value != _newPasswordController.text) {
-                return 'Passwords do not match';
+                return context.tr('settings_passwords_not_match');
               }
               return null;
             },
@@ -772,8 +955,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey[800],
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 2,
                   ),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    context.tr('settings_cancel'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -791,8 +982,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 3,
                   ),
-                  child: const Text('Change'),
+                  child: Text(
+                    context.tr('settings_change'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
             ],
