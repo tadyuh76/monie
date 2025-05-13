@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
@@ -38,6 +39,8 @@ import 'package:monie/features/transactions/domain/repositories/category_reposit
 import 'package:monie/features/transactions/domain/usecases/create_category_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_categories_usecase.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
+import 'package:monie/features/settings/data/repositories/settings_repository.dart';
+import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -143,6 +146,22 @@ Future<void> configureDependencies() async {
     () => CategoriesBloc(
       getCategoriesUseCase: getIt(),
       createCategoryUseCase: getIt(),
+    ),
+  );
+
+  // Settings
+  final sharedPreferences = await SharedPreferences.getInstance();
+  getIt.registerLazySingleton<SettingsRepository>(
+    () => SettingsRepository(
+      supabaseClient: getIt(),
+      preferences: sharedPreferences,
+    ),
+  );
+
+  getIt.registerFactory<SettingsBloc>(
+    () => SettingsBloc(
+      repository: getIt(), 
+      authBloc: getIt<AuthBloc>(),
     ),
   );
 }

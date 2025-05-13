@@ -219,36 +219,9 @@ class _HomePageState extends State<HomePage> {
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white),
               onSelected: (value) {
-                if (value == 'reset_categories') {
-                  // Show confirmation dialog
-                  showDialog(
-                    context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          backgroundColor: AppColors.surface,
-                          title: const Text(
-                            'Reset Categories',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          content: const Text(
-                            'This will ensure all default categories are available in the database. Continue?',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                _resetCategories(context);
-                              },
-                              child: const Text('Reset Categories'),
-                            ),
-                          ],
-                        ),
-                  );
+                if (value == 'settings') {
+                  // Navigate to settings page
+                  Navigator.of(context).pushNamed('/settings');
                 } else if (value == 'logout') {
                   // Show logout confirmation dialog
                   showDialog(
@@ -295,13 +268,13 @@ class _HomePageState extends State<HomePage> {
               itemBuilder:
                   (context) => [
                     const PopupMenuItem<String>(
-                      value: 'reset_categories',
+                      value: 'settings',
                       child: Row(
                         children: [
-                          Icon(Icons.refresh, color: Colors.white),
+                          Icon(Icons.settings, color: Colors.white),
                           SizedBox(width: 8),
                           Text(
-                            'Reset Categories',
+                            'Settings',
                             style: TextStyle(color: Colors.white),
                           ),
                         ],
