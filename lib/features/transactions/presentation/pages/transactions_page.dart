@@ -12,6 +12,7 @@ import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 import 'package:monie/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:monie/features/transactions/presentation/widgets/transaction_form.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -141,14 +142,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
       context: context,
       builder:
           (dialogContext) => AlertDialog(
-            title: const Text('Delete Transaction'),
-            content: const Text(
-              'Are you sure you want to delete this transaction?',
+            title: Text(context.tr('transactions_delete')),
+            content: Text(
+              context.tr('transactions_delete_confirm'),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
+                child: Text(context.tr('common_cancel')),
               ),
               TextButton(
                 onPressed: () {
@@ -158,7 +159,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     DeleteExistingTransaction(transactionId),
                   );
                 },
-                child: const Text('Delete'),
+                child: Text(context.tr('common_delete')),
               ),
             ],
           ),
@@ -184,7 +185,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
         title: Text(
-          'Transactions',
+          context.tr('transactions_title'),
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -201,14 +202,17 @@ class _TransactionsPageState extends State<TransactionsPage> {
             },
             itemBuilder:
                 (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'all',
-                    child: Text('All Transactions'),
+                    child: Text(context.tr('transactions_all')),
                   ),
-                  const PopupMenuItem(value: 'income', child: Text('Income')),
-                  const PopupMenuItem(
+                  PopupMenuItem(
+                    value: 'income', 
+                    child: Text(context.tr('transactions_income'))
+                  ),
+                  PopupMenuItem(
                     value: 'expense',
-                    child: Text('Expenses'),
+                    child: Text(context.tr('transactions_expense')),
                   ),
                 ],
             icon: const Icon(Icons.filter_list),
@@ -230,7 +234,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
           } else if (state is TransactionsLoaded) {
             return _buildContent(context, state, user);
           } else if (state is TransactionsError) {
-            return Center(child: Text('Error: ${state.message}'));
+            return Center(child: Text('${context.tr('common_error')}: ${state.message}'));
           }
           return const Center(child: CircularProgressIndicator());
         },
@@ -340,7 +344,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Expenses',
+                context.tr('transactions_expense'),
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
@@ -360,7 +364,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Income',
+                context.tr('transactions_income'),
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
@@ -380,7 +384,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Net',
+                context.tr('transactions_net'),
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
@@ -413,13 +417,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
               const SizedBox(height: 16),
               Text(
-                'No transactions found',
+                context.tr('transactions_no_transactions'),
                 style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () => _showAddTransactionSheet(context, user),
-                child: const Text('Add Transaction'),
+                child: Text(context.tr('transactions_add_new')),
               ),
             ],
           ),

@@ -3,6 +3,7 @@ import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class AccountSummaryWidget extends StatelessWidget {
   final List<Account> accounts;
@@ -45,9 +46,9 @@ class AccountSummaryWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Balance',
-                  style: TextStyle(
+                Text(
+                  context.tr('home_balance'),
+                  style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
                   ),
@@ -69,9 +70,9 @@ class AccountSummaryWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Income',
-                  style: TextStyle(
+                Text(
+                  context.tr('home_income'),
+                  style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
                   ),
@@ -93,9 +94,9 @@ class AccountSummaryWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Expense',
-                  style: TextStyle(
+                Text(
+                  context.tr('home_expense'),
+                  style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
                   ),

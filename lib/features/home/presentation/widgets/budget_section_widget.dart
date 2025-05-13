@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class BudgetSectionWidget extends StatelessWidget {
   final Budget budget;
@@ -68,7 +69,7 @@ class BudgetSectionWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    'Today',
+                    context.tr('common_today'),
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.background,
                       fontWeight: FontWeight.bold,
@@ -85,7 +86,7 @@ class BudgetSectionWidget extends StatelessWidget {
 
           // Saving target
           Text(
-            'You should save ${Formatters.formatCurrency(budget.dailySavingTarget)}/day for ${budget.daysRemaining} more days',
+            context.tr('budget_saving_target').replaceAll('{amount}', Formatters.formatCurrency(budget.dailySavingTarget)).replaceAll('{days}', '${budget.daysRemaining}'),
             style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
             textAlign: TextAlign.center,
           ),

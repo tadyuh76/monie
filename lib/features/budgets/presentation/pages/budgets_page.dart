@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/mock_data.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class BudgetsPage extends StatelessWidget {
   const BudgetsPage({super.key});
@@ -17,7 +18,7 @@ class BudgetsPage extends StatelessWidget {
         title: Row(
           children: [
             Text(
-              'Budgets',
+              context.tr('budgets_title'),
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -60,7 +61,7 @@ class BudgetsPage extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '\$${budget.remainingAmount} left of \$${budget.totalAmount}',
+            '\$${budget.remainingAmount} ${context.tr('budgets_left_of')} \$${budget.totalAmount}',
             style: textTheme.titleLarge?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 16),
@@ -98,7 +99,7 @@ class BudgetsPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    'Today',
+                    context.tr('common_today'),
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.background,
                       fontWeight: FontWeight.bold,
@@ -115,7 +116,9 @@ class BudgetsPage extends StatelessWidget {
 
           // Saving target
           Text(
-            'You should save \$${budget.dailySavingTarget.toStringAsFixed(2)}/day for ${budget.daysRemaining} more days',
+            context.tr('budget_saving_target')
+              .replaceAll('{amount}', '\$${budget.dailySavingTarget.toStringAsFixed(2)}')
+              .replaceAll('{days}', '${budget.daysRemaining}'),
             style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
             textAlign: TextAlign.center,
           ),

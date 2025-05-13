@@ -27,9 +27,12 @@
   "home_no_active_budgets": "No active budgets",
   "home_create_budget_hint": "Create a budget to start tracking your spending",
   "home_loading_budgets": "Loading budgets...",
+  "home_category_analysis": "Category Analysis",
+  "home_cash_flow_activity": "Cash Flow Activity",
+  "home_last_180_days": "Last 180 Days",
   
   "transactions_title": "Transactions",
-  "transactions_all": "All",
+  "transactions_all": "All Transactions",
   "transactions_income": "Income",
   "transactions_expense": "Expense",
   "transactions_add_new": "Add New Transaction",
@@ -38,6 +41,10 @@
   "transactions_date": "Date",
   "transactions_description": "Description",
   "transactions_save": "Save",
+  "transactions_delete": "Delete Transaction",
+  "transactions_delete_confirm": "Are you sure you want to delete this transaction?",
+  "transactions_net": "Net",
+  "transactions_no_transactions": "No transactions found",
   
   "budgets_title": "Budgets",
   "budgets_add_new": "Add New Budget",
@@ -47,6 +54,20 @@
   "budgets_start_date": "Start Date",
   "budgets_end_date": "End Date",
   "budgets_save": "Save",
+  "budgets_left_of": "left of",
+  "budget_saving_target": "You should save {amount}/day for {days} more days",
+  
+  "groups_title": "Expense Sharing",
+  "groups_total_shared_expenses": "Total Shared Expenses",
+  "groups_active": "Active",
+  "groups_settled": "Settled",
+  "groups_your_groups": "Your Groups",
+  "groups_total": "Total",
+  "groups_created": "Created",
+  "groups_members": "Members",
+  "groups_view_details": "View Details",
+  "groups_add_expense": "Add Expense",
+  "groups_create_new": "Create a New Group",
   
   "settings_title": "Settings",
   "settings_app_settings": "App Settings",
@@ -88,5 +109,6 @@
   "common_delete": "Delete",
   "common_edit": "Edit",
   "common_add": "Add",
-  "common_user": "User"
+  "common_user": "User",
+  "common_today": "Today"
 } 

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/mock_data.dart';
 import 'package:monie/features/groups/domain/entities/expense_group.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class GroupsPage extends StatelessWidget {
   const GroupsPage({super.key});
@@ -15,7 +16,7 @@ class GroupsPage extends StatelessWidget {
         backgroundColor: AppColors.background,
         elevation: 0,
         title: Text(
-          'Expense Sharing',
+          context.tr('groups_title'),
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -52,7 +53,7 @@ class GroupsPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Total Shared Expenses',
+            context.tr('groups_total_shared_expenses'),
             style: textTheme.titleLarge?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),
@@ -68,13 +69,13 @@ class GroupsPage extends StatelessWidget {
             children: [
               _buildStat(
                 context,
-                'Active',
+                context.tr('groups_active'),
                 groups.where((g) => !g.isSettled).length.toString(),
               ),
               const SizedBox(width: 16),
               _buildStat(
                 context,
-                'Settled',
+                context.tr('groups_settled'),
                 groups.where((g) => g.isSettled).length.toString(),
               ),
             ],
@@ -94,7 +95,7 @@ class GroupsPage extends StatelessWidget {
           height: 10,
           decoration: BoxDecoration(
             color:
-                label == 'Active' ? AppColors.primary : AppColors.textSecondary,
+                label == context.tr('groups_active') ? AppColors.primary : AppColors.textSecondary,
             shape: BoxShape.circle,
           ),
         ),
@@ -114,7 +115,7 @@ class GroupsPage extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: Text(
-          'Your Groups',
+          context.tr('groups_your_groups'),
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -172,7 +173,7 @@ class GroupsPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Settled',
+                    context.tr('groups_settled'),
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.bold,
@@ -183,12 +184,12 @@ class GroupsPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Total: \$${group.totalAmount.toStringAsFixed(0)}',
+            '${context.tr('groups_total')}: \$${group.totalAmount.toStringAsFixed(0)}',
             style: textTheme.titleMedium?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 4),
           Text(
-            'Created: ${DateFormat('MMM d, yyyy').format(group.createdAt)}',
+            '${context.tr('groups_created')}: ${DateFormat('MMM d, yyyy').format(group.createdAt)}',
             style: textTheme.bodyMedium?.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -197,7 +198,7 @@ class GroupsPage extends StatelessWidget {
 
           // Members
           Text(
-            'Members (${group.members.length})',
+            '${context.tr('groups_members')} (${group.members.length})',
             style: textTheme.titleSmall?.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -243,7 +244,7 @@ class GroupsPage extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'View Details',
+                    context.tr('groups_view_details'),
                     style: textTheme.labelLarge?.copyWith(color: Colors.white),
                   ),
                 ),
@@ -259,7 +260,7 @@ class GroupsPage extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Add Expense',
+                    context.tr('groups_add_expense'),
                     style: textTheme.labelLarge?.copyWith(color: Colors.white),
                   ),
                 ),
@@ -286,7 +287,7 @@ class GroupsPage extends StatelessWidget {
             Icon(Icons.group_add, color: AppColors.textSecondary, size: 36),
             const SizedBox(height: 8),
             Text(
-              'Create a New Group',
+              context.tr('groups_create_new'),
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(color: AppColors.textSecondary),

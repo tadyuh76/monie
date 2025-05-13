@@ -27,9 +27,12 @@
   "home_no_active_budgets": "Không có ngân sách nào đang hoạt động",
   "home_create_budget_hint": "Tạo ngân sách để bắt đầu theo dõi chi tiêu của bạn",
   "home_loading_budgets": "Đang tải ngân sách...",
+  "home_category_analysis": "Phân tích danh mục",
+  "home_cash_flow_activity": "Hoạt động dòng tiền",
+  "home_last_180_days": "180 ngày gần đây",
   
   "transactions_title": "Giao dịch",
-  "transactions_all": "Tất cả",
+  "transactions_all": "Tất cả giao dịch",
   "transactions_income": "Thu nhập",
   "transactions_expense": "Chi tiêu",
   "transactions_add_new": "Thêm giao dịch mới",
@@ -38,6 +41,10 @@
   "transactions_date": "Ngày",
   "transactions_description": "Mô tả",
   "transactions_save": "Lưu",
+  "transactions_delete": "Xóa giao dịch",
+  "transactions_delete_confirm": "Bạn có chắc chắn muốn xóa giao dịch này không?",
+  "transactions_net": "Tổng",
+  "transactions_no_transactions": "Không tìm thấy giao dịch nào",
   
   "budgets_title": "Ngân sách",
   "budgets_add_new": "Thêm ngân sách mới",
@@ -47,6 +54,20 @@
   "budgets_start_date": "Ngày bắt đầu",
   "budgets_end_date": "Ngày kết thúc",
   "budgets_save": "Lưu",
+  "budgets_left_of": "còn lại từ",
+  "budget_saving_target": "Bạn nên tiết kiệm {amount}/ngày trong {days} ngày nữa",
+  
+  "groups_title": "Chia sẻ chi phí",
+  "groups_total_shared_expenses": "Tổng chi phí chia sẻ",
+  "groups_active": "Đang hoạt động",
+  "groups_settled": "Đã thanh toán",
+  "groups_your_groups": "Nhóm của bạn",
+  "groups_total": "Tổng cộng",
+  "groups_created": "Ngày tạo",
+  "groups_members": "Thành viên",
+  "groups_view_details": "Xem chi tiết",
+  "groups_add_expense": "Thêm chi phí",
+  "groups_create_new": "Tạo nhóm mới",
   
   "settings_title": "Cài đặt",
   "settings_app_settings": "Cài đặt ứng dụng",
@@ -88,5 +109,6 @@
   "common_delete": "Xóa",
   "common_edit": "Sửa",
   "common_add": "Thêm",
-  "common_user": "Người dùng"
+  "common_user": "Người dùng",
+  "common_today": "Hôm nay"
 } 

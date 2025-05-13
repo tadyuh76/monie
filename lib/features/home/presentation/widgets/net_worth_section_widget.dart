@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/home/presentation/widgets/chart_painters.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class NetWorthSectionWidget extends StatelessWidget {
   final double netWorth;
@@ -27,7 +28,7 @@ class NetWorthSectionWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Net Worth',
+            context.tr('home_net_worth'),
             style: textTheme.titleLarge?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),
@@ -39,7 +40,7 @@ class NetWorthSectionWidget extends StatelessWidget {
             ),
           ),
           Text(
-            '$transactionsCount transactions',
+            '$transactionsCount ${context.tr('home_transactions')}',
             style: textTheme.bodyMedium?.copyWith(
               color: AppColors.textSecondary,
             ),

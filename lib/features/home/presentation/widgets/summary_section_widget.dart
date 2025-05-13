@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class SummarySectionWidget extends StatelessWidget {
   final List<Transaction> transactions;
@@ -36,7 +37,7 @@ class SummarySectionWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Expense',
+                  context.tr('home_expense'),
                   style: textTheme.titleLarge?.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
@@ -49,7 +50,7 @@ class SummarySectionWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${transactions.where((t) => t.amount < 0).length} transactions',
+                  '${transactions.where((t) => t.amount < 0).length} ${context.tr('home_transactions')}',
                   style: textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -70,7 +71,7 @@ class SummarySectionWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Income',
+                  context.tr('home_income'),
                   style: textTheme.titleLarge?.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
@@ -83,7 +84,7 @@ class SummarySectionWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${transactions.where((t) => t.amount >= 0).length} transaction',
+                  '${transactions.where((t) => t.amount >= 0).length} ${context.tr('home_transactions')}',
                   style: textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),

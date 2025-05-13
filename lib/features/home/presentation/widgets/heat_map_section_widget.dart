@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class HeatMapSectionWidget extends StatelessWidget {
   const HeatMapSectionWidget({super.key});
@@ -87,7 +88,7 @@ class HeatMapSectionWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Cash Flow Activity',
+          context.tr('home_cash_flow_activity'),
           style: textTheme.headlineMedium?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -108,7 +109,7 @@ class HeatMapSectionWidget extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Last 180 Days',
+                    context.tr('home_last_180_days'),
                     style: textTheme.titleMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
