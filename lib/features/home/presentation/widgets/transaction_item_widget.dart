@@ -12,6 +12,7 @@ class TransactionItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isExpense = transaction.amount < 0;
     final colorForType = isExpense ? AppColors.expense : AppColors.income;
 
@@ -47,12 +48,12 @@ class TransactionItemWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: isDarkMode ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: .1),
-            blurRadius: 4,
+            color: Colors.black.withValues(alpha: isDarkMode ? .1 : .05),
+            blurRadius: isDarkMode ? 4 : 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -79,7 +80,7 @@ class TransactionItemWidget extends StatelessWidget {
                 Text(
                   transaction.title.isEmpty ? categoryName : transaction.title,
                   style: textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
+                    color: isDarkMode ? Colors.white : Colors.black87,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -87,7 +88,7 @@ class TransactionItemWidget extends StatelessWidget {
                 Text(
                   transaction.description,
                   style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

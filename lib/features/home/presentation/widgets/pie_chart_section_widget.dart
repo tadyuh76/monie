@@ -19,6 +19,7 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Get category data
     final expenseCategories = CategoryData.getExpenseCategories();
@@ -34,7 +35,7 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
         Text(
           context.tr('home_category_analysis'),
           style: textTheme.headlineMedium?.copyWith(
-            color: Colors.white,
+            color: isDarkMode ? Colors.white : Colors.black87,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -47,8 +48,15 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
             bottom: 24,
           ),
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
+            color: isDarkMode ? AppColors.cardDark : Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: !isDarkMode ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              )
+            ] : null,
           ),
           height: 400,
           child: PageView(
@@ -63,12 +71,14 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
                 isExpense: true,
                 totalAmount: totalExpenses,
                 categories: expenseCategories,
+                isDarkMode: isDarkMode,
               ),
               // Income pie chart
               CategoryPieChart(
                 isExpense: false,
                 totalAmount: totalIncome,
                 categories: incomeCategories,
+                isDarkMode: isDarkMode,
               ),
             ],
           ),
@@ -85,7 +95,9 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
                 color:
                     _pieChartPageIndex == 0
                         ? AppColors.primary
-                        : AppColors.textSecondary.withValues(alpha: 0.3),
+                        : (isDarkMode 
+                            ? AppColors.textSecondary.withValues(alpha: 0.3)
+                            : Colors.grey.withOpacity(0.3)),
               ),
             ),
             const SizedBox(width: 8),
@@ -97,7 +109,9 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
                 color:
                     _pieChartPageIndex == 1
                         ? AppColors.primary
-                        : AppColors.textSecondary.withValues(alpha: 0.3),
+                        : (isDarkMode 
+                            ? AppColors.textSecondary.withValues(alpha: 0.3)
+                            : Colors.grey.withOpacity(0.3)),
               ),
             ),
           ],

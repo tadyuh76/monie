@@ -3,6 +3,10 @@ import 'package:monie/core/themes/app_colors.dart';
 
 // Custom painter for the line chart
 class LineChartPainter extends CustomPainter {
+  final bool isDarkMode;
+
+  LineChartPainter({this.isDarkMode = true});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint =
@@ -14,7 +18,7 @@ class LineChartPainter extends CustomPainter {
     // Grid lines
     final gridPaint =
         Paint()
-          ..color = AppColors.chartGrid
+          ..color = isDarkMode ? AppColors.chartGrid : Colors.grey[300]!
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.0;
 
