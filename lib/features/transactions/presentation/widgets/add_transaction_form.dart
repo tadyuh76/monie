@@ -779,8 +779,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                           onPrimary: Colors.white,
                           surface: AppColors.surface,
                           onSurface: Colors.white,
-                        ),
-                        dialogBackgroundColor: AppColors.surface,
+                        ), dialogTheme: DialogThemeData(backgroundColor: AppColors.surface),
                       )
                     : ThemeData.light().copyWith(
                         colorScheme: ColorScheme.light(

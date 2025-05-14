@@ -207,7 +207,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         // If auth bloc is available, trigger a refresh
         if (_authBloc != null) {
           print('SettingsBloc: Triggering auth refresh');
-          _authBloc!.add(RefreshUserEvent());
+          _authBloc.add(RefreshUserEvent());
         }
         
         emit(ProfileUpdateSuccess(
@@ -247,7 +247,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         
         // If auth bloc is available, trigger a refresh
         if (_authBloc != null) {
-          _authBloc!.add(RefreshUserEvent());
+          _authBloc.add(RefreshUserEvent());
         }
         
         emit(ProfileUpdateSuccess(

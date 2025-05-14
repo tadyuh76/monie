@@ -116,7 +116,6 @@ class AppTheme {
         surface: Colors.white,
         error: AppColors.expense,
         onSurface: Colors.black87,
-        background: Colors.grey[100]!,
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.grey[100],

@@ -117,7 +117,7 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    context.tr('home_see_all') + ' ' + context.tr('home_transactions'),
+                    '${context.tr('home_see_all')} ${context.tr('home_transactions')}',
                     style: textTheme.labelLarge?.copyWith(
                       color: AppColors.primary,
                     ),

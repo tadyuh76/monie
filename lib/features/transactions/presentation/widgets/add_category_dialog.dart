@@ -228,19 +228,19 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Cancel'),
                     style: TextButton.styleFrom(
                       foregroundColor: isDarkMode ? Colors.white70 : Colors.black54,
                     ),
+                    child: Text('Cancel'),
                   ),
                   SizedBox(width: 8),
                   ElevatedButton(
-                    onPressed: _save, 
-                    child: Text('Save'),
+                    onPressed: _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
-                    ),
+                    ), 
+                    child: Text('Save'),
                   ),
                 ],
               ),

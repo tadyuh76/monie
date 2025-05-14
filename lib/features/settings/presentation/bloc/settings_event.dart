@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
-import 'package:monie/features/settings/domain/models/user_profile.dart';
 
 abstract class SettingsEvent {
   const SettingsEvent();
