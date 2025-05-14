@@ -23,13 +23,13 @@ class CategoryIcons {
 
   // List of income categories - exactly as specified
   static const List<String> incomeCategories = [
+    'allowance',
+    'commission',
+    'family_support',
+    'insurance_payout',
     'salary',
     'scholarship',
-    'insurance',
-    'family',
     'stock',
-    'commission',
-    'allowance',
   ];
 
   // List of expense categories - exactly as specified
@@ -65,95 +65,45 @@ class CategoryIcons {
 
 /// Helper class for getting colors for specific categories
 class CategoryColorHelper {
-  // Map of category names to their respective color names - using exact mapping provided
-  static final Map<String, String> categoryToColorNameMap = {
+  // Map of category names to their respective colors
+  static final Map<String, Color> categoryColorMap = {
     // Expense categories
-    'bills': 'blue',
-    'debt': 'green',
-    'dining': 'coolGrey',
-    'donate': 'teal',
-    'edu': 'darkBlue',
-    'education': 'red',
-    'electricity': 'gold',
-    'entertainment': 'blue',
-    'gifts': 'plum',
-    'groceries': 'orange',
-    'group': 'darkBlue',
-    'healthcare': 'red',
-    'housing': 'green',
-    'insurance': 'teal',
-    'investment': 'gold',
-    'job': 'coolGrey',
-    'loans': 'orange',
-    'pets': 'gold',
-    'rent': 'blue',
-    'saving': 'plum',
-    'settlement': 'gold',
-    'shopping': 'purple',
-    'tax': 'blue',
-    'technology': 'indigo',
-    'transport': 'teal',
-    'travel': 'blue',
+    'bills': CategoryColors.blue,
+    'debt': CategoryColors.green,
+    'dining': CategoryColors.coolGrey,
+    'donate': CategoryColors.teal,
+    'edu': CategoryColors.darkBlue,
+    'education': CategoryColors.red,
+    'electricity': CategoryColors.gold,
+    'entertainment': CategoryColors.blue,
+    'gifts': CategoryColors.plum,
+    'groceries': CategoryColors.orange,
+    'group': CategoryColors.darkBlue,
+    'healthcare': CategoryColors.red,
+    'housing': CategoryColors.green,
+    'insurance': CategoryColors.teal,
+    'investment': CategoryColors.gold,
+    'job': CategoryColors.coolGrey,
+    'loans': CategoryColors.orange,
+    'pets': CategoryColors.gold,
+    'rent': CategoryColors.blue,
+    'saving': CategoryColors.plum,
+    'settlement': CategoryColors.gold,
+    'shopping': CategoryColors.purple,
+    'tax': CategoryColors.blue,
+    'technology': CategoryColors.indigo,
+    'transport': CategoryColors.teal,
+    'travel': CategoryColors.blue,
 
     // Income categories
-    'salary': 'blue',
-    'scholarship': 'orange',
-    'insurance': 'green',
-    'family': 'plum',
-    'stock': 'gold',
-    'commission': 'red',
-    'allowance': 'teal',
+    'salary': CategoryColors.blue,
+    'scholarship': CategoryColors.orange,
+    'insurance_payout': CategoryColors.green,
+    'family_support': CategoryColors.plum,
+    'stock': CategoryColors.gold,
+    'commission': CategoryColors.red,
+    'allowance': CategoryColors.teal,
   };
-
-  // Map of category names to their respective colors
-  static final Map<String, Color> categoryColorMap = _buildColorMap();
-
-  // Build color map from the color name mapping
-  static Map<String, Color> _buildColorMap() {
-    final Map<String, Color> colorMap = {};
-
-    categoryToColorNameMap.forEach((category, colorName) {
-      switch (colorName) {
-        case 'blue':
-          colorMap[category] = CategoryColors.blue;
-          break;
-        case 'green':
-          colorMap[category] = CategoryColors.green;
-          break;
-        case 'coolGrey':
-          colorMap[category] = CategoryColors.coolGrey;
-          break;
-        case 'teal':
-          colorMap[category] = CategoryColors.teal;
-          break;
-        case 'darkBlue':
-          colorMap[category] = CategoryColors.darkBlue;
-          break;
-        case 'red':
-          colorMap[category] = CategoryColors.red;
-          break;
-        case 'gold':
-          colorMap[category] = CategoryColors.gold;
-          break;
-        case 'orange':
-          colorMap[category] = CategoryColors.orange;
-          break;
-        case 'plum':
-          colorMap[category] = CategoryColors.plum;
-          break;
-        case 'purple':
-          colorMap[category] = CategoryColors.purple;
-          break;
-        case 'indigo':
-          colorMap[category] = CategoryColors.indigo;
-          break;
-        default:
-          colorMap[category] = CategoryColors.coolGrey;
-      }
-    });
-
-    return colorMap;
-  }
 
   // Get the color for a specific category
   static Color getColorForCategory(String categoryName) {

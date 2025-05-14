@@ -419,12 +419,12 @@ class _TransactionFormState extends State<TransactionForm> {
             final String iconPath = CategoryIcons.getIconPath(svgName);
 
             // Get category color
-            Color backgroundColor = Colors.white.withOpacity(0.1);
+            Color backgroundColor = Colors.white.withValues(alpha: 0.1);
             if (category['color'] is String) {
               Color categoryColor = CategoryUtils.hexToColor(
                 category['color'] as String,
               );
-              backgroundColor = categoryColor.withOpacity(0.2);
+              backgroundColor = categoryColor.withValues(alpha: 0.2);
             }
 
             return DropdownMenuItem<String>(

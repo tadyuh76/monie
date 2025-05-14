@@ -24,6 +24,9 @@ class TransactionCard extends StatelessWidget {
     final formatter = NumberFormat.currency(symbol: '\$');
     final formattedAmount = formatter.format(transaction.amount.abs());
 
+    // Format the category name for display
+    final displayCategoryName = _getFormattedCategoryName();
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
       color: AppColors.surface,
@@ -33,9 +36,7 @@ class TransactionCard extends StatelessWidget {
         contentPadding: const EdgeInsets.all(16.0),
         leading: _buildCategoryIcon(),
         title: Text(
-          transaction.title.isEmpty
-              ? transaction.categoryName ?? 'Transaction'
-              : transaction.title,
+          transaction.title.isEmpty ? displayCategoryName : transaction.title,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -110,6 +111,15 @@ class TransactionCard extends StatelessWidget {
     );
   }
 
+  // Get formatted category name for display
+  String _getFormattedCategoryName() {
+    // Get the raw category name
+    String categoryName = transaction.categoryName?.toLowerCase().trim() ?? '';
+
+    // Use our utility to format the category name
+    return CategoryUtils.formatCategoryName(categoryName);
+  }
+
   Widget _buildCategoryIcon() {
     // Get the category name
     String categoryName = transaction.categoryName?.toLowerCase().trim() ?? '';
@@ -131,7 +141,7 @@ class TransactionCard extends StatelessWidget {
     }
 
     // Create a light background based on the category color
-    Color backgroundColor = categoryColor.withOpacity(0.2);
+    Color backgroundColor = categoryColor.withValues(alpha: 0.2);
 
     return Container(
       width: 40,

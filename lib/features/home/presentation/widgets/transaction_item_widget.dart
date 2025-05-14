@@ -38,7 +38,7 @@ class TransactionItemWidget extends StatelessWidget {
     }
 
     // Create a light background based on the category color
-    final backgroundColor = categoryColor.withOpacity(0.2);
+    final backgroundColor = categoryColor.withValues(alpha: 0.2);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -47,7 +47,7 @@ class TransactionItemWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

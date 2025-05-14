@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:monie/core/constants/category_icons.dart';
-import 'package:monie/core/utils/category_utils.dart';
+import 'package:monie/core/utils/string_utils.dart';
 
 /// This class provides comprehensive lists of income and expense categories with their color codes
 class TransactionCategories {
@@ -8,8 +8,8 @@ class TransactionCategories {
   static final List<Map<String, dynamic>> incomeCategories = [
     {'name': 'Salary', 'svgName': 'salary'},
     {'name': 'Scholarship', 'svgName': 'scholarship'},
-    {'name': 'Insurance', 'svgName': 'insurance'},
-    {'name': 'Family', 'svgName': 'family'},
+    {'name': 'Insurance Payout', 'svgName': 'insurance_payout'},
+    {'name': 'Family Support', 'svgName': 'family_support'},
     {'name': 'Stock', 'svgName': 'stock'},
     {'name': 'Commission', 'svgName': 'commission'},
     {'name': 'Allowance', 'svgName': 'allowance'},
@@ -80,7 +80,16 @@ class TransactionCategories {
             name.toLowerCase().trim(),
       );
     } catch (e) {
-      return null;
+      // Try to match by svgName if display name not found
+      try {
+        return allCategories.firstWhere(
+          (category) =>
+              (category['svgName'] as String).toLowerCase() ==
+              name.toLowerCase().trim(),
+        );
+      } catch (e) {
+        return null;
+      }
     }
   }
 
@@ -98,6 +107,13 @@ class TransactionCategories {
     // First try to find category by name (case insensitive)
     for (final category in getAllCategories()) {
       if (category['name'].toString().toLowerCase() == normalizedName) {
+        return category['svgName'] as String;
+      }
+    }
+
+    // If no direct match found, check if name is a svgName itself
+    for (final category in getAllCategories()) {
+      if ((category['svgName'] as String).toLowerCase() == normalizedName) {
         return category['svgName'] as String;
       }
     }
@@ -122,5 +138,19 @@ class TransactionCategories {
       return CategoryIcons.getIconPath(category['svgName']);
     }
     return CategoryIcons.getIconPath('shopping'); // Default
+  }
+
+  // Get display name from svgName
+  static String getDisplayNameFromSvgName(String svgName) {
+    // First try to find category by svgName
+    for (final category in getAllCategories()) {
+      if ((category['svgName'] as String).toLowerCase() ==
+          svgName.toLowerCase().trim()) {
+        return category['name'] as String;
+      }
+    }
+
+    // If not found, format the svgName to a readable format
+    return StringUtils.snakeToTitleCase(svgName);
   }
 }

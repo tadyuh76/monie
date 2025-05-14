@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/constants/category_icons.dart';
+import 'package:monie/core/constants/transaction_categories.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
 
@@ -387,7 +388,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'expense'
-                        ? AppColors.expense.withOpacity(0.2)
+                        ? AppColors.expense.withValues(alpha: 0.2)
                         : AppColors.cardDark,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
@@ -428,7 +429,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'income'
-                        ? AppColors.income.withOpacity(0.2)
+                        ? AppColors.income.withValues(alpha: 0.2)
                         : AppColors.cardDark,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
@@ -514,48 +515,10 @@ class AddTransactionFormState extends State<AddTransactionForm> {
   }
 
   Widget _buildCategoryStep() {
-    // Define the exact categories as specified
-    final List<Map<String, dynamic>> expenseCategories = [
-      {'name': 'Bills', 'svgName': 'bills'},
-      {'name': 'Debt', 'svgName': 'debt'},
-      {'name': 'Dining', 'svgName': 'dining'},
-      {'name': 'Donate', 'svgName': 'donate'},
-      {'name': 'Edu', 'svgName': 'edu'},
-      {'name': 'Education', 'svgName': 'education'},
-      {'name': 'Electricity', 'svgName': 'electricity'},
-      {'name': 'Entertainment', 'svgName': 'entertainment'},
-      {'name': 'Gifts', 'svgName': 'gifts'},
-      {'name': 'Groceries', 'svgName': 'groceries'},
-      {'name': 'Group', 'svgName': 'group'},
-      {'name': 'Healthcare', 'svgName': 'healthcare'},
-      {'name': 'Housing', 'svgName': 'housing'},
-      {'name': 'Insurance', 'svgName': 'insurance'},
-      {'name': 'Investment', 'svgName': 'investment'},
-      {'name': 'Job', 'svgName': 'job'},
-      {'name': 'Loans', 'svgName': 'loans'},
-      {'name': 'Pets', 'svgName': 'pets'},
-      {'name': 'Rent', 'svgName': 'rent'},
-      {'name': 'Saving', 'svgName': 'saving'},
-      {'name': 'Settlement', 'svgName': 'settlement'},
-      {'name': 'Shopping', 'svgName': 'shopping'},
-      {'name': 'Tax', 'svgName': 'tax'},
-      {'name': 'Technology', 'svgName': 'technology'},
-      {'name': 'Transport', 'svgName': 'transport'},
-      {'name': 'Travel', 'svgName': 'travel'},
-    ];
-
-    final List<Map<String, dynamic>> incomeCategories = [
-      {'name': 'Salary', 'svgName': 'salary'},
-      {'name': 'Scholarship', 'svgName': 'scholarship'},
-      {'name': 'Insurance', 'svgName': 'insurance'},
-      {'name': 'Family', 'svgName': 'family'},
-      {'name': 'Stock', 'svgName': 'stock'},
-      {'name': 'Commission', 'svgName': 'commission'},
-      {'name': 'Allowance', 'svgName': 'allowance'},
-    ];
-
     final categories =
-        _transactionType == 'expense' ? expenseCategories : incomeCategories;
+        _transactionType == 'expense'
+            ? TransactionCategories.expenseCategories
+            : TransactionCategories.incomeCategories;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,8 +557,8 @@ class AddTransactionFormState extends State<AddTransactionForm> {
     Color borderColor = isSelected ? Colors.white : Colors.transparent;
 
     // Get category color using CategoryUtils
-    String categoryName = category['name'].toString().toLowerCase();
-    Color categoryColor = CategoryUtils.getCategoryColor(categoryName);
+    category['name'].toString().toLowerCase();
+    Color categoryColor = CategoryUtils.getCategoryColor(svgName);
 
     return GestureDetector(
       onTap: () {
@@ -609,8 +572,8 @@ class AddTransactionFormState extends State<AddTransactionForm> {
         decoration: BoxDecoration(
           color:
               isSelected
-                  ? Colors.white.withOpacity(0.2)
-                  : categoryColor.withOpacity(0.1),
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : categoryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: borderColor, width: 2),
         ),
@@ -622,7 +585,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: SvgPicture.asset(iconPath),

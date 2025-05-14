@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:monie/core/constants/transaction_categories.dart';
 import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/themes/category_colors.dart';
+import 'package:monie/core/utils/string_utils.dart';
 
 /// Utility class for working with transaction categories
 class CategoryUtils {
@@ -23,20 +24,48 @@ class CategoryUtils {
   // Get icon for a category name
   static IconData getCategoryIcon(String categoryName) {
     final category = categories.firstWhere(
-      (c) => c['name'] == categoryName,
+      (c) => c['name'] == categoryName || c['svgName'] == categoryName,
       orElse: () => {'icon': Icons.help_outline},
     );
     return category['icon'] as IconData;
   }
 
-  // Get color for a category name
-  static Color getCategoryColor(String categoryName) {
-    return CategoryColorHelper.getColorForCategory(categoryName);
+  // Get color for a category name or svgName
+  static Color getCategoryColor(String categoryIdentifier) {
+    // Check if it's a svgName first
+    String normalizedIdentifier = categoryIdentifier.toLowerCase().trim();
+
+    // Try to find directly in category color helper
+    Color? color = CategoryColorHelper.getColorForCategory(
+      normalizedIdentifier,
+    );
+
+    // If not found, it might be a display name, try to get svgName first
+    if (color == CategoryColors.coolGrey) {
+      String svgName = TransactionCategories.getSvgNameForCategory(
+        normalizedIdentifier,
+      );
+      color = CategoryColorHelper.getColorForCategory(svgName);
+    }
+
+    return color;
   }
 
   // Get category color hex from category name
   static String getCategoryColorHex(String categoryName) {
-    return CategoryColorHelper.getHexColorForCategory(categoryName);
+    // First try directly with the categoryName as a svgName
+    String normalizedName = categoryName.toLowerCase().trim();
+    String result = CategoryColorHelper.getHexColorForCategory(normalizedName);
+
+    // If we got the default color, try finding the svgName first
+    if (result == CategoryColors.toHex(CategoryColors.coolGrey)) {
+      String svgName = TransactionCategories.getSvgNameForCategory(
+        normalizedName,
+      );
+      result = CategoryColorHelper.getHexColorForCategory(svgName);
+    }
+
+    return result;
   }
 
   // Convert hex string to color
@@ -56,6 +85,22 @@ class CategoryUtils {
       color: getCategoryColor(categoryName),
       size: size,
     );
+  }
+
+  // Format category name for display - handles both display names and svg names
+  static String formatCategoryName(String categoryIdentifier) {
+    // First check if it's a svgName in our categories
+    final category = categories.firstWhere(
+      (c) => c['svgName'] == categoryIdentifier,
+      orElse: () => {'name': null, 'svgName': categoryIdentifier},
+    );
+
+    if (category['name'] != null) {
+      return category['name'] as String;
+    }
+
+    // If it's not found, format as title case from the identifier
+    return StringUtils.snakeToTitleCase(categoryIdentifier);
   }
 
   // Build a category icon with specific color

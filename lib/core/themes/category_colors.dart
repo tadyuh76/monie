@@ -18,7 +18,7 @@ class CategoryColors {
 
   // Helper method to convert a Color to its hex representation (for database storage)
   static String toHex(Color color) {
-    return '#${color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
+    return '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
   }
 
   // Helper method to convert a hex string to a Color
