@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/themes/category_colors.dart';
+import 'package:monie/core/utils/category_utils.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_event.dart';
 
@@ -17,30 +20,11 @@ class AddCategoryDialog extends StatefulWidget {
 class _AddCategoryDialogState extends State<AddCategoryDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  IconData _selectedIcon = Icons.category;
+  late String _selectedSvgName;
   Color _selectedColor = CategoryColors.coolGrey;
 
-  final List<IconData> _availableIcons = [
-    Icons.shopping_basket,
-    Icons.restaurant,
-    Icons.directions_car,
-    Icons.shopping_bag,
-    Icons.movie,
-    Icons.medical_services,
-    Icons.school,
-    Icons.home,
-    Icons.work,
-    Icons.computer,
-    Icons.card_giftcard,
-    Icons.trending_up,
-    Icons.account_balance,
-    Icons.flight,
-    Icons.subscriptions,
-    Icons.power,
-    Icons.pets,
-    Icons.fitness_center,
-    Icons.more_horiz,
-  ];
+  // Available SVG icons based on category type - exact list as specified
+  late final List<String> _availableSvgNames;
 
   final List<Color> _availableColors = [
     CategoryColors.red,
@@ -58,6 +42,53 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _selectedSvgName = widget.isIncome ? 'salary' : 'shopping';
+
+    // Exact list of categories as specified
+    _availableSvgNames =
+        widget.isIncome
+            ? [
+              'salary',
+              'scholarship',
+              'insurance',
+              'family',
+              'stock',
+              'commission',
+              'allowance',
+            ]
+            : [
+              'bills',
+              'debt',
+              'dining',
+              'donate',
+              'edu',
+              'education',
+              'electricity',
+              'entertainment',
+              'gifts',
+              'groceries',
+              'group',
+              'healthcare',
+              'housing',
+              'insurance',
+              'investment',
+              'job',
+              'loans',
+              'pets',
+              'rent',
+              'saving',
+              'settlement',
+              'shopping',
+              'tax',
+              'technology',
+              'transport',
+              'travel',
+            ];
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
@@ -66,8 +97,8 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
   void _save() {
     if (!_formKey.currentState!.validate()) return;
 
-    // Convert the icon to string representation
-    final iconString = _selectedIcon.toString();
+    // Use the SVG name as the icon identifier
+    final iconString = _selectedSvgName;
 
     // Convert the color to hex string
     final colorHex = CategoryColors.toHex(_selectedColor);
@@ -112,7 +143,27 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                 decoration: InputDecoration(
                   labelText: 'Category Name',
                   hintText: 'e.g., Coffee, Groceries, etc.',
-                  prefixIcon: Icon(_selectedIcon, color: _selectedColor),
+                  prefixIcon: Container(
+                    width: 40,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 4,
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: CategoryUtils.getCategoryColor(
+                          _selectedSvgName,
+                        ).withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(4.0),
+                      child: SvgPicture.asset(
+                        CategoryIcons.getIconPath(_selectedSvgName),
+                        width: 18,
+                        height: 18,
+                      ),
+                    ),
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -128,31 +179,41 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                 height: 60,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: _availableIcons.length,
+                  itemCount: _availableSvgNames.length,
                   itemBuilder: (context, index) {
-                    final icon = _availableIcons[index];
-                    final isSelected = _selectedIcon == icon;
+                    final svgName = _availableSvgNames[index];
+                    final isSelected = _selectedSvgName == svgName;
+                    final iconPath = CategoryIcons.getIconPath(svgName);
+
+                    // Get a default color for this icon type
+                    final Color iconColor = CategoryUtils.getCategoryColor(
+                      svgName,
+                    );
+                    final Color backgroundColor =
+                        isSelected
+                            ? _selectedColor.withOpacity(0.3)
+                            : iconColor.withOpacity(0.2);
 
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedIcon = icon),
+                      onTap: () => setState(() => _selectedSvgName = svgName),
                       child: Container(
                         margin: EdgeInsets.symmetric(horizontal: 4),
-                        width: 50,
-                        height: 50,
+                        width: 60,
+                        height: 60,
                         decoration: BoxDecoration(
-                          color:
-                              isSelected
-                                  ? _selectedColor.withValues(alpha: 0.2)
-                                  : Colors.transparent,
+                          color: backgroundColor,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isSelected ? _selectedColor : Colors.grey,
+                            color:
+                                isSelected
+                                    ? Colors.white
+                                    : Colors.grey.withOpacity(0.3),
                             width: isSelected ? 2 : 1,
                           ),
                         ),
-                        child: Icon(
-                          icon,
-                          color: isSelected ? _selectedColor : Colors.grey,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: SvgPicture.asset(iconPath),
                         ),
                       ),
                     );

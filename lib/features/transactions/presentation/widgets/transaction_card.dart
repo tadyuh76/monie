@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
-import 'package:monie/core/constants/transaction_categories.dart';
+import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/core/utils/category_utils.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 
 class TransactionCard extends StatelessWidget {
@@ -109,49 +111,36 @@ class TransactionCard extends StatelessWidget {
   }
 
   Widget _buildCategoryIcon() {
-    // Get the category details from TransactionCategories
-    IconData iconData = Icons.circle;
+    // Get the category name
+    String categoryName = transaction.categoryName?.toLowerCase().trim() ?? '';
+
+    // Get the icon path for the category
+    String iconPath = CategoryIcons.getIconPath(categoryName);
+
+    // Get the proper category color
     Color categoryColor;
-
-    if (transaction.amount >= 0) {
-      categoryColor = AppColors.income;
-    } else {
-      categoryColor = AppColors.expense;
-    }
-
-    // Try to find the category in our categories list
-    if (transaction.categoryName != null) {
-      // Get all categories
-      final allCategories = TransactionCategories.getAllCategories();
-
-      // Try to find a matching category
-      final categoryMatch = allCategories.firstWhere(
-        (category) => category['name'] == transaction.categoryName,
-        orElse: () => {'icon': Icons.circle, 'color': '#9E9E9E'},
+    if (transaction.categoryColor != null) {
+      // Use the stored category color if available
+      categoryColor = Color(
+        int.parse(transaction.categoryColor!.substring(1), radix: 16) +
+            0xFF000000,
       );
-
-      iconData = categoryMatch['icon'] as IconData;
-
-      // Use the color from transaction if available, otherwise from the category system
-      if (transaction.categoryColor != null) {
-        categoryColor = TransactionCategories.hexToColor(
-          transaction.categoryColor!,
-        );
-      } else if (categoryMatch['color'] != null) {
-        categoryColor = TransactionCategories.hexToColor(
-          categoryMatch['color'] as String,
-        );
-      }
+    } else {
+      // Otherwise, get the color from our mapping
+      categoryColor = CategoryUtils.getCategoryColor(categoryName);
     }
+
+    // Create a light background based on the category color
+    Color backgroundColor = categoryColor.withOpacity(0.2);
 
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(
-        color: categoryColor.withValues(alpha: .2),
-        shape: BoxShape.circle,
+      decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: SvgPicture.asset(iconPath),
       ),
-      child: Icon(iconData, color: categoryColor, size: 20),
     );
   }
 }

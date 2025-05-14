@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:monie/core/constants/category_icons.dart';
+import 'package:monie/core/constants/transaction_categories.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
@@ -25,6 +28,7 @@ class _TransactionFormState extends State<TransactionForm> {
   DateTime _selectedDate = DateTime.now();
   bool _isIncome = false;
   Map<String, dynamic>? _selectedCategory;
+  String? _selectedCategoryName;
   String? _selectedAccountId;
   String? _selectedBudgetId;
 
@@ -41,6 +45,7 @@ class _TransactionFormState extends State<TransactionForm> {
 
       // Find the category from CategoryUtils using categoryName
       if (widget.transaction!.categoryName != null) {
+        _selectedCategoryName = widget.transaction!.categoryName;
         _selectedCategory = CategoryUtils.categories.firstWhere(
           (category) => category['name'] == widget.transaction!.categoryName,
           orElse:
@@ -309,71 +314,7 @@ class _TransactionFormState extends State<TransactionForm> {
               style: TextStyle(color: Colors.white70, fontSize: 16),
             ),
             const SizedBox(height: 8),
-            SizedBox(
-              height: 120,
-              child: GridView.builder(
-                scrollDirection: Axis.horizontal,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 1,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.0,
-                ),
-                itemCount:
-                    _isIncome
-                        ? CategoryUtils.getIncomeCategories().length
-                        : CategoryUtils.getExpenseCategories().length,
-                itemBuilder: (context, index) {
-                  final categories =
-                      _isIncome
-                          ? CategoryUtils.getIncomeCategories()
-                          : CategoryUtils.getExpenseCategories();
-                  final category = categories[index];
-                  final isSelected = _selectedCategory == category;
-                  final categoryColor = category['color'] as Color;
-                  final categoryIcon = category['icon'] as IconData;
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: categoryColor.withValues(
-                          alpha: isSelected ? 0.3 : 0.1,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color:
-                              isSelected ? categoryColor : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(categoryIcon, color: categoryColor, size: 28),
-                          SizedBox(height: 4),
-                          Text(
-                            category['name'] as String,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight:
-                                  isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            _buildCategoryDropdown(),
             const SizedBox(height: 16),
 
             // Date Picker
@@ -445,6 +386,91 @@ class _TransactionFormState extends State<TransactionForm> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoryDropdown() {
+    final categories =
+        _isIncome
+            ? TransactionCategories.incomeCategories
+            : TransactionCategories.expenseCategories;
+
+    return DropdownButtonFormField<String>(
+      value: _selectedCategoryName,
+      decoration: const InputDecoration(
+        labelText: 'Category',
+        labelStyle: TextStyle(color: Colors.white70),
+        prefixIcon: Icon(Icons.category, color: Colors.white70),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.white30),
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.primary),
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+        ),
+      ),
+      dropdownColor: AppColors.surface,
+      style: const TextStyle(color: Colors.white),
+      items:
+          categories.map((category) {
+            final String categoryName = category['name'] as String;
+            final String svgName = category['svgName'] as String;
+            final String iconPath = CategoryIcons.getIconPath(svgName);
+
+            // Get category color
+            Color backgroundColor = Colors.white.withOpacity(0.1);
+            if (category['color'] is String) {
+              Color categoryColor = CategoryUtils.hexToColor(
+                category['color'] as String,
+              );
+              backgroundColor = categoryColor.withOpacity(0.2);
+            }
+
+            return DropdownMenuItem<String>(
+              value: categoryName,
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: backgroundColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: SvgPicture.asset(iconPath),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(categoryName),
+                ],
+              ),
+            );
+          }).toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() {
+            _selectedCategoryName = value;
+            // Find the category from TransactionCategories
+            final allCategories = TransactionCategories.getAllCategories();
+            _selectedCategory = allCategories.firstWhere(
+              (category) => category['name'] == value,
+              orElse:
+                  () => {
+                    'name': value,
+                    'color': '#9E9E9E',
+                    'svgName': _isIncome ? 'salary' : 'shopping',
+                  },
+            );
+          });
+        }
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please select a category';
+        }
+        return null;
+      },
     );
   }
 }

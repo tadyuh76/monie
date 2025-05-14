@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:monie/core/constants/transaction_categories.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/core/utils/category_utils.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 
@@ -15,34 +17,28 @@ class TransactionItemWidget extends StatelessWidget {
     final isExpense = transaction.amount < 0;
     final colorForType = isExpense ? AppColors.expense : AppColors.income;
 
-    // Get the category details from our transaction categories system
-    final categoryName = transaction.categoryName ?? 'Other';
+    // Get the category name
+    final categoryName =
+        transaction.categoryName?.toLowerCase().trim() ?? 'other';
 
-    // Get icon from TransactionCategories system
-    IconData icon = Icons.circle;
-    Color categoryColor = colorForType;
+    // Get the icon path for the category
+    final iconPath = CategoryIcons.getIconPath(categoryName);
 
-    // Try to get category info from our system
-    if (transaction.categoryName != null) {
-      final allCategories = TransactionCategories.getAllCategories();
-      final categoryMatch = allCategories.firstWhere(
-        (category) => category['name'] == transaction.categoryName,
-        orElse: () => {'icon': Icons.circle, 'color': '#9E9E9E'},
+    // Get the proper category color
+    Color categoryColor;
+    if (transaction.categoryColor != null) {
+      // Use the stored category color if available
+      categoryColor = Color(
+        int.parse(transaction.categoryColor!.substring(1), radix: 16) +
+            0xFF000000,
       );
-
-      icon = categoryMatch['icon'] as IconData;
-
-      // Use the color from the transaction if available, otherwise use from our system
-      if (transaction.categoryColor != null) {
-        categoryColor = TransactionCategories.hexToColor(
-          transaction.categoryColor!,
-        );
-      } else if (categoryMatch['color'] != null) {
-        categoryColor = TransactionCategories.hexToColor(
-          categoryMatch['color'] as String,
-        );
-      }
+    } else {
+      // Otherwise, get the color from our mapping
+      categoryColor = CategoryUtils.getCategoryColor(categoryName);
     }
+
+    // Create a light background based on the category color
+    final backgroundColor = categoryColor.withOpacity(0.2);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -51,7 +47,7 @@ class TransactionItemWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: .1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -59,15 +55,16 @@ class TransactionItemWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Transaction icon
+          // Transaction icon with SVG
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: categoryColor.withValues(alpha: .2),
+              color: backgroundColor,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: categoryColor, size: 22),
+            padding: const EdgeInsets.all(8),
+            child: SvgPicture.asset(iconPath),
           ),
           const SizedBox(width: 16),
 
@@ -77,7 +74,9 @@ class TransactionItemWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  transaction.title.isEmpty ? categoryName : transaction.title,
+                  transaction.title.isEmpty
+                      ? transaction.categoryName ?? 'Other'
+                      : transaction.title,
                   style: textTheme.titleMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w500,

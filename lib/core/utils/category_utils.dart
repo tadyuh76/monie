@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:monie/core/constants/transaction_categories.dart';
+import 'package:monie/core/constants/category_icons.dart';
+import 'package:monie/core/themes/category_colors.dart';
 
 /// Utility class for working with transaction categories
 class CategoryUtils {
@@ -29,28 +31,22 @@ class CategoryUtils {
 
   // Get color for a category name
   static Color getCategoryColor(String categoryName) {
-    final category = categories.firstWhere(
-      (c) => c['name'] == categoryName,
-      orElse: () => {'color': '#9E9E9E'},
-    );
+    return CategoryColorHelper.getColorForCategory(categoryName);
+  }
 
-    if (category['color'] is Color) {
-      return category['color'] as Color;
-    } else if (category['color'] is String) {
-      return hexToColor(category['color'] as String);
-    }
-
-    return Colors.grey;
+  // Get category color hex from category name
+  static String getCategoryColorHex(String categoryName) {
+    return CategoryColorHelper.getHexColorForCategory(categoryName);
   }
 
   // Convert hex string to color
   static Color hexToColor(String hexString) {
-    return TransactionCategories.hexToColor(hexString);
+    return CategoryColors.fromHex(hexString);
   }
 
   // Convert color to hex string
   static String colorToHex(Color color) {
-    return '#${color.toARGB32().toRadixString(16).substring(2)}';
+    return CategoryColors.toHex(color);
   }
 
   // Build a category icon widget

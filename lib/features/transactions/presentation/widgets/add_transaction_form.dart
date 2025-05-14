@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
-import 'package:monie/core/constants/transaction_categories.dart';
 
 class AddTransactionForm extends StatefulWidget {
   final Function(Map<String, dynamic>)? onSubmit;
@@ -237,20 +238,11 @@ class AddTransactionFormState extends State<AddTransactionForm> {
         amount = -amount; // Make it negative for expenses
       }
 
-      // Get category color in hex format
-      String categoryColorHex;
-      if (_selectedCategory!['color'] is Color) {
-        categoryColorHex = CategoryUtils.colorToHex(
-          _selectedCategory!['color'] as Color,
-        );
-      } else if (_selectedCategory!['color'] is String) {
-        categoryColorHex = _selectedCategory!['color'] as String;
-        if (!categoryColorHex.startsWith('#')) {
-          categoryColorHex = '#$categoryColorHex';
-        }
-      } else {
-        categoryColorHex = '#9E9E9E'; // Default gray color
-      }
+      // Get the category name
+      String categoryName = _selectedCategory!['name'] as String;
+
+      // Get the category color hex code using CategoryUtils
+      String categoryColorHex = CategoryUtils.getCategoryColorHex(categoryName);
 
       // Build transaction data with category name and color
       final transactionData = {
@@ -258,7 +250,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
         'description': _descriptionController.text,
         'amount': amount,
         'date': _selectedDate.toIso8601String(),
-        'category_name': _selectedCategory!['name'],
+        'category_name': categoryName,
         'category_color': categoryColorHex,
         'is_recurring': _isRecurring,
         'account_id': _selectedAccountId,
@@ -287,9 +279,9 @@ class AddTransactionFormState extends State<AddTransactionForm> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Use auto-sizing instead of fixed height
+      // Use 80% of screen height
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -395,7 +387,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'expense'
-                        ? AppColors.expense.withValues(alpha: .2)
+                        ? AppColors.expense.withOpacity(0.2)
                         : AppColors.cardDark,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
@@ -436,7 +428,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'income'
-                        ? AppColors.income.withValues(alpha: .2)
+                        ? AppColors.income.withOpacity(0.2)
                         : AppColors.cardDark,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
@@ -522,10 +514,48 @@ class AddTransactionFormState extends State<AddTransactionForm> {
   }
 
   Widget _buildCategoryStep() {
+    // Define the exact categories as specified
+    final List<Map<String, dynamic>> expenseCategories = [
+      {'name': 'Bills', 'svgName': 'bills'},
+      {'name': 'Debt', 'svgName': 'debt'},
+      {'name': 'Dining', 'svgName': 'dining'},
+      {'name': 'Donate', 'svgName': 'donate'},
+      {'name': 'Edu', 'svgName': 'edu'},
+      {'name': 'Education', 'svgName': 'education'},
+      {'name': 'Electricity', 'svgName': 'electricity'},
+      {'name': 'Entertainment', 'svgName': 'entertainment'},
+      {'name': 'Gifts', 'svgName': 'gifts'},
+      {'name': 'Groceries', 'svgName': 'groceries'},
+      {'name': 'Group', 'svgName': 'group'},
+      {'name': 'Healthcare', 'svgName': 'healthcare'},
+      {'name': 'Housing', 'svgName': 'housing'},
+      {'name': 'Insurance', 'svgName': 'insurance'},
+      {'name': 'Investment', 'svgName': 'investment'},
+      {'name': 'Job', 'svgName': 'job'},
+      {'name': 'Loans', 'svgName': 'loans'},
+      {'name': 'Pets', 'svgName': 'pets'},
+      {'name': 'Rent', 'svgName': 'rent'},
+      {'name': 'Saving', 'svgName': 'saving'},
+      {'name': 'Settlement', 'svgName': 'settlement'},
+      {'name': 'Shopping', 'svgName': 'shopping'},
+      {'name': 'Tax', 'svgName': 'tax'},
+      {'name': 'Technology', 'svgName': 'technology'},
+      {'name': 'Transport', 'svgName': 'transport'},
+      {'name': 'Travel', 'svgName': 'travel'},
+    ];
+
+    final List<Map<String, dynamic>> incomeCategories = [
+      {'name': 'Salary', 'svgName': 'salary'},
+      {'name': 'Scholarship', 'svgName': 'scholarship'},
+      {'name': 'Insurance', 'svgName': 'insurance'},
+      {'name': 'Family', 'svgName': 'family'},
+      {'name': 'Stock', 'svgName': 'stock'},
+      {'name': 'Commission', 'svgName': 'commission'},
+      {'name': 'Allowance', 'svgName': 'allowance'},
+    ];
+
     final categories =
-        _transactionType == 'expense'
-            ? CategoryUtils.getExpenseCategories()
-            : CategoryUtils.getIncomeCategories();
+        _transactionType == 'expense' ? expenseCategories : incomeCategories;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -547,77 +577,77 @@ class AddTransactionFormState extends State<AddTransactionForm> {
           itemCount: categories.length,
           itemBuilder: (context, index) {
             final category = categories[index];
-            final isSelected = _selectedCategory == category;
-            final categoryColor =
-                category['color'] is String
-                    ? TransactionCategories.hexToColor(
-                      category['color'] as String,
-                    )
-                    : category['color'] as Color;
-
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedCategory = category;
-                });
-                // Auto-proceed to next step after a short delay
-                Future.delayed(Duration(milliseconds: 300), _nextStep);
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: categoryColor.withValues(
-                    alpha: isSelected ? 0.3 : 0.1,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? categoryColor : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      category['icon'] as IconData,
-                      color: categoryColor,
-                      size: 28,
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      category['name'] as String,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return _buildCategoryItem(category);
           },
         ),
       ],
     );
   }
 
-  Widget _buildCalculatorStep() {
-    Color categoryColor = Colors.grey;
-    if (_selectedCategory != null) {
-      if (_selectedCategory!['color'] is String) {
-        categoryColor = TransactionCategories.hexToColor(
-          _selectedCategory!['color'] as String,
-        );
-      } else if (_selectedCategory!['color'] is Color) {
-        categoryColor = _selectedCategory!['color'] as Color;
-      }
-    }
+  Widget _buildCategoryItem(Map<String, dynamic> category) {
+    final isSelected =
+        _selectedCategory != null &&
+        _selectedCategory!['name'] == category['name'];
 
-    final categoryIcon =
-        _selectedCategory?['icon'] as IconData? ?? Icons.more_horiz;
+    String svgName = category['svgName'].toString();
+    String iconPath = CategoryIcons.getIconPath(svgName);
+    Color borderColor = isSelected ? Colors.white : Colors.transparent;
+
+    // Get category color using CategoryUtils
+    String categoryName = category['name'].toString().toLowerCase();
+    Color categoryColor = CategoryUtils.getCategoryColor(categoryName);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedCategory = category;
+        });
+        // Auto-proceed to next step after a short delay
+        Future.delayed(Duration(milliseconds: 300), _nextStep);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color:
+              isSelected
+                  ? Colors.white.withOpacity(0.2)
+                  : categoryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: 2),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: SvgPicture.asset(iconPath),
+            ),
+            SizedBox(height: 8),
+            Text(
+              category['name'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCalculatorStep() {
+    String categoryName =
+        _selectedCategory?['name']?.toString().toLowerCase() ?? '';
+    String iconPath = CategoryIcons.getIconPath(categoryName);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -631,7 +661,11 @@ class AddTransactionFormState extends State<AddTransactionForm> {
           ),
           child: Row(
             children: [
-              Icon(categoryIcon, color: categoryColor, size: 24),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: SvgPicture.asset(iconPath),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
