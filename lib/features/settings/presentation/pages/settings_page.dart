@@ -180,16 +180,25 @@ class _SettingsPageState extends State<SettingsPage> {
         return Stack(
           children: [
             Scaffold(
-              backgroundColor: AppColors.background,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               appBar: AppBar(
                 title: Text(
                   context.tr('settings_title'),
-                  style: const TextStyle(color: Colors.white)
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white 
+                      : Colors.black87
+                  )
                 ),
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white 
+                      : Colors.black87
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
@@ -272,8 +281,17 @@ class _SettingsPageState extends State<SettingsPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.surface
+              : Colors.white,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: Theme.of(context).brightness == Brightness.light
+              ? [BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                )]
+              : null,
         ),
         child: Center(
           child: Column(
@@ -282,7 +300,11 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 16),
               Text(
                 context.tr('settings_loading_profile'),
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87
+                ),
               ),
             ],
           ),
@@ -296,8 +318,17 @@ class _SettingsPageState extends State<SettingsPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.surface
+              : Colors.white,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: Theme.of(context).brightness == Brightness.light
+              ? [BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                )]
+              : null,
         ),
         child: Center(
           child: Column(
@@ -306,7 +337,11 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 16),
               Text(
                 context.tr('settings_profile_unavailable'),
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87
+                ),
               ),
             ],
           ),
@@ -324,8 +359,17 @@ class _SettingsPageState extends State<SettingsPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.surface
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: Theme.of(context).brightness == Brightness.light
+            ? [BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              )]
+            : null,
       ),
       child: Column(
         children: [
@@ -369,18 +413,22 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           Text(
             displayName,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black87,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             profile.email,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
-              color: Colors.white70,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : Colors.black54,
             ),
           ),
           if (profile.phoneNumber != null && profile.phoneNumber!.isNotEmpty)
@@ -388,9 +436,11 @@ class _SettingsPageState extends State<SettingsPage> {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 profile.phoneNumber!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Colors.white70,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : Colors.black54,
                 ),
               ),
             ),
@@ -421,11 +471,19 @@ class _SettingsPageState extends State<SettingsPage> {
     return SwitchListTile(
       title: Text(
         context.tr('settings_notifications'),
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black87,
+        ),
       ),
       subtitle: Text(
         context.tr('settings_enable_notifications'),
-        style: const TextStyle(color: Colors.white70),
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white70
+              : Colors.black54,
+        ),
       ),
       value: settings.notificationsEnabled,
       activeColor: AppColors.primary,
@@ -451,17 +509,32 @@ class _SettingsPageState extends State<SettingsPage> {
     return ListTile(
       title: Text(
         context.tr('settings_theme'),
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black87,
+        ),
       ),
       subtitle: Text(
         _getThemeModeName(settings.themeMode),
-        style: const TextStyle(color: Colors.white70),
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white70
+              : Colors.black54,
+        ),
       ),
       trailing: DropdownButton<ThemeMode>(
         value: settings.themeMode,
-        dropdownColor: AppColors.surface,
+        dropdownColor: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.surface
+            : Colors.white,
         underline: Container(),
-        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+        icon: Icon(
+          Icons.arrow_drop_down,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black87,
+        ),
         onChanged: (ThemeMode? newValue) {
           if (newValue != null) {
             context
@@ -478,7 +551,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   Icons.light_mode,
                   color: settings.themeMode == ThemeMode.light
                       ? AppColors.primary
-                      : Colors.white,
+                      : Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.white 
+                          : Colors.black87,
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -486,7 +561,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(
                     color: settings.themeMode == ThemeMode.light
                         ? AppColors.primary
-                        : Colors.white,
+                        : Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.white 
+                            : Colors.black87,
                   ),
                 ),
               ],
@@ -500,7 +577,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   Icons.dark_mode,
                   color: settings.themeMode == ThemeMode.dark
                       ? AppColors.primary
-                      : Colors.white,
+                      : Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.white 
+                          : Colors.black87,
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -508,7 +587,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(
                     color: settings.themeMode == ThemeMode.dark
                         ? AppColors.primary
-                        : Colors.white,
+                        : Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.white 
+                            : Colors.black87,
                   ),
                 ),
               ],
@@ -544,17 +625,32 @@ class _SettingsPageState extends State<SettingsPage> {
     return ListTile(
       title: Text(
         context.tr('settings_language'),
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black87,
+        ),
       ),
       subtitle: Text(
         _getLanguageName(settings.language),
-        style: const TextStyle(color: Colors.white70),
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white70
+              : Colors.black54,
+        ),
       ),
       trailing: DropdownButton<AppLanguage>(
         value: settings.language,
-        dropdownColor: AppColors.surface,
+        dropdownColor: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.surface
+            : Colors.white,
         underline: Container(),
-        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+        icon: Icon(
+          Icons.arrow_drop_down,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black87,
+        ),
         onChanged: (AppLanguage? newValue) {
           if (newValue != null) {
             context
@@ -573,7 +669,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     fontSize: 20,
                     color: settings.language == AppLanguage.english
                         ? AppColors.primary
-                        : Colors.white,
+                        : Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.white 
+                            : Colors.black87,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -582,7 +680,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(
                     color: settings.language == AppLanguage.english
                         ? AppColors.primary
-                        : Colors.white,
+                        : Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.white 
+                            : Colors.black87,
                   ),
                 ),
               ],
@@ -598,7 +698,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     fontSize: 20,
                     color: settings.language == AppLanguage.vietnamese
                         ? AppColors.primary
-                        : Colors.white,
+                        : Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.white 
+                            : Colors.black87,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -607,7 +709,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(
                     color: settings.language == AppLanguage.vietnamese
                         ? AppColors.primary
-                        : Colors.white,
+                        : Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.white 
+                            : Colors.black87,
                   ),
                 ),
               ],
@@ -629,10 +733,19 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildEditProfileButton() {
     return ListTile(
-      leading: const Icon(Icons.edit, color: Colors.white),
+      leading: Icon(
+        Icons.edit,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black87,
+      ),
       title: Text(
         context.tr('settings_edit_profile'),
-        style: const TextStyle(color: Colors.white)
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black87,
+        )
       ),
       onTap: () {
         setState(() {
@@ -645,10 +758,19 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildChangePasswordButton() {
     return ListTile(
-      leading: const Icon(Icons.lock, color: Colors.white),
+      leading: Icon(
+        Icons.lock,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black87,
+      ),
       title: Text(
         context.tr('settings_change_password'),
-        style: const TextStyle(color: Colors.white)
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black87,
+        )
       ),
       onTap: () {
         setState(() {
@@ -705,7 +827,13 @@ class _SettingsPageState extends State<SettingsPage> {
     // Check if we're currently saving profile changes
     final bool isSaving = state is SettingsLoading;
     
-    final errorStyle = const TextStyle(color: Colors.red, fontSize: 13.0, fontWeight: FontWeight.w500);
+    final errorStyle = TextStyle(
+      color: Colors.red, 
+      fontSize: 13.0, 
+      fontWeight: FontWeight.w500
+    );
+    
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Form(
       key: _formKey,
@@ -716,14 +844,21 @@ class _SettingsPageState extends State<SettingsPage> {
             controller: _displayNameController,
             decoration: InputDecoration(
               labelText: context.tr('settings_name'),
-              labelStyle: const TextStyle(color: Colors.white),
-              enabledBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              labelStyle: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black54
               ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDarkMode ? Colors.grey : Colors.black26
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: AppColors.primary, 
+                  width: 2
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
               ),
               errorBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.red, width: 1),
@@ -734,7 +869,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
             ),
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black87, 
+              fontSize: 16
+            ),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return context.tr('settings_please_enter_name');
@@ -747,14 +885,21 @@ class _SettingsPageState extends State<SettingsPage> {
             controller: _phoneNumberController,
             decoration: InputDecoration(
               labelText: context.tr('settings_phone_number'),
-              labelStyle: const TextStyle(color: Colors.white),
-              enabledBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              labelStyle: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black54
               ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDarkMode ? Colors.grey : Colors.black26
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: AppColors.primary, 
+                  width: 2
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
               ),
               errorBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.red, width: 1),
@@ -765,7 +910,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
             ),
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black87, 
+              fontSize: 16
+            ),
             keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: 24),
@@ -779,14 +927,18 @@ class _SettingsPageState extends State<SettingsPage> {
                     });
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[800],
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[300],
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     elevation: 2,
                   ),
                   child: Text(
                     context.tr('settings_cancel'),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87,
                       fontSize: 16,
                     ),
                   ),
@@ -800,7 +952,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     elevation: 3,
-                    disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
+                    disabledBackgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.primary.withOpacity(0.5)
+                        : AppColors.primary.withOpacity(0.3),
                   ),
                   child: isSaving
                     ? const SizedBox(
@@ -829,7 +983,13 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildChangePasswordForm() {
-    final errorStyle = const TextStyle(color: Colors.red, fontSize: 13.0, fontWeight: FontWeight.w500);
+    final errorStyle = TextStyle(
+      color: Colors.red, 
+      fontSize: 13.0, 
+      fontWeight: FontWeight.w500
+    );
+    
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Form(
       key: _passwordFormKey,
@@ -840,16 +1000,25 @@ class _SettingsPageState extends State<SettingsPage> {
             controller: _currentPasswordController,
             decoration: InputDecoration(
               labelText: context.tr('settings_current_password'),
-              labelStyle: const TextStyle(color: Colors.white),
-              hintStyle: const TextStyle(color: Colors.white70),
-              errorStyle: errorStyle,
-              enabledBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              labelStyle: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black54
               ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              hintStyle: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black38
+              ),
+              errorStyle: errorStyle,
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDarkMode ? Colors.grey : Colors.black26
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: AppColors.primary, 
+                  width: 2
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
               ),
               errorBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.red, width: 1),
@@ -862,7 +1031,7 @@ class _SettingsPageState extends State<SettingsPage> {
               suffixIcon: IconButton(
                 icon: Icon(
                   _isCurrentPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white,
+                  color: isDarkMode ? Colors.white : Colors.black54,
                 ),
                 onPressed: () {
                   setState(() {
@@ -871,7 +1040,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
             ),
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black87, 
+              fontSize: 16
+            ),
             obscureText: !_isCurrentPasswordVisible,
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -885,16 +1057,25 @@ class _SettingsPageState extends State<SettingsPage> {
             controller: _newPasswordController,
             decoration: InputDecoration(
               labelText: context.tr('settings_new_password'),
-              labelStyle: const TextStyle(color: Colors.white),
-              hintStyle: const TextStyle(color: Colors.white70),
-              errorStyle: errorStyle,
-              enabledBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              labelStyle: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black54
               ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              hintStyle: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black38
+              ),
+              errorStyle: errorStyle,
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDarkMode ? Colors.grey : Colors.black26
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: AppColors.primary, 
+                  width: 2
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
               ),
               errorBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.red, width: 1),
@@ -907,7 +1088,7 @@ class _SettingsPageState extends State<SettingsPage> {
               suffixIcon: IconButton(
                 icon: Icon(
                   _isNewPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white,
+                  color: isDarkMode ? Colors.white : Colors.black54,
                 ),
                 onPressed: () {
                   setState(() {
@@ -916,7 +1097,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
             ),
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black87, 
+              fontSize: 16
+            ),
             obscureText: !_isNewPasswordVisible,
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -933,16 +1117,25 @@ class _SettingsPageState extends State<SettingsPage> {
             controller: _confirmPasswordController,
             decoration: InputDecoration(
               labelText: context.tr('settings_confirm_password'),
-              labelStyle: const TextStyle(color: Colors.white),
-              hintStyle: const TextStyle(color: Colors.white70),
-              errorStyle: errorStyle,
-              enabledBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              labelStyle: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black54
               ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+              hintStyle: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black38
+              ),
+              errorStyle: errorStyle,
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDarkMode ? Colors.grey : Colors.black26
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: AppColors.primary, 
+                  width: 2
+                ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
               ),
               errorBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.red, width: 1),
@@ -955,7 +1148,7 @@ class _SettingsPageState extends State<SettingsPage> {
               suffixIcon: IconButton(
                 icon: Icon(
                   _isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white,
+                  color: isDarkMode ? Colors.white : Colors.black54,
                 ),
                 onPressed: () {
                   setState(() {
@@ -964,7 +1157,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
             ),
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black87, 
+              fontSize: 16
+            ),
             obscureText: !_isConfirmPasswordVisible,
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -990,14 +1186,18 @@ class _SettingsPageState extends State<SettingsPage> {
                     });
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[800],
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[300],
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     elevation: 2,
                   ),
                   child: Text(
                     context.tr('settings_cancel'),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87,
                       fontSize: 16,
                     ),
                   ),
