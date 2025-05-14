@@ -10,6 +10,7 @@ class AccountCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Determine card color based on account type
     Color accountColor = AppColors.bank;
@@ -20,8 +21,15 @@ class AccountCardWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: isDarkMode ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: !isDarkMode ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,7 +39,9 @@ class AccountCardWidget extends StatelessWidget {
             children: [
               Text(
                 account.name,
-                style: textTheme.titleLarge?.copyWith(color: Colors.white),
+                style: textTheme.titleLarge?.copyWith(
+                  color: isDarkMode ? Colors.white : Colors.black87
+                ),
               ),
               Container(
                 width: 16,
@@ -47,7 +57,7 @@ class AccountCardWidget extends StatelessWidget {
           Text(
             '\$${account.balance.abs().toStringAsFixed(0)}',
             style: textTheme.headlineMedium?.copyWith(
-              color: Colors.white,
+              color: isDarkMode ? Colors.white : Colors.black87,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -55,7 +65,7 @@ class AccountCardWidget extends StatelessWidget {
           Text(
             '${account.transactionCount} ${account.transactionCount == 1 ? 'transaction' : 'transactions'}',
             style: textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
+              color: isDarkMode ? AppColors.textSecondary : Colors.black54,
               height: 1.5,
             ),
           ),

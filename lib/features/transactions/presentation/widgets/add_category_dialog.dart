@@ -87,8 +87,10 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: isDarkMode ? AppColors.surface : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -101,7 +103,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
               Text(
                 'Add New Category',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDarkMode ? Colors.white : Colors.black87,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -111,8 +113,25 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: 'Category Name',
+                  labelStyle: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
                   hintText: 'e.g., Coffee, Groceries, etc.',
+                  hintStyle: TextStyle(
+                    color: isDarkMode ? Colors.white30 : Colors.black38,
+                  ),
                   prefixIcon: Icon(_selectedIcon, color: _selectedColor),
+                  filled: true,
+                  fillColor: isDarkMode 
+                    ? Colors.grey.shade800 
+                    : Colors.grey.shade100,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black87,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -122,7 +141,12 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                 },
               ),
               SizedBox(height: 16),
-              Text('Select Icon', style: TextStyle(color: Colors.white)),
+              Text(
+                'Select Icon', 
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black87
+                )
+              ),
               SizedBox(height: 8),
               SizedBox(
                 height: 60,
@@ -146,13 +170,13 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                                   : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isSelected ? _selectedColor : Colors.grey,
+                            color: isSelected ? _selectedColor : isDarkMode ? Colors.grey : Colors.grey.shade400,
                             width: isSelected ? 2 : 1,
                           ),
                         ),
                         child: Icon(
                           icon,
-                          color: isSelected ? _selectedColor : Colors.grey,
+                          color: isSelected ? _selectedColor : isDarkMode ? Colors.grey : Colors.grey.shade400,
                         ),
                       ),
                     );
@@ -160,7 +184,12 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                 ),
               ),
               SizedBox(height: 16),
-              Text('Select Color', style: TextStyle(color: Colors.white)),
+              Text(
+                'Select Color', 
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black87
+                )
+              ),
               SizedBox(height: 8),
               SizedBox(
                 height: 60,
@@ -182,7 +211,10 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                           borderRadius: BorderRadius.circular(8),
                           border:
                               isSelected
-                                  ? Border.all(color: Colors.white, width: 2)
+                                  ? Border.all(
+                                      color: isDarkMode ? Colors.white : Colors.black87, 
+                                      width: 2
+                                    )
                                   : null,
                         ),
                       ),
@@ -197,9 +229,19 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: Text('Cancel'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
                   ),
                   SizedBox(width: 8),
-                  ElevatedButton(onPressed: _save, child: Text('Save')),
+                  ElevatedButton(
+                    onPressed: _save, 
+                    child: Text('Save'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
                 ],
               ),
             ],

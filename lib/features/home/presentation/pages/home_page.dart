@@ -95,12 +95,21 @@ class _HomePageState extends State<HomePage> {
   Widget _buildBudgetSection() {
     return BlocBuilder<BudgetsBloc, BudgetsState>(
       builder: (context, state) {
+        final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        
         if (state is BudgetsLoading) {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: isDarkMode ? AppColors.surface : Colors.white,
               borderRadius: BorderRadius.circular(16),
+              boxShadow: !isDarkMode ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                )
+              ] : null,
             ),
             child: const Center(
               child: SizedBox(
@@ -113,14 +122,21 @@ class _HomePageState extends State<HomePage> {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: isDarkMode ? AppColors.surface : Colors.white,
               borderRadius: BorderRadius.circular(16),
+              boxShadow: !isDarkMode ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                )
+              ] : null,
             ),
             child: Column(
               children: [
                 Text(
                   '${context.tr('common_error')}: ${state.message}',
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -140,27 +156,40 @@ class _HomePageState extends State<HomePage> {
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: isDarkMode ? AppColors.surface : Colors.white,
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: !isDarkMode ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  )
+                ] : null,
               ),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.account_balance_wallet_outlined,
-                      color: Colors.white70,
+                      color: isDarkMode ? Colors.white70 : Colors.black45,
                       size: 48,
                     ),
                     const SizedBox(height: 16),
                     Text(
                       context.tr('home_no_active_budgets'),
-                      style: const TextStyle(color: Colors.white70, fontSize: 16),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                        fontSize: 16
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       context.tr('home_create_budget_hint'),
-                      style: const TextStyle(color: Colors.white54, fontSize: 14),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white54 : Colors.black54,
+                        fontSize: 14
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -174,15 +203,22 @@ class _HomePageState extends State<HomePage> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: isDarkMode ? AppColors.surface : Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: !isDarkMode ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              )
+            ] : null,
           ),
           child: SizedBox(
             height: 100,
             child: Center(
               child: Text(
                 context.tr('home_loading_budgets'),
-                style: const TextStyle(color: Colors.white70),
+                style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
               ),
             ),
           ),
@@ -204,7 +240,7 @@ class _HomePageState extends State<HomePage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -218,7 +254,12 @@ class _HomePageState extends State<HomePage> {
           actions: [
             // More options menu
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
+              icon: Icon(
+                Icons.more_vert, 
+                color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black87
+              ),
               onSelected: (value) {
                 if (value == 'settings') {
                   // Navigate to settings page
@@ -229,14 +270,24 @@ class _HomePageState extends State<HomePage> {
                     context: context,
                     builder:
                         (context) => AlertDialog(
-                          backgroundColor: AppColors.surface,
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.surface
+                            : Colors.white,
                           title: Text(
                             context.tr('auth_logout'),
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87
+                            ),
                           ),
                           content: Text(
                             context.tr('auth_logout_confirm'),
-                            style: const TextStyle(color: Colors.white70),
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white70
+                                : Colors.black54
+                            ),
                           ),
                           actions: [
                             TextButton(
@@ -272,11 +323,20 @@ class _HomePageState extends State<HomePage> {
                       value: 'settings',
                       child: Row(
                         children: [
-                          const Icon(Icons.settings, color: Colors.white),
+                          Icon(
+                            Icons.settings, 
+                            color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             context.tr('settings_title'),
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87
+                            ),
                           ),
                         ],
                       ),
@@ -285,11 +345,20 @@ class _HomePageState extends State<HomePage> {
                       value: 'logout',
                       child: Row(
                         children: [
-                          const Icon(Icons.logout, color: Colors.white),
+                          Icon(
+                            Icons.logout, 
+                            color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             context.tr('auth_logout'),
-                            style: const TextStyle(color: Colors.white)
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87
+                            )
                           ),
                         ],
                       ),
@@ -310,7 +379,11 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 16),
                       Text(
                         context.tr('common_loading'),
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87
+                        ),
                       ),
                     ],
                   ),
@@ -322,7 +395,11 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text(
                         '${context.tr('common_error')}: ${state.message}',
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),

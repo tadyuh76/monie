@@ -17,6 +17,8 @@ class AccountSummaryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     // Calculate total balance
     final double totalBalance = accounts.fold(
       0,
@@ -36,8 +38,15 @@ class AccountSummaryWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDarkMode ? AppColors.surface : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: !isDarkMode ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ] : null,
       ),
       child: Row(
         children: [
@@ -48,8 +57,8 @@ class AccountSummaryWidget extends StatelessWidget {
               children: [
                 Text(
                   context.tr('home_balance'),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                     fontSize: 14,
                   ),
                 ),
@@ -57,7 +66,9 @@ class AccountSummaryWidget extends StatelessWidget {
                 Text(
                   Formatters.formatCurrency(totalBalance),
                   style: TextStyle(
-                    color: totalBalance >= 0 ? Colors.white : AppColors.expense,
+                    color: totalBalance >= 0 
+                        ? isDarkMode ? Colors.white : Colors.black87
+                        : AppColors.expense,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -72,8 +83,8 @@ class AccountSummaryWidget extends StatelessWidget {
               children: [
                 Text(
                   context.tr('home_income'),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                     fontSize: 14,
                   ),
                 ),
@@ -96,8 +107,8 @@ class AccountSummaryWidget extends StatelessWidget {
               children: [
                 Text(
                   context.tr('home_expense'),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                     fontSize: 14,
                   ),
                 ),

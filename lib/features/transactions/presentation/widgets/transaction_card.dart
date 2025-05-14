@@ -21,11 +21,12 @@ class TransactionCard extends StatelessWidget {
     final bool isIncome = transaction.amount >= 0;
     final formatter = NumberFormat.currency(symbol: '\$');
     final formattedAmount = formatter.format(transaction.amount.abs());
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
-      color: AppColors.surface,
-      elevation: 2,
+      color: isDarkMode ? AppColors.surface : Colors.white,
+      elevation: isDarkMode ? 2 : 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16.0),
@@ -34,9 +35,9 @@ class TransactionCard extends StatelessWidget {
           transaction.title.isEmpty
               ? transaction.categoryName ?? 'Transaction'
               : transaction.title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         subtitle: Column(
@@ -46,12 +47,12 @@ class TransactionCard extends StatelessWidget {
             if (transaction.description.isNotEmpty)
               Text(
                 transaction.description,
-                style: const TextStyle(color: Colors.white70),
+                style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
               ),
             const SizedBox(height: 4),
             Text(
               DateFormat.yMMMd().format(transaction.date),
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
+              style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54, fontSize: 12),
             ),
           ],
         ),
@@ -68,6 +69,10 @@ class TransactionCard extends StatelessWidget {
             if (onEdit != null || onDelete != null) ...[
               const SizedBox(width: 8),
               PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_vert,
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
                 onSelected: (value) {
                   if (value == 'edit' && onEdit != null) {
                     onEdit!();
@@ -78,24 +83,24 @@ class TransactionCard extends StatelessWidget {
                 itemBuilder:
                     (context) => [
                       if (onEdit != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'edit',
                           child: Row(
                             children: [
-                              Icon(Icons.edit, size: 20),
-                              SizedBox(width: 8),
-                              Text('Edit'),
+                              Icon(Icons.edit, size: 20, color: isDarkMode ? Colors.white : Colors.black87),
+                              const SizedBox(width: 8),
+                              Text('Edit', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87)),
                             ],
                           ),
                         ),
                       if (onDelete != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
                           child: Row(
                             children: [
-                              Icon(Icons.delete, size: 20),
-                              SizedBox(width: 8),
-                              Text('Delete'),
+                              Icon(Icons.delete, size: 20, color: isDarkMode ? Colors.white : Colors.black87),
+                              const SizedBox(width: 8),
+                              Text('Delete', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87)),
                             ],
                           ),
                         ),

@@ -12,6 +12,7 @@ class SummarySectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     double totalExpense = 0;
     double totalIncome = 0;
@@ -30,15 +31,24 @@ class SummarySectionWidget extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.cardDark,
+              color: isDarkMode ? AppColors.cardDark : Colors.white,
               borderRadius: BorderRadius.circular(16),
+              boxShadow: !isDarkMode ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                )
+              ] : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   context.tr('home_expense'),
-                  style: textTheme.titleLarge?.copyWith(color: Colors.white),
+                  style: textTheme.titleLarge?.copyWith(
+                    color: isDarkMode ? Colors.white : Colors.black87
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -52,7 +62,7 @@ class SummarySectionWidget extends StatelessWidget {
                 Text(
                   '${transactions.where((t) => t.amount < 0).length} ${context.tr('home_transactions')}',
                   style: textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                   ),
                 ),
               ],
@@ -64,15 +74,24 @@ class SummarySectionWidget extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.cardDark,
+              color: isDarkMode ? AppColors.cardDark : Colors.white,
               borderRadius: BorderRadius.circular(16),
+              boxShadow: !isDarkMode ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                )
+              ] : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   context.tr('home_income'),
-                  style: textTheme.titleLarge?.copyWith(color: Colors.white),
+                  style: textTheme.titleLarge?.copyWith(
+                    color: isDarkMode ? Colors.white : Colors.black87
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -86,7 +105,7 @@ class SummarySectionWidget extends StatelessWidget {
                 Text(
                   '${transactions.where((t) => t.amount >= 0).length} ${context.tr('home_transactions')}',
                   style: textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                   ),
                 ),
               ],

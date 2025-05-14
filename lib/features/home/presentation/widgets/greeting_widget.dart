@@ -10,12 +10,16 @@ class GreetingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           context.tr('home_welcome'),
-          style: textTheme.titleLarge?.copyWith(color: AppColors.textSecondary),
+          style: textTheme.titleLarge?.copyWith(
+            color: isDarkMode ? AppColors.textSecondary : Colors.black54,
+          ),
         ),
         Text(
           name,

@@ -10,22 +10,27 @@ class BudgetsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDarkMode ? AppColors.background : Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: isDarkMode ? AppColors.background : Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: Row(
           children: [
             Text(
               context.tr('budgets_title'),
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
+                color: isDarkMode ? Colors.white : Colors.black87,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const Spacer(),
-            IconButton(icon: const Icon(Icons.edit), onPressed: () {}),
+            IconButton(
+              icon: Icon(Icons.edit, color: isDarkMode ? Colors.white : Colors.black87),
+              onPressed: () {}
+            ),
           ],
         ),
       ),
@@ -42,12 +47,20 @@ class BudgetsPage extends StatelessWidget {
 
   Widget _buildBudgetCard(BuildContext context, Budget budget) {
     final textTheme = Theme.of(context).textTheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.budgetBackground,
+        color: isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: isDarkMode ? null : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,7 +86,7 @@ class BudgetsPage extends StatelessWidget {
               value: budget.progressPercentage / 100,
               backgroundColor: Colors.black26,
               valueColor: AlwaysStoppedAnimation<Color>(
-                AppColors.budgetProgress,
+                isDarkMode ? AppColors.budgetProgress : const Color(0xFF388E3C),
               ),
               minHeight: 12,
             ),
@@ -101,7 +114,7 @@ class BudgetsPage extends StatelessWidget {
                   child: Text(
                     context.tr('common_today'),
                     style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.background,
+                      color: isDarkMode ? AppColors.background : const Color(0xFF388E3C),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -128,15 +141,31 @@ class BudgetsPage extends StatelessWidget {
   }
 
   Widget _buildEmptyBudgetCard(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       height: 150,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDarkMode ? AppColors.surface : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.divider, width: 1),
+        border: Border.all(
+          color: isDarkMode ? AppColors.divider : Colors.grey.shade300, 
+          width: 1
+        ),
+        boxShadow: isDarkMode ? null : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Center(
-        child: Icon(Icons.add, color: AppColors.textSecondary, size: 36),
+        child: Icon(
+          Icons.add, 
+          color: isDarkMode ? AppColors.textSecondary : Colors.grey.shade500, 
+          size: 36
+        ),
       ),
     );
   }

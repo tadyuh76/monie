@@ -12,12 +12,22 @@ class BudgetSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.budgetBackground,
+        color: isDarkMode 
+            ? AppColors.budgetBackground 
+            : const Color(0xFF4CAF50), // Keep the budget section green in both themes
         borderRadius: BorderRadius.circular(16),
+        boxShadow: !isDarkMode ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,7 +53,7 @@ class BudgetSectionWidget extends StatelessWidget {
               value: budget.progressPercentage / 100,
               backgroundColor: Colors.black26,
               valueColor: AlwaysStoppedAnimation<Color>(
-                AppColors.budgetProgress,
+                isDarkMode ? AppColors.budgetProgress : const Color(0xFF66BB6A),
               ),
               minHeight: 12,
             ),
@@ -71,7 +81,7 @@ class BudgetSectionWidget extends StatelessWidget {
                   child: Text(
                     context.tr('common_today'),
                     style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.background,
+                      color: isDarkMode ? AppColors.background : const Color(0xFF2E7D32),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
