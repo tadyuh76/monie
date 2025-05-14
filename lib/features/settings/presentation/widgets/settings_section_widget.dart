@@ -13,13 +13,15 @@ class SettingsSectionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
+        color: isDarkMode
             ? AppColors.surface
             : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: Theme.of(context).brightness == Brightness.light
+        boxShadow: !isDarkMode
             ? [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
@@ -39,16 +41,17 @@ class SettingsSectionWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).brightness == Brightness.dark
+                color: isDarkMode
                     ? Colors.white
                     : Colors.black87,
               ),
             ),
           ),
           Divider(
-            color: Theme.of(context).brightness == Brightness.dark
+            color: isDarkMode
                 ? AppColors.divider
-                : Colors.black12,
+                : Colors.black.withOpacity(0.05),
+            height: 1,
           ),
           ...children,
         ],

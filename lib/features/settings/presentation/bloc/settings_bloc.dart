@@ -14,6 +14,9 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   AppSettings _currentSettings = const AppSettings();
   UserProfile? _currentProfile;
 
+  // Getter để cho phép truy cập repository từ bên ngoài
+  SettingsRepository get repository => _repository;
+
   SettingsBloc({
     required SettingsRepository repository, 
     AuthBloc? authBloc,

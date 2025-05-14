@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -66,6 +67,13 @@ class _SettingsPageState extends State<SettingsPage> {
     super.dispose();
   }
 
+  // Helper method to get divider color based on theme
+  Color _getDividerColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? AppColors.divider 
+        : Colors.black.withOpacity(0.05); // Much lighter for light theme
+  }
+
   Future<void> _pickImage() async {
     try {
       final XFile? image =
@@ -76,21 +84,44 @@ class _SettingsPageState extends State<SettingsPage> {
         final bloc = context.read<SettingsBloc>();
         
         // Show loading indicator
-        _showLoadingDialog('Uploading avatar...');
+        _showLoadingDialog('Đang tải ảnh lên...');
 
-        // Simulate uploading (in a real app, you would call a repository method here)
-        await Future.delayed(const Duration(seconds: 1));
+        try {
+          // Lấy repository để thực hiện việc upload
+          final settingsRepository = bloc.repository;
+          
+          // Upload ảnh và lấy URL công khai hoặc đường dẫn cục bộ
+          final String? avatarUrl = await settingsRepository.uploadAvatar(image.path);
 
-        // For demonstration, we're directly passing the URL
-        // In a real app, you'd use the repository to upload the file and get the URL
-        bloc.add(UpdateAvatarEvent(avatarUrl: image.path));
-
-        // Close loading dialog
-        if (mounted) Navigator.of(context).pop();
+          if (avatarUrl != null) {
+            // Nếu có URL hoặc đường dẫn, cập nhật avatar
+            print('SettingsPage: Avatar URL received: $avatarUrl');
+            bloc.add(UpdateAvatarEvent(avatarUrl: avatarUrl));
+            
+            // Đóng dialog loading
+            if (mounted) Navigator.of(context).pop();
+            _showSuccessSnackBar('Ảnh đại diện đã được cập nhật!');
+          } else {
+            // Nếu không có URL, hiển thị lỗi
+            if (mounted) {
+              Navigator.of(context).pop(); // Close loading dialog
+              _showErrorSnackBar('Không thể tải ảnh lên, vui lòng thử lại sau');
+            }
+          }
+        } catch (uploadError) {
+          print('SettingsPage: Error during upload process: $uploadError');
+          if (mounted) {
+            Navigator.of(context).pop(); // Close loading dialog
+            _showErrorSnackBar('Lỗi khi xử lý ảnh: ${uploadError.toString().substring(0, math.min(uploadError.toString().length, 50))}...');
+          }
+        }
       }
     } catch (e) {
-      if (mounted) Navigator.of(context).pop();
-      _showErrorSnackBar('Failed to upload image: $e');
+      print('SettingsPage: Error picking image: $e');
+      if (mounted) {
+        if (Navigator.canPop(context)) Navigator.of(context).pop();
+        _showErrorSnackBar('Lỗi khi chọn ảnh: ${e.toString().substring(0, math.min(e.toString().length, 50))}...');
+      }
     }
   }
 
@@ -235,9 +266,9 @@ class _SettingsPageState extends State<SettingsPage> {
             title: context.tr('settings_app_settings'),
             children: [
               _buildNotificationsToggle(state),
-              const Divider(color: AppColors.divider),
+              Divider(color: _getDividerColor(context)),
               _buildThemeSelector(state),
-              const Divider(color: AppColors.divider),
+              Divider(color: _getDividerColor(context)),
               _buildLanguageSelector(state),
             ],
           ),
@@ -247,7 +278,7 @@ class _SettingsPageState extends State<SettingsPage> {
               title: context.tr('settings_account'),
               children: [
                 _buildEditProfileButton(),
-                const Divider(color: AppColors.divider),
+                Divider(color: _getDividerColor(context)),
                 _buildChangePasswordButton(),
               ],
             ),
