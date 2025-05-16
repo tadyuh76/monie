@@ -51,10 +51,15 @@ class SelectAccountsModal extends StatelessWidget {
           ...accounts.map((account) {
             final isPinned = pinnedAccountIds.contains(account.id);
             return ListTile(
-              leading: Icon(
-                Icons.push_pin,
-                color: isPinned ? Colors.orange : Colors.brown[300],
-                size: 28,
+              leading: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                child: Icon(
+                  isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  key: ValueKey(isPinned),
+                  color: isPinned ? const Color(0xFF00FF6A) : Colors.white54,
+                  size: 28,
+                ),
               ),
               title: Text(
                 account.name,
@@ -71,9 +76,17 @@ class SelectAccountsModal extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white24, width: 1.5),
+                color: Colors.black,
               ),
-              child: const Center(
-                child: Icon(Icons.add, size: 32, color: Colors.white70),
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add, size: 28, color: const Color(0xFF00FF6A)),
+                    const SizedBox(width: 8),
+                    Text('Add Account', style: TextStyle(color: Colors.white, fontSize: 16)),
+                  ],
+                ),
               ),
             ),
           ),
