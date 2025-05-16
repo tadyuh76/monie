@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/core/themes/app_theme.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 
-class SelectAccountsModal extends StatelessWidget {
+class SelectAccountsModal extends StatefulWidget {
   final List<Account> accounts;
   final Set<String> pinnedAccountIds;
   final void Function(String accountId, bool pinned) onPinToggle;
@@ -18,10 +20,37 @@ class SelectAccountsModal extends StatelessWidget {
   });
 
   @override
+  State<SelectAccountsModal> createState() => _SelectAccountsModalState();
+}
+
+class _SelectAccountsModalState extends State<SelectAccountsModal> {
+  late Set<String> localPinned;
+
+  @override
+  void initState() {
+    super.initState();
+    localPinned = Set<String>.from(widget.pinnedAccountIds);
+  }
+
+  void _handlePinToggle(String accountId, bool isPinned) {
+    setState(() {
+      if (isPinned) {
+        localPinned.add(accountId);
+      } else {
+        localPinned.remove(accountId);
+      }
+    });
+    // Notify parent after UI update for instant feedback
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onPinToggle(accountId, isPinned);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF3A2323),
+        color: AppColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
@@ -43,46 +72,61 @@ class SelectAccountsModal extends StatelessWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.edit, color: Colors.white70),
-                onPressed: onEdit,
+                onPressed: widget.onEdit,
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ...accounts.map((account) {
-            final isPinned = pinnedAccountIds.contains(account.id);
-            return ListTile(
-              leading: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
-                child: Icon(
-                  isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                  key: ValueKey(isPinned),
-                  color: isPinned ? const Color(0xFF00FF6A) : Colors.white54,
-                  size: 28,
+          ...widget.accounts.map((account) {
+            final isPinned = localPinned.contains(account.id);
+            return InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _handlePinToggle(account.id, !isPinned),
+              splashColor: AppColors.primary.withOpacity(0.15),
+              highlightColor: AppColors.primary.withOpacity(0.08),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.transparent,
+                ),
+                child: ListTile(
+                  leading: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                    child: Icon(
+                      isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                      key: ValueKey(isPinned),
+                      color: isPinned ? AppColors.primary : Colors.white54,
+                      size: 28,
+                    ),
+                  ),
+                  title: Text(
+                    account.name,
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
                 ),
               ),
-              title: Text(
-                account.name,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-              ),
-              onTap: () => onPinToggle(account.id, !isPinned),
             );
           }),
           const SizedBox(height: 16),
-          GestureDetector(
-            onTap: onAddAccount,
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: widget.onAddAccount,
+            splashColor: AppColors.primary.withOpacity(0.15),
+            highlightColor: AppColors.primary.withOpacity(0.08),
             child: Container(
               height: 48,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white24, width: 1.5),
-                color: Colors.black,
+                color: AppColors.background,
               ),
               child: Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add, size: 28, color: const Color(0xFF00FF6A)),
+                    Icon(Icons.add, size: 28, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text('Add Account', style: TextStyle(color: Colors.white, fontSize: 16)),
                   ],
@@ -91,57 +135,6 @@ class SelectAccountsModal extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// --- UI Preview for development ---
-class SelectAccountsModalPreview extends StatefulWidget {
-  const SelectAccountsModalPreview({super.key});
-
-  @override
-  State<SelectAccountsModalPreview> createState() => _SelectAccountsModalPreviewState();
-}
-
-class _SelectAccountsModalPreviewState extends State<SelectAccountsModalPreview> {
-  late Set<String> pinned;
-
-  final accounts = const [
-    Account(id: '1', name: 'Ngân hàng', type: 'bank', balance: 1000000, currency: 'VND', transactionCount: 6),
-    Account(id: '2', name: 'Dubject', type: 'cash', balance: 360000, currency: 'VND', transactionCount: 1),
-    Account(id: '3', name: 'Dora', type: 'credit', balance: 0, currency: 'VND', transactionCount: 0),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    pinned = {'1', '2'};
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Center(
-        child: SizedBox(
-          width: 400,
-          child: SelectAccountsModal(
-            accounts: accounts,
-            pinnedAccountIds: pinned,
-            onPinToggle: (id, isPinned) {
-              setState(() {
-                if (isPinned) {
-                  pinned.add(id);
-                } else {
-                  pinned.remove(id);
-                }
-              });
-            },
-            onEdit: () {},
-            onAddAccount: () {},
-          ),
-        ),
       ),
     );
   }
