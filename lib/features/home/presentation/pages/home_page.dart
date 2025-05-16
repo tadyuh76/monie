@@ -16,7 +16,9 @@ import 'package:monie/features/home/presentation/widgets/heat_map_section_widget
 import 'package:monie/features/home/presentation/widgets/net_worth_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/pie_chart_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
+import 'package:monie/features/home/presentation/widgets/select_accounts_modal.dart';
 import 'package:monie/features/home/presentation/widgets/summary_section_widget.dart';
+import 'package:monie/features/home/domain/entities/account.dart';
 
 // Define a callback type for tab switching
 typedef TabSwitchCallback = void Function(int index);
@@ -79,6 +81,32 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
+  }
+
+  void _showSelectAccountsModal(List<Account> allAccounts, Set<String> pinnedAccountIds) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SelectAccountsModal(
+          accounts: allAccounts,
+          pinnedAccountIds: pinnedAccountIds,
+          onPinToggle: (accountId, isPinned) {
+            if (isPinned) {
+              context.read<HomeBloc>().add(PinAccount(accountId));
+            } else {
+              context.read<HomeBloc>().add(UnpinAccount(accountId));
+            }
+          },
+          onEdit: () {},
+          onAddAccount: () {
+            // TODO: Implement add account flow
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -362,7 +390,10 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 16),
                       GreetingWidget(name: userName),
                       const SizedBox(height: 24),
-                      AccountsSectionWidget(accounts: state.accounts),
+                      AccountsSectionWidget(
+                        accounts: state.pinnedAccounts,
+                        onAddAccount: () => _showSelectAccountsModal(state.accounts, state.pinnedAccountIds),
+                      ),
                       const SizedBox(height: 24),
                       AccountSummaryWidget(
                         accounts: state.accounts,
