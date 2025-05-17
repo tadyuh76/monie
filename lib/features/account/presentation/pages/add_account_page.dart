@@ -72,7 +72,13 @@ class _AddAccountPageState extends State<AddAccountPage> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     // TODO: Save account via Bloc/Cubit
-                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Account added successfully!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    // Do not pop the page
                   }
                 },
                 child: const Text('Add Account'),

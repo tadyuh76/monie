@@ -84,15 +84,26 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
                       accounts.removeWhere((a) => a['id'] == account['id']);
                     });
                     // TODO: Remove from persistent storage
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${account['name']} deleted successfully!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
                   },
-                  child: ListTile(
-                    title: Text(account['name']),
-                    subtitle: Text('${account['balance']} ${account['currency']}\n${account['transactions']} transactions'),
-                    trailing: account['primary'] ? const Chip(label: Text('Primary')) : null,
-                    onTap: () {
-                      // TODO: Navigate to EditAccountPage
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => EditAccountPage(accountId: account['id'])));
-                    },
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        // TODO: Navigate to EditAccountPage
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => EditAccountPage(accountId: account['id'])));
+                      },
+                      child: ListTile(
+                        title: Text(account['name']),
+                        subtitle: Text('${account['balance']} ${account['currency']}\n${account['transactions']} transactions'),
+                        trailing: account['primary'] ? const Chip(label: Text('Primary')) : null,
+                      ),
+                    ),
                   ),
                 );
               },
@@ -157,7 +168,13 @@ class _EditAccountPageState extends State<EditAccountPage> {
             ElevatedButton(
               onPressed: () {
                 // TODO: Save changes via Bloc/Cubit
-                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Account changes saved!'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                // Do not pop the page
               },
               child: const Text('Save Changes'),
             ),
