@@ -534,15 +534,42 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            displayName,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black87,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                displayName,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () {
+                  _showQuickNameEditDialog(context, displayName);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[200],
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(
+                    Icons.edit,
+                    size: 16,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black87,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -1355,6 +1382,80 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Method to show a quick dialog for editing just the display name
+  void _showQuickNameEditDialog(BuildContext context, String currentName) {
+    final nameController = TextEditingController(text: currentName);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? AppColors.surface : Colors.white,
+        title: Text(
+          context.tr('settings_edit_profile'),
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+          ),
+        ),
+        content: TextField(
+          controller: nameController,
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+          ),
+          decoration: InputDecoration(
+            labelText: context.tr('settings_name'),
+            labelStyle: TextStyle(
+              color: isDarkMode ? Colors.white70 : Colors.black54,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: isDarkMode ? Colors.grey : Colors.black26,
+              ),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: AppColors.primary,
+                width: 2,
+              ),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
+            ),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              context.tr('settings_cancel'),
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              final newName = nameController.text.trim();
+              if (newName.isNotEmpty) {
+                context.read<SettingsBloc>().add(
+                  UpdateDisplayNameEvent(displayName: newName),
+                );
+              }
+              Navigator.of(context).pop();
+            },
+            child: Text(
+              context.tr('settings_save'),
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
