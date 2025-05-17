@@ -252,118 +252,18 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           actions: [
-            // More options menu
-            PopupMenuButton<String>(
+            // Settings icon button
+            IconButton(
               icon: Icon(
-                Icons.more_vert, 
+                Icons.settings,
                 color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white
                   : Colors.black87
               ),
-              onSelected: (value) {
-                if (value == 'settings') {
-                  // Navigate to settings page
-                  Navigator.of(context).pushNamed('/settings');
-                } else if (value == 'logout') {
-                  // Show logout confirmation dialog
-                  showDialog(
-                    context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          backgroundColor: Theme.of(context).brightness == Brightness.dark
-                            ? AppColors.surface
-                            : Colors.white,
-                          title: Text(
-                            context.tr('auth_logout'),
-                            style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black87
-                            ),
-                          ),
-                          content: Text(
-                            context.tr('auth_logout_confirm'),
-                            style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white70
-                                : Colors.black54
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: Text(context.tr('common_cancel')),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                context.read<AuthBloc>().add(SignOutEvent());
-
-                                // Also manually navigate to login page for redundancy
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(
-                                    builder: (context) => const LoginPage(),
-                                  ),
-                                  (route) => false,
-                                );
-                              },
-                              child: Text(
-                                context.tr('auth_logout'),
-                                style: TextStyle(color: AppColors.expense),
-                              ),
-                            ),
-                          ],
-                        ),
-                  );
-                }
+              onPressed: () {
+                // Navigate to settings page
+                Navigator.of(context).pushNamed('/settings');
               },
-              itemBuilder:
-                  (context) => [
-                    PopupMenuItem<String>(
-                      value: 'settings',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.settings, 
-                            color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            context.tr('settings_title'),
-                            style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black87
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'logout',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.logout, 
-                            color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            context.tr('auth_logout'),
-                            style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black87
-                            )
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
             ),
           ],
         ),

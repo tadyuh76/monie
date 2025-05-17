@@ -5,7 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
+import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
+import 'package:monie/features/authentication/presentation/pages/login_page.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/domain/models/user_profile.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
@@ -250,47 +252,137 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildBody(BuildContext context, SettingsState state) {
-    // Chỉ hiển thị loading indicator cho trạng thái khởi tạo hoặc đang tải profile
-    if (state is SettingsInitial || state is ProfileLoading) {
-      return const Center(child: CircularProgressIndicator());
+    // Get user's name from auth state for fallback if profile isn't loaded
+    String? authName;
+    final authState = context.watch<AuthBloc>().state;
+    if (authState is Authenticated) {
+      authName = authState.user.displayName;
     }
+    
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProfileSection(state),
-          const SizedBox(height: 24),
-          SettingsSectionWidget(
-            title: context.tr('settings_app_settings'),
-            children: [
-              _buildNotificationsToggle(state),
-              Divider(color: _getDividerColor(context)),
-              _buildThemeSelector(state),
-              Divider(color: _getDividerColor(context)),
-              _buildLanguageSelector(state),
-            ],
-          ),
-          const SizedBox(height: 24),
-          if (!_isEditingProfile && !_isChangingPassword)
-            SettingsSectionWidget(
-              title: context.tr('settings_account'),
+          _buildProfileSection(context, state, authName),
+          const SizedBox(height: 16),
+          if (_isEditingProfile)
+            _buildEditProfileForm(state)
+          else if (_isChangingPassword)
+            _buildChangePasswordForm()
+          else
+            Column(
               children: [
-                _buildEditProfileButton(),
-                Divider(color: _getDividerColor(context)),
-                _buildChangePasswordButton(),
+                _buildThemeSelector(state),
+                const SizedBox(height: 16),
+                _buildLanguageSelector(state),
+                const SizedBox(height: 16),
+                _buildNotificationsToggle(state),
+                const SizedBox(height: 16),
+                SettingsSectionWidget(
+                  title: context.tr('settings_account'),
+                  children: [
+                    ListTile(
+                      title: Text(
+                        context.tr('settings_change_password'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      leading: Icon(
+                        Icons.lock_outline,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: isDarkMode ? Colors.white54 : Colors.black54,
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _isChangingPassword = true;
+                        });
+                      },
+                    ),
+                    Divider(color: _getDividerColor(context)),
+                    // Logout option
+                    ListTile(
+                      title: Text(
+                        context.tr('auth_logout'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColors.expense,
+                        ),
+                      ),
+                      leading: Icon(
+                        Icons.logout,
+                        color: AppColors.expense,
+                      ),
+                      onTap: () {
+                        // Show logout confirmation dialog
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: isDarkMode
+                                ? AppColors.surface
+                                : Colors.white,
+                            title: Text(
+                              context.tr('auth_logout'),
+                              style: TextStyle(
+                                color: isDarkMode
+                                    ? Colors.white
+                                    : Colors.black87
+                              ),
+                            ),
+                            content: Text(
+                              context.tr('auth_logout_confirm'),
+                              style: TextStyle(
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: Text(context.tr('common_cancel')),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  context.read<AuthBloc>().add(SignOutEvent());
+
+                                  // Also manually navigate to login page for redundancy
+                                  Navigator.of(context).pushAndRemoveUntil(
+                                    MaterialPageRoute(
+                                      builder: (context) => const LoginPage(),
+                                    ),
+                                    (route) => false,
+                                  );
+                                },
+                                child: Text(
+                                  context.tr('auth_logout'),
+                                  style: TextStyle(color: AppColors.expense),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
-          if (_isEditingProfile) _buildEditProfileForm(state),
-          if (_isChangingPassword) _buildChangePasswordForm(),
-          const SizedBox(height: 100), // Extra space at bottom
         ],
       ),
     );
   }
 
-  Widget _buildProfileSection(SettingsState state) {
+  Widget _buildProfileSection(BuildContext context, SettingsState state, String? authName) {
     // Try to get the profile from auth state first for consistent naming
     final authState = context.watch<AuthBloc>().state;
     final authName = authState is Authenticated ? authState.user.displayName : null;
