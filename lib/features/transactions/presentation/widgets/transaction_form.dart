@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:monie/core/constants/category_icons.dart';
+import 'package:monie/core/constants/transaction_categories.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
@@ -25,6 +28,7 @@ class _TransactionFormState extends State<TransactionForm> {
   DateTime _selectedDate = DateTime.now();
   bool _isIncome = false;
   Map<String, dynamic>? _selectedCategory;
+  String? _selectedCategoryName;
   String? _selectedAccountId;
   String? _selectedBudgetId;
 
@@ -39,15 +43,21 @@ class _TransactionFormState extends State<TransactionForm> {
       _selectedDate = widget.transaction!.date;
       _isIncome = widget.transaction!.amount >= 0;
 
-      // Find the category from CategoryUtils using categoryName
+      // Find the category from proper category list based on transaction type
       if (widget.transaction!.categoryName != null) {
-        _selectedCategory = CategoryUtils.categories.firstWhere(
+        _selectedCategoryName = widget.transaction!.categoryName;
+        final allCategories =
+            _isIncome
+                ? TransactionCategories.incomeCategories
+                : TransactionCategories.expenseCategories;
+
+        _selectedCategory = allCategories.firstWhere(
           (category) => category['name'] == widget.transaction!.categoryName,
           orElse:
               () => {
                 'name': widget.transaction!.categoryName!,
-                'icon': Icons.more_horiz,
-                'color': Colors.grey,
+                'svgName': _isIncome ? 'salary' : 'shopping',
+                'color': widget.transaction!.categoryColor ?? '#9E9E9E',
               },
         );
       }
@@ -86,8 +96,8 @@ class _TransactionFormState extends State<TransactionForm> {
       }
 
       final categoryName = _selectedCategory!['name'] as String;
-      final categoryColor = CategoryUtils.colorToHex(
-        _selectedCategory!['color'] as Color,
+      final categoryColor = CategoryColorHelper.getHexColorForCategory(
+        _selectedCategory!['svgName'] as String,
       );
 
       if (widget.transaction == null) {
@@ -164,6 +174,19 @@ class _TransactionFormState extends State<TransactionForm> {
 
   @override
   Widget build(BuildContext context) {
+    // Make sure we have a default category selected
+    if (_selectedCategory == null) {
+      final categories =
+          _isIncome
+              ? TransactionCategories.incomeCategories
+              : TransactionCategories.expenseCategories;
+
+      if (categories.isNotEmpty) {
+        _selectedCategory = categories.first;
+        _selectedCategoryName = _selectedCategory!['name'] as String;
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Form(
@@ -184,7 +207,7 @@ class _TransactionFormState extends State<TransactionForm> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.close, color: Colors.white),
+                  icon: const Icon(Icons.close, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -199,14 +222,25 @@ class _TransactionFormState extends State<TransactionForm> {
                     onPressed: () {
                       setState(() {
                         _isIncome = false;
-                        _selectedCategory =
-                            null; // Reset category when switching type
+                        // Reset category selection when switching type
+                        _selectedCategory = null;
+                        _selectedCategoryName = null;
+
+                        // Set a default category for expense
+                        if (TransactionCategories
+                            .expenseCategories
+                            .isNotEmpty) {
+                          _selectedCategory =
+                              TransactionCategories.expenseCategories.first;
+                          _selectedCategoryName =
+                              _selectedCategory!['name'] as String;
+                        }
                       });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           !_isIncome ? AppColors.expense : AppColors.surface,
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Text(
                       'Expense',
@@ -224,14 +258,23 @@ class _TransactionFormState extends State<TransactionForm> {
                     onPressed: () {
                       setState(() {
                         _isIncome = true;
-                        _selectedCategory =
-                            null; // Reset category when switching type
+                        // Reset category selection when switching type
+                        _selectedCategory = null;
+                        _selectedCategoryName = null;
+
+                        // Set a default category for income
+                        if (TransactionCategories.incomeCategories.isNotEmpty) {
+                          _selectedCategory =
+                              TransactionCategories.incomeCategories.first;
+                          _selectedCategoryName =
+                              _selectedCategory!['name'] as String;
+                        }
                       });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           _isIncome ? AppColors.income : AppColors.surface,
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Text(
                       'Income',
@@ -250,13 +293,13 @@ class _TransactionFormState extends State<TransactionForm> {
             // Title Field
             TextFormField(
               controller: _titleController,
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Title',
-                labelStyle: TextStyle(color: Colors.white70),
-                prefixIcon: Icon(Icons.title, color: Colors.white70),
+                labelStyle: const TextStyle(color: Colors.white70),
+                prefixIcon: const Icon(Icons.title, color: Colors.white70),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white30),
+                  borderSide: const BorderSide(color: Colors.white30),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -277,13 +320,16 @@ class _TransactionFormState extends State<TransactionForm> {
             TextFormField(
               controller: _amountController,
               keyboardType: TextInputType.number,
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Amount',
-                labelStyle: TextStyle(color: Colors.white70),
-                prefixIcon: Icon(Icons.attach_money, color: Colors.white70),
+                labelStyle: const TextStyle(color: Colors.white70),
+                prefixIcon: const Icon(
+                  Icons.attach_money,
+                  color: Colors.white70,
+                ),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white30),
+                  borderSide: const BorderSide(color: Colors.white30),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -304,85 +350,23 @@ class _TransactionFormState extends State<TransactionForm> {
             const SizedBox(height: 16),
 
             // Category Selection
-            Text(
-              'Category',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 120,
-              child: GridView.builder(
-                scrollDirection: Axis.horizontal,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 1,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.0,
-                ),
-                itemCount:
-                    _isIncome
-                        ? CategoryUtils.getIncomeCategories().length
-                        : CategoryUtils.getExpenseCategories().length,
-                itemBuilder: (context, index) {
-                  final categories =
-                      _isIncome
-                          ? CategoryUtils.getIncomeCategories()
-                          : CategoryUtils.getExpenseCategories();
-                  final category = categories[index];
-                  final isSelected = _selectedCategory == category;
-                  final categoryColor = category['color'] as Color;
-                  final categoryIcon = category['icon'] as IconData;
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: categoryColor.withValues(
-                          alpha: isSelected ? 0.3 : 0.1,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color:
-                              isSelected ? categoryColor : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(categoryIcon, color: categoryColor, size: 28),
-                          SizedBox(height: 4),
-                          Text(
-                            category['name'] as String,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight:
-                                  isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            const SizedBox(height: 16),
+            _buildCategoryDropdown(),
             const SizedBox(height: 16),
 
             // Date Picker
-            Text('Date', style: TextStyle(color: Colors.white70, fontSize: 16)),
+            const Text(
+              'Date',
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
             const SizedBox(height: 8),
             InkWell(
               onTap: () => _selectDate(context),
               child: Container(
-                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.white30),
                   borderRadius: BorderRadius.circular(8),
@@ -392,9 +376,9 @@ class _TransactionFormState extends State<TransactionForm> {
                   children: [
                     Text(
                       DateFormat.yMMMd().format(_selectedDate),
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                     ),
-                    Icon(Icons.calendar_today, color: Colors.white70),
+                    const Icon(Icons.calendar_today, color: Colors.white70),
                   ],
                 ),
               ),
@@ -404,14 +388,14 @@ class _TransactionFormState extends State<TransactionForm> {
             // Description Field
             TextFormField(
               controller: _descriptionController,
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
               maxLines: 3,
               decoration: InputDecoration(
                 labelText: 'Description',
-                labelStyle: TextStyle(color: Colors.white70),
+                labelStyle: const TextStyle(color: Colors.white70),
                 alignLabelWithHint: true,
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white30),
+                  borderSide: const BorderSide(color: Colors.white30),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -429,6 +413,7 @@ class _TransactionFormState extends State<TransactionForm> {
                 onPressed: _submitForm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -438,13 +423,110 @@ class _TransactionFormState extends State<TransactionForm> {
                   widget.transaction == null
                       ? 'Add Transaction'
                       : 'Update Transaction',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoryDropdown() {
+    final categories =
+        _isIncome
+            ? TransactionCategories.incomeCategories
+            : TransactionCategories.expenseCategories;
+
+    return DropdownButtonFormField<String>(
+      value: _selectedCategoryName,
+      isExpanded: true,
+      icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
+      decoration: InputDecoration(
+        labelText: 'Category',
+        labelStyle: const TextStyle(color: Colors.white70),
+        prefixIcon: const Icon(Icons.category, color: Colors.white70),
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.white30),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: AppColors.primary),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      ),
+      dropdownColor: AppColors.surface,
+      style: const TextStyle(color: Colors.white),
+      itemHeight: 60,
+      items:
+          categories.map((category) {
+            final String categoryName = category['name'] as String;
+            final String svgName = category['svgName'] as String;
+            final String iconPath = CategoryIcons.getIconPath(svgName);
+
+            // Get category color from helper class
+            Color backgroundColor = Colors.white.withValues(alpha: 0.1);
+            final String colorHex =
+                TransactionCategories.getCategoryColorByName(categoryName);
+            Color categoryColor = CategoryUtils.hexToColor(colorHex);
+            backgroundColor = categoryColor.withValues(alpha: 0.2);
+
+            return DropdownMenuItem<String>(
+              value: categoryName,
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: backgroundColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: SvgPicture.asset(iconPath),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    categoryName,
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() {
+            _selectedCategoryName = value;
+            // Find the category from correct category list
+            final allCategories =
+                _isIncome
+                    ? TransactionCategories.incomeCategories
+                    : TransactionCategories.expenseCategories;
+
+            _selectedCategory = allCategories.firstWhere(
+              (category) => category['name'] == value,
+              orElse:
+                  () => {
+                    'name': value,
+                    'svgName': _isIncome ? 'salary' : 'shopping',
+                  },
+            );
+          });
+        }
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please select a category';
+        }
+        return null;
+      },
     );
   }
 }
