@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/themes/app_theme.dart';
 // import 'package:monie/core/themes/color_extensions.dart';
@@ -21,20 +22,68 @@ import 'package:monie/features/transactions/presentation/pages/transactions_page
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
+// Register background message handler at the top level
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // This is needed to handle messages in the background
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  debugPrint("Handling a background message: ${message.messageId}");
+}
+
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Firebase
+
+  Future<void> _showNotification(RemoteNotification notification) async {
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'default_channel_id',
+    'Thông báo',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+
+  const NotificationDetails notificationDetails =
+      NotificationDetails(android: androidDetails);
+
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    notification.title,
+    notification.body,
+    notificationDetails,
+  );
+}
+
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print('🔔 FCM nhận được (foreground): ${message.notification?.title}');
+
+    if (message.notification != null) {
+      _showNotification(message.notification!);
+    }
+  });
+
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   if (Platform.isIOS) {
     await FirebaseMessaging.instance.getAPNSToken();
   } else {}
   String? fcmToken = await FirebaseMessaging.instance.getToken();
   print('FCM Token: $fcmToken');
-
+    
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   NotificationSettings settings = await messaging.requestPermission(
     alert: true,
@@ -48,7 +97,13 @@ void main() async {
   print('User granted permission: ${settings.authorizationStatus}');
   await FirebaseMessaging.instance.setAutoInitEnabled(true);
   await FirebaseMessaging.instance.requestPermission();
-
+  // Set background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    debugPrint('Received message: ${message.notification?.title}');
+    debugPrint('Received message: ${message.notification?.body}');
+  });
+  
   // Lock orientation to portrait
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
