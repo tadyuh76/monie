@@ -16,9 +16,9 @@ import 'package:monie/features/home/presentation/widgets/heat_map_section_widget
 import 'package:monie/features/home/presentation/widgets/net_worth_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/pie_chart_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
-import 'package:monie/features/home/presentation/widgets/select_accounts_modal.dart';
 import 'package:monie/features/home/presentation/widgets/summary_section_widget.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/account/presentation/widgets/select_accounts_modal.dart';
 
 // Define a callback type for tab switching
 typedef TabSwitchCallback = void Function(int index);
