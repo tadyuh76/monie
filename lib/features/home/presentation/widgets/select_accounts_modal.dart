@@ -83,9 +83,10 @@ class _SelectAccountsModalState extends State<SelectAccountsModal> {
               borderRadius: BorderRadius.circular(12),
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => _handlePinToggle(account.id, !isPinned),
-                splashColor: AppColors.primary.withOpacity(0.3),
-                highlightColor: AppColors.primary.withOpacity(0.15),
+                onTap: () => _handlePinToggle(account.id, !isPinned),               
+                // ignore: deprecated_member_use
+                splashColor:  Colors.white.withOpacity(0.3),
+                highlightColor: Colors.white,
                 child: ListTile(
                   leading: Icon(
                     isPinned ? Icons.push_pin : Icons.push_pin_outlined,
@@ -106,8 +107,9 @@ class _SelectAccountsModalState extends State<SelectAccountsModal> {
           InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: widget.onAddAccount,
-            splashColor: AppColors.primary.withOpacity(0.15),
-            highlightColor: AppColors.primary.withOpacity(0.08),
+            // ignore: deprecated_member_use
+            splashColor: Colors.white.withOpacity(0.3),
+            highlightColor:Colors.white,
             child: Container(
               height: 48,
               decoration: BoxDecoration(

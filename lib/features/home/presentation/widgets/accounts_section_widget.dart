@@ -27,7 +27,7 @@ class AccountsSectionWidget extends StatelessWidget {
           } else {
             // Add Account card
             return SizedBox(
-              width: 100,
+              width: 180,
               child: GestureDetector(
                 onTap: onAddAccount,
                 child: Container(
