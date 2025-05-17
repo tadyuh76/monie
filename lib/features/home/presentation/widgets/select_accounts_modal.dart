@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:monie/core/themes/app_colors.dart';
-import 'package:monie/core/themes/app_theme.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 
 class SelectAccountsModal extends StatefulWidget {
@@ -79,32 +78,26 @@ class _SelectAccountsModalState extends State<SelectAccountsModal> {
           const SizedBox(height: 16),
           ...widget.accounts.map((account) {
             final isPinned = localPinned.contains(account.id);
-            return InkWell(
+            return Material(
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(12),
-              onTap: () => _handlePinToggle(account.id, !isPinned),
-              splashColor: AppColors.primary.withOpacity(0.15),
-              highlightColor: AppColors.primary.withOpacity(0.08),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.transparent,
-                ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => _handlePinToggle(account.id, !isPinned),
+                splashColor: AppColors.primary.withOpacity(0.3),
+                highlightColor: AppColors.primary.withOpacity(0.15),
                 child: ListTile(
-                  leading: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
-                    child: Icon(
-                      isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                      key: ValueKey(isPinned),
-                      color: isPinned ? AppColors.primary : Colors.white54,
-                      size: 28,
-                    ),
+                  leading: Icon(
+                    isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                    color: isPinned ? AppColors.primary : Colors.white54,
+                    size: 28,
                   ),
                   title: Text(
                     account.name,
                     style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                  tileColor: Colors.transparent,
                 ),
               ),
             );
