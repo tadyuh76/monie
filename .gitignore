@@ -47,3 +47,9 @@ app.*.map.json
 
 # env
 .env
+
+# Firebase related
+/push-notify/monie-d2a2a-firebase-adminsdk-fbsvc-e4d150315c.json
+
+# Ignore Node.js dependencies
+node_modules/
