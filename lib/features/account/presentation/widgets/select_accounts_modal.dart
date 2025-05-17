@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/account/presentation/pages/edit_accounts_page.dart';
+import 'package:monie/features/account/presentation/pages/add_account_page.dart';
 
 class SelectAccountsModal extends StatefulWidget {
   final List<Account> accounts;
@@ -69,9 +71,19 @@ class _SelectAccountsModalState extends State<SelectAccountsModal> {
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.edit, color: Colors.white70),
-                onPressed: widget.onEdit,
+              InkWell(
+                borderRadius: BorderRadius.circular(24),
+                splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => EditAccountsPage()),
+                  );
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Icon(Icons.edit, color: Colors.white70),
+                ),
               ),
             ],
           ),
@@ -106,10 +118,13 @@ class _SelectAccountsModalState extends State<SelectAccountsModal> {
           const SizedBox(height: 16),
           InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: widget.onAddAccount,
-            // ignore: deprecated_member_use
-            splashColor: Colors.white.withOpacity(0.3),
-            highlightColor:Colors.white,
+            splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => AddAccountPage()),
+              );
+            },
             child: Container(
               height: 48,
               decoration: BoxDecoration(

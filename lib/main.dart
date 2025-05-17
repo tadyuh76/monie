@@ -96,3 +96,24 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+class AddAccountPage extends StatelessWidget {
+  const AddAccountPage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // TODO: Replace with real form and logic
+    return Scaffold(
+      appBar: AppBar(title: const Text('Add Account')),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            // TODO: Save new account persistently
+            Navigator.of(context).pop();
+          },
+          child: const Text('Set Name'),
+        ),
+      ),
+    );
+  }
+}
