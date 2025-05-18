@@ -1,6 +1,8 @@
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
+import 'package:monie/core/services/app_lifecycle_service.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
 import 'package:monie/features/authentication/domain/repositories/auth_repository.dart';
@@ -38,6 +40,17 @@ import 'package:monie/features/transactions/domain/repositories/category_reposit
 import 'package:monie/features/transactions/domain/usecases/create_category_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_categories_usecase.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
+import 'package:monie/features/notifications/data/datasources/notification_local_data_source.dart';
+import 'package:monie/features/notifications/data/datasources/notification_remote_data_source.dart';
+import 'package:monie/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:monie/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:monie/features/notifications/domain/usecases/register_device_usecase.dart';
+import 'package:monie/features/notifications/domain/usecases/send_app_state_change_notification_usecase.dart';
+import 'package:monie/features/notifications/domain/usecases/setup_notification_listeners_usecase.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final getIt = GetIt.instance;
 
@@ -55,6 +68,15 @@ Future<void> configureDependencies() async {
   getIt.registerSingleton<SupabaseClientManager>(
     SupabaseClientManager.instance,
   );
+  
+  // Firebase Messaging and Local Notifications
+  getIt.registerLazySingleton(() => FirebaseMessaging.instance);
+  getIt.registerLazySingleton(() => FlutterLocalNotificationsPlugin());
+  getIt.registerLazySingleton(() => http.Client());
+  
+  // SharedPreferences
+  final sharedPreferences = await SharedPreferences.getInstance();
+  getIt.registerLazySingleton(() => sharedPreferences);
 
   // Authentication
   getIt.registerLazySingleton<AuthRemoteDataSource>(
@@ -91,6 +113,25 @@ Future<void> configureDependencies() async {
     () => CategoryRepositoryImpl(remoteDataSource: getIt()),
   );
   getIt.registerLazySingleton<BudgetRepository>(() => BudgetRepositoryImpl());
+  
+  // Notification repositories and data sources
+  getIt.registerLazySingleton<NotificationLocalDataSource>(
+    () => NotificationLocalDataSourceImpl(sharedPreferences: getIt()),
+  );
+  getIt.registerLazySingleton<NotificationRemoteDataSource>(
+    () => NotificationRemoteDataSourceImpl(
+      firebaseMessaging: getIt(),
+      flutterLocalNotificationsPlugin: getIt(),
+      client: getIt(),
+      baseUrl: 'http://localhost:4000', // Local server URL
+    ),
+  );
+  getIt.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(
+      remoteDataSource: getIt(),
+      localDataSource: getIt(),
+    ),
+  );
 
   // Use cases
   getIt.registerLazySingleton(() => GetAccountsUseCase(getIt()));
@@ -104,6 +145,11 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton(() => GetBudgetsUseCase(getIt()));
   getIt.registerLazySingleton(() => GetCategoriesUseCase(getIt()));
   getIt.registerLazySingleton(() => CreateCategoryUseCase(getIt()));
+  
+  // Notification use cases
+  getIt.registerLazySingleton(() => RegisterDeviceUseCase(getIt()));
+  getIt.registerLazySingleton(() => SetupNotificationListenersUseCase(getIt()));
+  getIt.registerLazySingleton(() => SendAppStateChangeNotificationUseCase(getIt()));
 
   // BLoCs
   getIt.registerFactory<AuthBloc>(
@@ -144,5 +190,19 @@ Future<void> configureDependencies() async {
       getCategoriesUseCase: getIt(),
       createCategoryUseCase: getIt(),
     ),
+  );
+  
+  // Notification Bloc
+  getIt.registerFactory<NotificationBloc>(
+    () => NotificationBloc(
+      registerDeviceUseCase: getIt(),
+      setupNotificationListenersUseCase: getIt(),
+      sendAppStateChangeNotificationUseCase: getIt(),
+    ),
+  );
+  
+  // App Lifecycle Service
+  getIt.registerLazySingleton<AppLifecycleService>(
+    () => AppLifecycleService(notificationBloc: getIt()),
   );
 }
