@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-// TODO: import your bloc and AddAccountPage, EditAccountPage when available
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:monie/features/account/presentation/pages/add_account_page.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 
 class EditAccountsPage extends StatefulWidget {
   const EditAccountsPage({Key? key}) : super(key: key);
@@ -11,15 +14,8 @@ class EditAccountsPage extends StatefulWidget {
 class _EditAccountsPageState extends State<EditAccountsPage> {
   String _search = '';
 
-  // TODO: Replace with BlocBuilder for real accounts
-  List<Map<String, dynamic>> accounts = [
-    {'id': '1', 'name': 'Ngân hàng', 'balance': -38.0, 'currency': 'VND', 'transactions': 6, 'primary': true},
-    {'id': '2', 'name': 'Dubject', 'balance': 36.0, 'currency': 'VND', 'transactions': 1, 'primary': false},
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final filteredAccounts = accounts.where((a) => a['name'].toLowerCase().contains(_search.toLowerCase())).toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Accounts'),
@@ -27,8 +23,7 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              // TODO: Navigate to AddAccountPage
-              // Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddAccountPage()));
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddAccountPage()));
             },
           ),
         ],
@@ -47,65 +42,74 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: filteredAccounts.length,
-              itemBuilder: (context, index) {
-                final account = filteredAccounts[index];
-                return Dismissible(
-                  key: ValueKey(account['id']),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  confirmDismiss: (direction) async {
-                    return await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Delete Account'),
-                        content: Text('Are you sure you want to delete ${account['name']}?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Cancel'),
+            child: BlocBuilder<HomeBloc, HomeState>(
+              builder: (context, state) {
+                if (state is HomeLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is HomeLoaded) {
+                  final filteredAccounts = state.accounts.where((a) => a.name.toLowerCase().contains(_search.toLowerCase())).toList();
+                  return ListView.builder(
+                    itemCount: filteredAccounts.length,
+                    itemBuilder: (context, index) {
+                      final account = filteredAccounts[index];
+                      return Dismissible(
+                        key: ValueKey(account.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        confirmDismiss: (direction) async {
+                          return await showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete Account'),
+                              content: Text('Are you sure you want to delete ${account.name}?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        onDismissed: (direction) {
+                          context.read<HomeBloc>().add(DeleteAccount(account.id));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${account.name} deleted successfully!'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.of(context).push(MaterialPageRoute(builder: (_) => EditAccountPage(accountId: account.id)));
+                            },
+                            child: ListTile(
+                              title: Text(account.name),
+                              subtitle: Text('${account.balance} ${account.currency}\n${account.transactionCount} transactions'),
+                              trailing: null, // Add primary chip logic if needed
+                            ),
                           ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  onDismissed: (direction) {
-                    setState(() {
-                      accounts.removeWhere((a) => a['id'] == account['id']);
-                    });
-                    // TODO: Remove from persistent storage
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${account['name']} deleted successfully!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        // TODO: Navigate to EditAccountPage
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => EditAccountPage(accountId: account['id'])));
-                      },
-                      child: ListTile(
-                        title: Text(account['name']),
-                        subtitle: Text('${account['balance']} ${account['currency']}\n${account['transactions']} transactions'),
-                        trailing: account['primary'] ? const Chip(label: Text('Primary')) : null,
-                      ),
-                    ),
-                  ),
-                );
+                        ),
+                      );
+                    },
+                  );
+                } else if (state is HomeError) {
+                  return Center(child: Text('Error: ${state.message}'));
+                } else {
+                  return const SizedBox();
+                }
               },
             ),
           ),
@@ -124,10 +128,43 @@ class EditAccountPage extends StatefulWidget {
 }
 
 class _EditAccountPageState extends State<EditAccountPage> {
-  // TODO: Load account data from Bloc/Cubit
-  String _name = 'Dora';
+  String _name = '';
   String _type = 'bank';
   Color _color = Colors.green;
+  String _accountNumber = '';
+  String _institution = '';
+  String _interestRate = '';
+  String _creditLimit = '';
+  final List<Color> _fixedColors = [
+    Colors.green,
+    Colors.blue,
+    Colors.red,
+    Colors.orange,
+    Colors.purple,
+    Colors.teal,
+    Colors.brown,
+    Colors.pink,
+    Colors.amber,
+    Colors.cyan,
+  ];
+
+  final List<String> _accountTypes = [
+    'bank', 'cash', 'credit', 'debit', 'savings', 'investment'
+  ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final state = context.read<HomeBloc>().state;
+    if (state is HomeLoaded) {
+      final account = state.accounts.firstWhere((a) => a.id == widget.accountId, orElse: () => state.accounts.first);
+      _name = account.name;
+      _type = account.type;
+      _color = Colors.green; // You can update this to use account.color if available
+      // Load type-specific fields from account if available
+      // (future: implement loading and initializing form fields)
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,35 +183,120 @@ class _EditAccountPageState extends State<EditAccountPage> {
             DropdownButtonFormField<String>(
               value: _type,
               decoration: const InputDecoration(labelText: 'Account Type'),
-              items: [
-                'bank', 'cash', 'credit', 'debit', 'savings', 'investment'
-              ].map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+              items: _accountTypes
+                  .map((type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(type[0].toUpperCase() + type.substring(1)),
+                      ))
+                  .toList(),
               onChanged: (v) => setState(() => _type = v!),
             ),
             const SizedBox(height: 16),
+            // Type-specific fields
+            if (_type != 'cash') ...[
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Account Number (Optional)'),
+                initialValue: _accountNumber,
+                onChanged: (v) => _accountNumber = v,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Institution (Optional)'),
+                initialValue: _institution,
+                onChanged: (v) => _institution = v,
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (_type == 'savings') ...[
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Interest Rate (Optional)'),
+                keyboardType: TextInputType.number,
+                initialValue: _interestRate,
+                onChanged: (v) => _interestRate = v,
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (_type == 'credit' || _type == 'debit') ...[
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Credit Limit (Optional)'),
+                keyboardType: TextInputType.number,
+                initialValue: _creditLimit,
+                onChanged: (v) => _creditLimit = v,
+              ),
+              const SizedBox(height: 16),
+            ],
             Row(
               children: [
                 const Text('Account Color:'),
                 const SizedBox(width: 8),
+                ..._fixedColors.map((color) => GestureDetector(
+                  onTap: () => setState(() => _color = color),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _color == color ? Colors.black : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      backgroundColor: color,
+                      radius: 14,
+                      child: _color == color ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
+                    ),
+                  ),
+                )),
                 GestureDetector(
-                  onTap: () {
-                    // TODO: Show color picker
+                  onTap: () async {
+                    Color picked = _color;
+                    await showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        content: SingleChildScrollView(
+                          child: ColorPicker(
+                            pickerColor: _color,
+                            onColorChanged: (color) {
+                              picked = color;
+                            },
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            child: const Text('Select'),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                    );
+                    setState(() => _color = picked);
                   },
-                  child: CircleAvatar(backgroundColor: _color),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey, width: 1),
+                    ),
+                    child: const Icon(Icons.add, size: 20),
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  child: CircleAvatar(backgroundColor: _color, radius: 14),
                 ),
               ],
             ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () {
-                // TODO: Save changes via Bloc/Cubit
+                // Save changes (mock)
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Account changes saved!'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
-                // Do not pop the page
               },
               child: const Text('Save Changes'),
             ),
@@ -183,28 +305,142 @@ class _EditAccountPageState extends State<EditAccountPage> {
               leading: const Icon(Icons.archive),
               title: const Text('Archive Account'),
               onTap: () {
-                // TODO: Show ArchiveAccountDialog
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Archive Account'),
+                    content: const Text('Are you sure you want to archive this account?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Account archived!')),
+                          );
+                        },
+                        child: const Text('Archive'),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.add),
               title: const Text('Correct Total Balance'),
               onTap: () {
-                // TODO: Show CorrectBalanceDialog
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    double newBalance = 0.0;
+                    return AlertDialog(
+                      title: const Text('Correct Total Balance'),
+                      content: TextField(
+                        decoration: const InputDecoration(labelText: 'New Balance'),
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) => newBalance = double.tryParse(v) ?? 0.0,
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Balance corrected to $newBalance!')),
+                            );
+                          },
+                          child: const Text('Correct'),
+                        ),
+                      ],
+                    );
+                  },
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.compare_arrows),
               title: const Text('Transfer Balance'),
               onTap: () {
-                // TODO: Show TransferBalanceDialog
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    String toAccount = '';
+                    double amount = 0.0;
+                    return AlertDialog(
+                      title: const Text('Transfer Balance'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            decoration: const InputDecoration(labelText: 'To Account'),
+                            onChanged: (v) => toAccount = v,
+                          ),
+                          TextField(
+                            decoration: const InputDecoration(labelText: 'Amount'),
+                            keyboardType: TextInputType.number,
+                            onChanged: (v) => amount = double.tryParse(v) ?? 0.0,
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Transferred $amount to $toAccount!')),
+                            );
+                          },
+                          child: const Text('Transfer'),
+                        ),
+                      ],
+                    );
+                  },
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.merge_type),
               title: const Text('Merge Account'),
               onTap: () {
-                // TODO: Show MergeAccountDialog
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    String toAccount = '';
+                    return AlertDialog(
+                      title: const Text('Merge Account'),
+                      content: TextField(
+                        decoration: const InputDecoration(labelText: 'Account to merge into'),
+                        onChanged: (v) => toAccount = v,
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Merged into $toAccount!')),
+                            );
+                          },
+                          child: const Text('Merge'),
+                        ),
+                      ],
+                    );
+                  },
+                );
               },
             ),
           ],

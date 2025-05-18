@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:monie/core/themes/app_colors.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
 
 class AccountCardWidget extends StatelessWidget {
   final Account account;

@@ -1,4 +1,4 @@
-import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
 
 abstract class AccountRepository {
   Future<List<Account>> getAccounts();

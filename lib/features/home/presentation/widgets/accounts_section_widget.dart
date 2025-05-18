@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/home/presentation/widgets/account_card_widget.dart';
 
 class AccountsSectionWidget extends StatelessWidget {

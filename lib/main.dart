@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/themes/app_theme.dart';
 // import 'package:monie/core/themes/color_extensions.dart';
@@ -22,6 +23,7 @@ final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+   await dotenv.load();
 
   // Lock orientation to portrait
   await SystemChrome.setPreferredOrientations([
@@ -92,27 +94,6 @@ class MyApp extends StatelessWidget {
           // Fallback for unknown routes
           return MaterialPageRoute(builder: (context) => const HomePage());
         },
-      ),
-    );
-  }
-}
-
-class AddAccountPage extends StatelessWidget {
-  const AddAccountPage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    // TODO: Replace with real form and logic
-    return Scaffold(
-      appBar: AppBar(title: const Text('Add Account')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            // TODO: Save new account persistently
-            Navigator.of(context).pop();
-          },
-          child: const Text('Set Name'),
-        ),
       ),
     );
   }

@@ -1,11 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
 
 // Events
 abstract class HomeEvent extends Equatable {
@@ -33,6 +34,38 @@ class PinAccount extends HomeEvent {
 class UnpinAccount extends HomeEvent {
   final String accountId;
   const UnpinAccount(this.accountId);
+  @override
+  List<Object?> get props => [accountId];
+}
+
+class AddAccount extends HomeEvent {
+  final String name;
+  final String type;
+  final double balance;
+  final String currency;
+  final Color color;
+  final String accountNumber;
+  final String institution;
+  final String interestRate;
+  final String creditLimit;
+  const AddAccount({
+    required this.name,
+    required this.type,
+    required this.balance,
+    required this.currency,
+    required this.color,
+    this.accountNumber = '',
+    this.institution = '',
+    this.interestRate = '',
+    this.creditLimit = '',
+  });
+  @override
+  List<Object?> get props => [name, type, balance, currency, color, accountNumber, institution, interestRate, creditLimit];
+}
+
+class DeleteAccount extends HomeEvent {
+  final String accountId;
+  const DeleteAccount(this.accountId);
   @override
   List<Object?> get props => [accountId];
 }
@@ -112,6 +145,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<LoadPinnedAccounts>(_onLoadPinnedAccounts);
     on<PinAccount>(_onPinAccount);
     on<UnpinAccount>(_onUnpinAccount);
+    on<AddAccount>(_onAddAccount);
+    on<DeleteAccount>(_onDeleteAccount);
   }
 
   Future<Set<String>> _getPinnedAccountIds() async {
@@ -159,7 +194,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
       emit(
         HomeLoaded(
-          accounts: accounts,
+          accounts: accounts.cast<Account>(),
           recentTransactions: recentTransactionsLimited,
           totalBalance: totalBalance,
           totalExpense: totalExpense,
@@ -207,6 +242,36 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(current.copyWith(pinnedAccountIds: newPinned));
     }
   }
+
+  Future<void> _onAddAccount(
+    AddAccount event,
+    Emitter<HomeState> emit,
+  ) async {
+    final newAccount = Account(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: event.name,
+      type: event.type,
+      balance: event.balance,
+      currency: event.currency,
+      transactionCount: 0,
+      // Save type-specific fields if your model supports them (future work)
+    );
+    // Save to repository
+    await getAccountsUseCase.repository.addAccount(newAccount);
+    add(const LoadHomeData());
+  }
+
+  Future<void> _onDeleteAccount(
+    DeleteAccount event,
+    Emitter<HomeState> emit,
+  ) async {
+    await getAccountsUseCase.repository.deleteAccount(event.accountId);
+    add(const LoadHomeData());
+  }
+}
+
+extension on Object? {
+  num? get balance => null;
 }
 
 extension HomeLoadedCopyWith on HomeLoaded {

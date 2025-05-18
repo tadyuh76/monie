@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:monie/core/themes/app_colors.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
 
 class AccountCardWidget extends StatelessWidget {
   final Account account;
@@ -12,9 +12,23 @@ class AccountCardWidget extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     // Determine card color based on account type
-    Color accountColor = AppColors.bank;
-    if (account.type == 'cash') {
-      accountColor = AppColors.cash;
+    Color accountColor = AppColors.bank; // Default color
+    switch (account.type) {
+      case 'cash':
+        accountColor = AppColors.cash;
+        break;
+      case 'credit':
+        accountColor = AppColors.credit;
+        break;
+      case 'debit':
+        accountColor = AppColors.debit;
+        break;
+      case 'savings':
+        accountColor = AppColors.savings;
+        break;
+      case 'investment':
+        accountColor = AppColors.investment;
+        break;
     }
 
     return Container(
