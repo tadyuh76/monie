@@ -32,3 +32,5 @@ class AuthException extends AppException {
 class ValidationException extends AppException {
   ValidationException({required super.message});
 }
+
+class PermissionException implements Exception {}

@@ -34,3 +34,8 @@ class AuthFailure extends Failure {
 class EmailVerificationFailure extends Failure {
   const EmailVerificationFailure({required super.message});
 }
+
+/// Permission failure for permission-related issues
+class PermissionFailure extends Failure {
+  const PermissionFailure({required super.message});
+}
