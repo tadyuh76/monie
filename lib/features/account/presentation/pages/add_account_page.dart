@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:monie/core/themes/app_colors.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 
 class AddAccountPage extends StatefulWidget {
-  const AddAccountPage({Key? key}) : super(key: key);
+  final Map<String, dynamic>? account;
+  final bool isEdit;
+  const AddAccountPage({super.key, this.account, this.isEdit = false});
 
   @override
   State<AddAccountPage> createState() => _AddAccountPageState();
@@ -13,156 +12,226 @@ class AddAccountPage extends StatefulWidget {
 
 class _AddAccountPageState extends State<AddAccountPage> {
   final _formKey = GlobalKey<FormState>();
-  String _name = '';
-  String _type = 'bank';
-  double _initialBalance = 0.0;
-  String _currency = 'USD';
-  Color _color = AppColors.bank;
-  String _accountNumber = '';
-  String _institution = '';
-  String _interestRate = '';
-  String _creditLimit = '';
+  String _accountType = 'cash';
+  final Map<String, TextEditingController> _controllers = {
+    'name': TextEditingController(),
+    'balance': TextEditingController(),
+    'currency': TextEditingController(text: 'USD'),
+    'accountNumber': TextEditingController(),
+    'institution': TextEditingController(),
+    'interestRate': TextEditingController(),
+    'creditLimit': TextEditingController(),
+  };
+  Color _selectedColor = Colors.green;
 
-  final List<String> _accountTypes = [
-    'bank', 'cash', 'credit', 'debit', 'savings', 'investment'
-  ];
-  final List<String> _currencies = [
-    'USD', 'VND', 'EUR', 'JPY', 'GBP', 'AUD', 'CAD', 'SGD', 'CNY', 'KRW'
-  ];
+  @override
+  void initState() {
+    super.initState();
+    if (widget.account != null) {
+      _controllers['name']!.text = widget.account!['name'] ?? '';
+      _controllers['balance']!.text = widget.account!['balance']?.toString() ?? '';
+      _controllers['currency']!.text = widget.account!['currency'] ?? 'USD';
+      _accountType = widget.account!['type'] ?? 'cash';
+      _selectedColor = widget.account!['color'] ?? Colors.green;
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  List<Widget> _buildDynamicFields() {
+    switch (_accountType) {
+      case 'investment':
+        return [
+          _textField('Account Number', 'accountNumber'),
+          _textField('Institution', 'institution'),
+        ];
+      case 'savings':
+        return [
+          _textField('Account Number', 'accountNumber'),
+          _textField('Institution', 'institution'),
+          _textField('Interest Rate', 'interestRate'),
+        ];
+      case 'credit':
+        return [
+          _textField('Account Number', 'accountNumber'),
+          _textField('Institution', 'institution'),
+          _textField('Credit Limit', 'creditLimit'),
+        ];
+      case 'debit':
+        return [
+          _textField('Account Number', 'accountNumber'),
+          _textField('Institution', 'institution'),
+          _textField('Credit Limit', 'creditLimit'),
+        ];
+      default:
+        return [];
+    }
+  }
+
+  Widget _textField(String label, String key, {bool isNumber = false, bool required = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        controller: _controllers[key],
+        keyboardType: isNumber ? TextInputType.number : null,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        validator: (value) {
+          if (required && (value == null || value.trim().isEmpty)) {
+            return '$label is required';
+          }
+          if (isNumber && value != null && value.isNotEmpty && double.tryParse(value) == null) {
+            return '$label must be a number';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  Widget _colorPicker() {
+    return Row(
+      children: [
+        const Text('Account Color:'),
+        const SizedBox(width: 12),
+        GestureDetector(
+          onTap: () async {
+            final color = await showDialog<Color>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Pick a color'),
+                content: SingleChildScrollView(
+                  child: BlockPicker(
+                    pickerColor: _selectedColor,
+                    onColorChanged: (color) {
+                      Navigator.of(context).pop(color);
+                    },
+                  ),
+                ),
+              ),
+            );
+            if (color != null) setState(() => _selectedColor = color);
+          },
+          child: CircleAvatar(
+            backgroundColor: _selectedColor,
+            radius: 16,
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Account')),
+      backgroundColor: Colors.black,
+      appBar: AppBar(title: Text(widget.isEdit ? 'Edit Account' : 'Add Account'), backgroundColor: _selectedColor),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              const Text('Add Account', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Account Name'),
-                onChanged: (v) => _name = v,
-                validator: (v) => v == null || v.isEmpty ? 'Enter a name' : null,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _type,
-                decoration: const InputDecoration(labelText: 'Account Type'),
-                items: _accountTypes
-                    .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-                    .toList(),
-                onChanged: (v) => setState(() => _type = v!),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Initial Balance'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) => _initialBalance = double.tryParse(v) ?? 0.0,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _currency,
-                decoration: const InputDecoration(labelText: 'Currency'),
-                items: _currencies
-                    .map((cur) => DropdownMenuItem(value: cur, child: Text(cur)))
-                    .toList(),
-                onChanged: (v) => setState(() => _currency = v!),
-              ),
-              const SizedBox(height: 16),
-              // Type-specific fields
-              if (_type != 'cash') ...[
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Account Number (Optional)'),
-                  onChanged: (v) => _accountNumber = v,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Institution (Optional)'),
-                  onChanged: (v) => _institution = v,
-                ),
-                const SizedBox(height: 16),
-              ],
-              if (_type == 'savings') ...[
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Interest Rate (Optional)'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => _interestRate = v,
-                ),
-                const SizedBox(height: 16),
-              ],
-              if (_type == 'credit' || _type == 'debit') ...[
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Credit Limit (Optional)'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => _creditLimit = v,
-                ),
-                const SizedBox(height: 16),
-              ],
-              Row(
-                children: [
-                  const Text('Account Color:'),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () async {
-                      Color? picked = await showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          content: SingleChildScrollView(
-                            child: ColorPicker(
-                              pickerColor: _color,
-                              onColorChanged: (color) {
-                                setState(() => _color = color);
-                              },
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              child: const Text('Select'),
-                              onPressed: () => Navigator.of(context).pop(_color),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (picked != null) setState(() => _color = picked);
-                    },
-                    child: CircleAvatar(backgroundColor: _color),
+              _textField('Account Name', 'name', required: true),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: DropdownButtonFormField<String>(
+                  value: _accountType,
+                  decoration: const InputDecoration(
+                    labelText: 'Account Type',
+                    border: OutlineInputBorder(),
                   ),
-                ],
+                  items: const [
+                    DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                    DropdownMenuItem(value: 'bank', child: Text('Bank')),
+                    DropdownMenuItem(value: 'investment', child: Text('Investment')),
+                    DropdownMenuItem(value: 'savings', child: Text('Savings')),
+                    DropdownMenuItem(value: 'credit', child: Text('Credit')),
+                    DropdownMenuItem(value: 'debit', child: Text('Debit')),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _accountType = val ?? 'cash';
+                    });
+                  },
+                ),
               ),
-              const SizedBox(height: 32),
+              _currencyDropdown(),
+              _textField('Initial Balance', 'balance', isNumber: true, required: true),
+              ..._buildDynamicFields(),
+              _colorPicker(),
+              const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _selectedColor,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    // Save account via Bloc
-                    context.read<HomeBloc>().add(
-                      AddAccount(
-                        name: _name,
-                        type: _type,
-                        balance: _initialBalance,
-                        currency: _currency,
-                        color: _color,
-                        accountNumber: _accountNumber,
-                        institution: _institution,
-                        interestRate: _interestRate,
-                        creditLimit: _creditLimit,
-                      ),
-                    );
+                    final accountMap = {
+                      'id': widget.account?['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                      'name': _controllers['name']!.text,
+                      'type': _accountType,
+                      'balance': double.tryParse(_controllers['balance']!.text) ?? 0,
+                      'currency': _controllers['currency']!.text,
+                      'color': _selectedColor,
+                      'archived': widget.account?['archived'] ?? false,
+                    };
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Account saved successfully!'), backgroundColor: Colors.green),
+                      );
+                      await Future.delayed(const Duration(milliseconds: 900));
+                      Navigator.of(context).pop(accountMap);
+                    }
+                  } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Account added successfully!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                      const SnackBar(content: Text('Please fill all required fields'), backgroundColor: Colors.red),
                     );
                   }
                 },
-                child: const Text('Add Account'),
+                child: Text(widget.isEdit ? 'Save Changes' : 'Add Account'),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _currencyDropdown() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: DropdownButtonFormField<String>(
+        value: _controllers['currency']!.text,
+        decoration: const InputDecoration(
+          labelText: 'Currency',
+          border: OutlineInputBorder(),
+        ),
+        items: const [
+          DropdownMenuItem(value: 'VND', child: Text('VND')),
+          DropdownMenuItem(value: 'USD', child: Text('USD')),
+          DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+        ],
+        onChanged: (val) {
+          setState(() {
+            _controllers['currency']!.text = val ?? 'USD';
+          });
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Currency is required';
+          }
+          return null;
+        },
       ),
     );
   }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_data.dart';
-import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
@@ -18,9 +17,6 @@ import 'package:monie/features/home/presentation/widgets/net_worth_section_widge
 import 'package:monie/features/home/presentation/widgets/pie_chart_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/summary_section_widget.dart';
-import 'package:monie/features/account/domain/entities/account.dart';
-import 'package:monie/features/account/presentation/widgets/select_accounts_modal.dart';
-import 'package:monie/features/account/presentation/pages/add_account_page.dart';
 
 // Define a callback type for tab switching
 typedef TabSwitchCallback = void Function(int index);
@@ -83,34 +79,6 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
-  }
-
-  void _showSelectAccountsModal(List<Account> allAccounts, Set<String> pinnedAccountIds) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return SelectAccountsModal(
-          accounts: allAccounts,
-          pinnedAccountIds: pinnedAccountIds,
-          onPinToggle: (accountId, isPinned) {
-            if (isPinned) {
-              context.read<HomeBloc>().add(PinAccount(accountId));
-            } else {
-              context.read<HomeBloc>().add(UnpinAccount(accountId));
-            }
-          },
-          onEdit: () {},
-          onAddAccount: () async {
-            Navigator.of(context).pop();
-            await Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddAccountPage()));
-            // Refresh account list after adding
-            if (mounted) context.read<HomeBloc>().add(const LoadHomeData());
-          },
-        );
-      },
-    );
   }
 
   @override
@@ -394,10 +362,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 16),
                       GreetingWidget(name: userName),
                       const SizedBox(height: 24),
-                      AccountsSectionWidget(
-                        accounts: state.pinnedAccounts,
-                        onAddAccount: () => _showSelectAccountsModal(state.accounts, state.pinnedAccountIds),
-                      ),
+                      AccountsSectionWidget(accounts: state.accounts),
                       const SizedBox(height: 24),
                       AccountSummaryWidget(
                         accounts: state.accounts,

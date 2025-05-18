@@ -1,7 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
-import 'package:monie/features/account/domain/repositories/account_repository.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
 import 'package:monie/features/authentication/domain/repositories/auth_repository.dart';
@@ -14,6 +13,8 @@ import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
 import 'package:monie/features/authentication/domain/usecases/check_email_exists.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
+import 'package:monie/features/home/data/repositories/account_repository_impl.dart';
+import 'package:monie/features/home/domain/repositories/account_repository.dart';
 import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 import 'package:monie/features/transactions/data/repositories/transaction_repository_impl.dart';
@@ -37,7 +38,6 @@ import 'package:monie/features/transactions/domain/repositories/category_reposit
 import 'package:monie/features/transactions/domain/usecases/create_category_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_categories_usecase.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
-import 'package:monie/features/account/data/repositories/account_repository_supabase_impl.dart';
 
 final getIt = GetIt.instance;
 
@@ -75,6 +75,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton(() => CheckEmailExists(getIt()));
 
   // Repository implementations
+  getIt.registerLazySingleton<AccountRepository>(() => AccountRepositoryImpl());
   getIt.registerLazySingleton<TransactionRemoteDataSource>(
     () => TransactionRemoteDataSourceImpl(supabaseClientManager: getIt()),
   );
@@ -144,7 +145,4 @@ Future<void> configureDependencies() async {
       createCategoryUseCase: getIt(),
     ),
   );
-
-  getIt.registerLazySingleton<AccountRepository>(() => AccountRepositorySupabaseImpl());
 }
-

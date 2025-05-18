@@ -1,473 +1,392 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:monie/features/account/presentation/pages/add_account_page.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
+import 'package:monie/core/themes/app_colors.dart';
+import 'add_account_page.dart';
 
 class EditAccountsPage extends StatefulWidget {
-  const EditAccountsPage({Key? key}) : super(key: key);
+  const EditAccountsPage({super.key});
 
   @override
   State<EditAccountsPage> createState() => _EditAccountsPageState();
 }
 
 class _EditAccountsPageState extends State<EditAccountsPage> {
-  String _search = '';
+  List<Map<String, dynamic>> accounts = [
+    {
+      'id': '1',
+      'name': 'Bank',
+      'type': 'bank',
+      'balance': 3200,
+      'currency': 'USD',
+      'archived': false,
+      'color': Colors.blue,
+    },
+    {
+      'id': '2',
+      'name': 'Cash',
+      'type': 'cash',
+      'balance': 140,
+      'currency': 'USD',
+      'archived': false,
+      'color': Colors.green,
+    },
+    {
+      'id': '3',
+      'name': 'Savings',
+      'type': 'savings',
+      'balance': 5000,
+      'currency': 'USD',
+      'archived': true,
+      'color': Colors.orange,
+    },
+    {
+      'id': '4',
+      'name': 'Credit Card',
+      'type': 'credit',
+      'balance': 1200,
+      'currency': 'USD',
+      'archived': false,
+      'color': Colors.red,
+    },
+  ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Accounts'),
+  String? filterType;
+  bool showArchived = false;
+
+  Future<bool> _deleteAccount(int index) async {
+    final name = accounts[index]['name'];
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: Colors.white, width: 2),
+        ),
+        title: Text('Delete Account', style: TextStyle(color: AppColors.expense, fontSize: 26, fontWeight: FontWeight.bold)),
+        content: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: Text('Are you sure you want to delete "$name"?', style: const TextStyle(color: Colors.white, fontSize: 20)),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddAccountPage()));
-            },
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search accounts...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) => setState(() => _search = value),
-            ),
-          ),
-          Expanded(
-            child: BlocBuilder<HomeBloc, HomeState>(
-              builder: (context, state) {
-                if (state is HomeLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (state is HomeLoaded) {
-                  final filteredAccounts = state.accounts.where((a) => a.name.toLowerCase().contains(_search.toLowerCase())).toList();
-                  return ListView.builder(
-                    itemCount: filteredAccounts.length,
-                    itemBuilder: (context, index) {
-                      final account = filteredAccounts[index];
-                      return Dismissible(
-                        key: ValueKey(account.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        confirmDismiss: (direction) async {
-                          return await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Delete Account'),
-                              content: Text('Are you sure you want to delete ${account.name}?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(false),
-                                  child: const Text('Cancel'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(true),
-                                  child: const Text('Delete'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        onDismissed: (direction) {
-                          context.read<HomeBloc>().add(DeleteAccount(account.id));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${account.name} deleted successfully!'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.of(context).push(MaterialPageRoute(builder: (_) => EditAccountPage(accountId: account.id)));
-                            },
-                            child: ListTile(
-                              title: Text(account.name),
-                              subtitle: Text('${account.balance} ${account.currency}\n${account.transactionCount} transactions'),
-                              trailing: null, // Add primary chip logic if needed
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                } else if (state is HomeError) {
-                  return Center(child: Text('Error: ${state.message}'));
-                } else {
-                  return const SizedBox();
-                }
-              },
-            ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Delete', style: TextStyle(color: AppColors.expense, fontWeight: FontWeight.bold, fontSize: 20)),
           ),
         ],
       ),
     );
+    if (confirm == true) {
+      setState(() {
+        accounts.removeAt(index);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Account deleted successfully!'), backgroundColor: AppColors.primary),
+      );
+      return true;
+    }
+    return false;
   }
-}
 
-class EditAccountPage extends StatefulWidget {
-  final String accountId;
-  const EditAccountPage({Key? key, required this.accountId}) : super(key: key);
-
-  @override
-  State<EditAccountPage> createState() => _EditAccountPageState();
-}
-
-class _EditAccountPageState extends State<EditAccountPage> {
-  String _name = '';
-  String _type = 'bank';
-  Color _color = Colors.green;
-  String _accountNumber = '';
-  String _institution = '';
-  String _interestRate = '';
-  String _creditLimit = '';
-  final List<Color> _fixedColors = [
-    Colors.green,
-    Colors.blue,
-    Colors.red,
-    Colors.orange,
-    Colors.purple,
-    Colors.teal,
-    Colors.brown,
-    Colors.pink,
-    Colors.amber,
-    Colors.cyan,
-  ];
-
-  final List<String> _accountTypes = [
-    'bank', 'cash', 'credit', 'debit', 'savings', 'investment'
-  ];
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final state = context.read<HomeBloc>().state;
-    if (state is HomeLoaded) {
-      final account = state.accounts.firstWhere((a) => a.id == widget.accountId, orElse: () => state.accounts.first);
-      _name = account.name;
-      _type = account.type;
-      _color = Colors.green; // You can update this to use account.color if available
-      // Load type-specific fields from account if available
-      // (future: implement loading and initializing form fields)
+  void _archiveAccount(int index) async {
+    final name = accounts[index]['name'];
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black,
+        title: const Text('Archive Account', style: TextStyle(color: Colors.orange)),
+        content: Text('Archive "$name"?', style: const TextStyle(color: Colors.white)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Archive', style: TextStyle(color: Colors.orange)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      setState(() {
+        accounts[index]['archived'] = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account archived successfully!'), backgroundColor: Colors.green),
+      );
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Edit Account')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            TextFormField(
-              initialValue: _name,
-              decoration: const InputDecoration(labelText: 'Account Name'),
-              onChanged: (v) => _name = v,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _type,
-              decoration: const InputDecoration(labelText: 'Account Type'),
-              items: _accountTypes
-                  .map((type) => DropdownMenuItem(
-                        value: type,
-                        child: Text(type[0].toUpperCase() + type.substring(1)),
-                      ))
-                  .toList(),
-              onChanged: (v) => setState(() => _type = v!),
-            ),
-            const SizedBox(height: 16),
-            // Type-specific fields
-            if (_type != 'cash') ...[
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Account Number (Optional)'),
-                initialValue: _accountNumber,
-                onChanged: (v) => _accountNumber = v,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Institution (Optional)'),
-                initialValue: _institution,
-                onChanged: (v) => _institution = v,
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (_type == 'savings') ...[
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Interest Rate (Optional)'),
-                keyboardType: TextInputType.number,
-                initialValue: _interestRate,
-                onChanged: (v) => _interestRate = v,
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (_type == 'credit' || _type == 'debit') ...[
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Credit Limit (Optional)'),
-                keyboardType: TextInputType.number,
-                initialValue: _creditLimit,
-                onChanged: (v) => _creditLimit = v,
-              ),
-              const SizedBox(height: 16),
-            ],
-            Row(
+  void _unarchiveAccount(int index) {
+    setState(() {
+      accounts[index]['archived'] = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Account unarchived successfully!'), backgroundColor: Colors.green),
+    );
+  }
+
+  void _reconcileAccount(int index) async {
+    final acc = accounts[index];
+    final otherAccounts = accounts.where((a) => a['id'] != acc['id'] && a['archived'] != true).toList();
+    String? selectedId;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        String? tempSelectedId = selectedId;
+        return StatefulBuilder(
+          builder: (context, setModalState) => AlertDialog(
+            backgroundColor: Colors.black,
+            title: const Text('Reconcile Account', style: TextStyle(color: Colors.blue)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Account Color:'),
-                const SizedBox(width: 8),
-                ..._fixedColors.map((color) => GestureDetector(
-                  onTap: () => setState(() => _color = color),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _color == color ? Colors.black : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      backgroundColor: color,
-                      radius: 14,
-                      child: _color == color ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
-                    ),
-                  ),
-                )),
-                GestureDetector(
-                  onTap: () async {
-                    Color picked = _color;
-                    await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        content: SingleChildScrollView(
-                          child: ColorPicker(
-                            pickerColor: _color,
-                            onColorChanged: (color) {
-                              picked = color;
-                            },
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            child: const Text('Select'),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                        ],
-                      ),
-                    );
-                    setState(() => _color = picked);
+                const Text('Select account to transfer balance:', style: TextStyle(color: Colors.white)),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  dropdownColor: Colors.black,
+                  value: tempSelectedId,
+                  items: otherAccounts.map<DropdownMenuItem<String>>((a) => DropdownMenuItem<String>(
+                    value: a['id'] as String,
+                    child: Text(a['name'], style: const TextStyle(color: Colors.white)),
+                  )).toList(),
+                  onChanged: (v) {
+                    setModalState(() {
+                      tempSelectedId = v;
+                    });
                   },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey, width: 1),
-                    ),
-                    child: const Icon(Icons.add, size: 20),
-                  ),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(left: 8),
-                  child: CircleAvatar(backgroundColor: _color, radius: 14),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                // Save changes (mock)
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Account changes saved!'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              child: const Text('Save Changes'),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.archive),
-              title: const Text('Archive Account'),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Archive Account'),
-                    content: const Text('Are you sure you want to archive this account?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Account archived!')),
-                          );
-                        },
-                        child: const Text('Archive'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.add),
-              title: const Text('Correct Total Balance'),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    double newBalance = 0.0;
-                    return AlertDialog(
-                      title: const Text('Correct Total Balance'),
-                      content: TextField(
-                        decoration: const InputDecoration(labelText: 'New Balance'),
-                        keyboardType: TextInputType.number,
-                        onChanged: (v) => newBalance = double.tryParse(v) ?? 0.0,
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Balance corrected to $newBalance!')),
-                            );
-                          },
-                          child: const Text('Correct'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.compare_arrows),
-              title: const Text('Transfer Balance'),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    String toAccount = '';
-                    double amount = 0.0;
-                    return AlertDialog(
-                      title: const Text('Transfer Balance'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            decoration: const InputDecoration(labelText: 'To Account'),
-                            onChanged: (v) => toAccount = v,
-                          ),
-                          TextField(
-                            decoration: const InputDecoration(labelText: 'Amount'),
-                            keyboardType: TextInputType.number,
-                            onChanged: (v) => amount = double.tryParse(v) ?? 0.0,
-                          ),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Transferred $amount to $toAccount!')),
-                            );
-                          },
-                          child: const Text('Transfer'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.merge_type),
-              title: const Text('Merge Account'),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    String toAccount = '';
-                    return AlertDialog(
-                      title: const Text('Merge Account'),
-                      content: TextField(
-                        decoration: const InputDecoration(labelText: 'Account to merge into'),
-                        onChanged: (v) => toAccount = v,
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Merged into $toAccount!')),
-                            );
-                          },
-                          child: const Text('Merge'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-          ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel', style: TextStyle(color: Colors.white)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(tempSelectedId),
+                child: const Text('Reconcile', style: TextStyle(color: Colors.blue)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (confirm != null && confirm is String) {
+      final destIndex = accounts.indexWhere((a) => a['id'] == confirm);
+      setState(() {
+        accounts[destIndex]['balance'] += acc['balance'];
+        acc['balance'] = 0;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reconciled successfully!'), backgroundColor: Colors.green),
+      );
+    }
+  }
+
+  void _editAccount(int index) async {
+    final acc = accounts[index];
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddAccountPage(
+          account: acc,
+          isEdit: true,
         ),
       ),
     );
+    if (result != null && result is Map<String, dynamic>) {
+      setState(() {
+        accounts[index] = result;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account updated successfully!'), backgroundColor: Colors.green),
+      );
+    }
   }
-}
 
-class CorrectBalanceDialog extends StatelessWidget {
-  const CorrectBalanceDialog({Key? key}) : super(key: key);
+  void _reorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex--;
+      final item = accounts.removeAt(oldIndex);
+      accounts.insert(newIndex, item);
+    });
+  }
+
+  List<Map<String, dynamic>> get filteredAccounts {
+    return accounts.where((acc) {
+      if (!showArchived && acc['archived'] == true) return false;
+      if (filterType != null && acc['type'] != filterType) return false;
+      return true;
+    }).toList();
+  }
+
+  void _showFilterDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        String? tempType = filterType;
+        bool tempShowArchived = showArchived;
+        return StatefulBuilder(
+          builder: (context, setModalState) => AlertDialog(
+            backgroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+              side: const BorderSide(color: Colors.white, width: 2),
+            ),
+            title: Text('Filter Accounts', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 24)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CheckboxListTile(
+                  value: tempShowArchived,
+                  onChanged: (v) {
+                    setModalState(() => tempShowArchived = v ?? false);
+                  },
+                  title: Text('Show Archived', style: TextStyle(color: AppColors.primary)),
+                  activeColor: AppColors.primary,
+                  checkColor: Colors.white,
+                ),
+                DropdownButtonFormField<String>(
+                  value: tempType,
+                  dropdownColor: Colors.black,
+                  decoration: InputDecoration(
+                    labelText: 'Account Type',
+                    labelStyle: TextStyle(color: AppColors.primary),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: Colors.white),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: null, child: Text('All Types', style: TextStyle(color: Colors.white))),
+                    DropdownMenuItem(value: 'cash', child: Text('Cash', style: TextStyle(color: Colors.white))),
+                    DropdownMenuItem(value: 'bank', child: Text('Bank', style: TextStyle(color: Colors.white))),
+                    DropdownMenuItem(value: 'savings', child: Text('Savings', style: TextStyle(color: Colors.white))),
+                    DropdownMenuItem(value: 'credit', child: Text('Credit', style: TextStyle(color: Colors.white))),
+                    DropdownMenuItem(value: 'debit', child: Text('Debit', style: TextStyle(color: Colors.white))),
+                    DropdownMenuItem(value: 'investment', child: Text('Investment', style: TextStyle(color: Colors.white))),
+                  ],
+                  onChanged: (v) {
+                    setModalState(() => tempType = v);
+                  },
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Cancel', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    filterType = tempType;
+                    showArchived = tempShowArchived;
+                  });
+                  Navigator.of(context).pop();
+                },
+                child: Text('Apply', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Correct Balance'),
-      content: const Text('Add/subtract money UI goes here.'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () {},
-          child: const Text('Save'),
-        ),
-      ],
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text('Edit Accounts', style: TextStyle(color: AppColors.primary)),
+        backgroundColor: Colors.black,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.filter_list, color: AppColors.primary),
+            onPressed: _showFilterDialog,
+          ),
+        ],
+      ),
+      body: ReorderableListView.builder(
+        itemCount: filteredAccounts.length,
+        onReorder: _reorder,
+        itemBuilder: (context, index) {
+          final acc = filteredAccounts[index];
+          return Dismissible(
+            key: ValueKey(acc['id']),
+            background: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 24),
+              child: const Icon(Icons.delete, color: Colors.white),
+            ),
+            direction: DismissDirection.endToStart,
+            confirmDismiss: (_) => _deleteAccount(index),
+            child: Card(
+              color: Colors.grey[900],
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: const BorderSide(color: Colors.white, width: 1.5),
+              ),
+              child: ListTile(
+                leading: Icon(Icons.drag_handle, color: AppColors.primary),
+                title: Text(acc['name'], style: const TextStyle(color: Colors.white)),
+                subtitle: Text('${acc['type']} • ${acc['balance']} ${acc['currency']} • ${acc['transactionCount'] ?? 0} transactions', style: const TextStyle(color: Colors.white70)),
+                trailing: PopupMenuButton<String>(
+                  color: Colors.grey[900],
+                  icon: Icon(Icons.more_vert, color: AppColors.primary),
+                  onSelected: (value) {
+                    if (value == 'edit') _editAccount(index);
+                    if (value == 'archive') _archiveAccount(index);
+                    if (value == 'unarchive') _unarchiveAccount(index);
+                    if (value == 'reconcile') _reconcileAccount(index);
+                    if (value == 'delete') _deleteAccount(index);
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'edit', child: Text('Edit', style: TextStyle(color: Colors.white))),
+                    if (!acc['archived'])
+                      const PopupMenuItem(value: 'archive', child: Text('Archive', style: TextStyle(color: Colors.white))),
+                    if (acc['archived'])
+                      const PopupMenuItem(value: 'unarchive', child: Text('Unarchive', style: TextStyle(color: Colors.white))),
+                    const PopupMenuItem(value: 'reconcile', child: Text('Reconcile', style: TextStyle(color: Colors.white))),
+                    const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.white))),
+                  ],
+                ),
+                onTap: () => _editAccount(index),
+              ),
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.green,
+        onPressed: () async {
+          final result = await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const AddAccountPage(),
+            ),
+          );
+          if (result != null && result is Map<String, dynamic>) {
+            setState(() {
+              accounts.add(result);
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Account added successfully!'), backgroundColor: Colors.green),
+            );
+          }
+        },
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 } 

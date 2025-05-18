@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:monie/core/themes/app_colors.dart';
-import 'package:monie/features/account/domain/entities/account.dart';
+import 'package:monie/features/home/domain/entities/account.dart';
 
 class AccountCardWidget extends StatelessWidget {
   final Account account;
@@ -10,7 +10,6 @@ class AccountCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Determine card color based on account type
     Color accountColor = AppColors.bank;
@@ -21,15 +20,8 @@ class AccountCardWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.cardDark : Colors.white,
+        color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: !isDarkMode ? [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          )
-        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,9 +31,7 @@ class AccountCardWidget extends StatelessWidget {
             children: [
               Text(
                 account.name,
-                style: textTheme.titleLarge?.copyWith(
-                  color: isDarkMode ? Colors.white : Colors.black87
-                ),
+                style: textTheme.titleLarge?.copyWith(color: Colors.white),
               ),
               Container(
                 width: 16,
@@ -57,7 +47,7 @@ class AccountCardWidget extends StatelessWidget {
           Text(
             '\$${account.balance.abs().toStringAsFixed(0)}',
             style: textTheme.headlineMedium?.copyWith(
-              color: isDarkMode ? Colors.white : Colors.black87,
+              color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -65,7 +55,7 @@ class AccountCardWidget extends StatelessWidget {
           Text(
             '${account.transactionCount} ${account.transactionCount == 1 ? 'transaction' : 'transactions'}',
             style: textTheme.bodyMedium?.copyWith(
-              color: isDarkMode ? AppColors.textSecondary : Colors.black54,
+              color: AppColors.textSecondary,
               height: 1.5,
             ),
           ),
