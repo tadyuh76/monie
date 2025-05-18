@@ -6,9 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:monie/core/network/supabase_client.dart';
+import 'package:monie/core/services/app_lifecycle_service.dart';
 import 'package:monie/core/themes/app_theme.dart';
 // import 'package:monie/core/themes/color_extensions.dart';
 import 'package:monie/di/injection.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/pages/auth_wrapper.dart';
@@ -41,11 +44,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
-
   Future<void> _showNotification(RemoteNotification notification) async {
   const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
     'default_channel_id',
-    'Thông báo',
+    'Notification',
     importance: Importance.max,
     priority: Priority.high,
   );
@@ -61,14 +63,7 @@ void main() async {
   );
 }
 
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print('🔔 FCM nhận được (foreground): ${message.notification?.title}');
-
-    if (message.notification != null) {
-      _showNotification(message.notification!);
-    }
-  });
-
+  // Initialize local notifications
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -78,12 +73,17 @@ void main() async {
 
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Request iOS permissions
   if (Platform.isIOS) {
     await FirebaseMessaging.instance.getAPNSToken();
-  } else {}
+  }
+  
+  // Get and log the FCM token
   String? fcmToken = await FirebaseMessaging.instance.getToken();
-  print('FCM Token: $fcmToken');
+  debugPrint('FCM Token: $fcmToken');
     
+  // Request permissions
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   NotificationSettings settings = await messaging.requestPermission(
     alert: true,
@@ -94,15 +94,22 @@ void main() async {
     provisional: false,
     sound: true,
   );
-  print('User granted permission: ${settings.authorizationStatus}');
+  
+  debugPrint('User granted permission: ${settings.authorizationStatus}');
   await FirebaseMessaging.instance.setAutoInitEnabled(true);
-  await FirebaseMessaging.instance.requestPermission();
+  
+  // Set up foreground message handler (there should only be one)
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    debugPrint('Received foreground message: ${message.notification?.title}');
+    debugPrint('Message data: ${message.data}');
+    
+    if (message.notification != null) {
+      _showNotification(message.notification!);
+    }
+  });
+  
   // Set background message handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    debugPrint('Received message: ${message.notification?.title}');
-    debugPrint('Received message: ${message.notification?.body}');
-  });
   
   // Lock orientation to portrait
   await SystemChrome.setPreferredOrientations([
@@ -122,9 +129,29 @@ void main() async {
 
   // Initialize Supabase client
   await SupabaseClientManager.initialize();
-
+  
   // Setup dependency injection
   await configureDependencies();
+  
+  // Initialize notification system
+  final notificationBloc = getIt<NotificationBloc>();
+  notificationBloc.add(RegisterDeviceEvent());
+  debugPrint('Device registration initiated');
+  notificationBloc.add(SetupNotificationListenersEvent());
+  debugPrint('Notification listeners setup initiated');
+  
+  // Give time for the operations to complete
+  await Future.delayed(const Duration(milliseconds: 500));
+  
+  // Initialize app lifecycle service to track app state changes
+  final appLifecycleService = getIt<AppLifecycleService>();
+  
+  // Delay slightly to ensure everything is initialized
+  await Future.delayed(const Duration(milliseconds: 500));
+  
+  // Send initial app state notification as 'foreground'
+  debugPrint('Sending initial foreground state to server');
+  notificationBloc.add(const SendAppStateChangeEvent(state: 'foreground'));
 
   runApp(const MyApp());
 }
@@ -143,15 +170,16 @@ class MyApp extends StatelessWidget {
           create: (context) => getIt<HomeBloc>()..add(const LoadHomeData()),
         ),
         BlocProvider<TransactionsBloc>(
-          create:
-              (context) =>
-                  getIt<TransactionsBloc>()..add(const LoadTransactions()),
+          create: (context) => getIt<TransactionsBloc>()..add(const LoadTransactions()),
         ),
         BlocProvider<BudgetsBloc>(
           create: (context) => getIt<BudgetsBloc>()..add(const LoadBudgets()),
         ),
         BlocProvider<CategoriesBloc>(
           create: (context) => getIt<CategoriesBloc>(),
+        ),
+        BlocProvider<NotificationBloc>(
+          create: (context) => getIt<NotificationBloc>(),
         ),
       ],
       child: MaterialApp(
