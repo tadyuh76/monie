@@ -16,6 +16,7 @@ import 'package:monie/features/home/presentation/pages/home_page.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =

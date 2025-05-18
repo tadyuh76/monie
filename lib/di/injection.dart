@@ -1,7 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
-import 'package:monie/features/account/data/repositories/account_repository_impl.dart';
 import 'package:monie/features/account/domain/repositories/account_repository.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
