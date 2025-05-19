@@ -67,6 +67,8 @@ dependencies:
   
   # Utilities
   uuid: ^4.3.3
+  pie_chart: ^5.4.0
+  getwidget: ^6.0.0
 
 dev_dependencies:
   flutter_test:
