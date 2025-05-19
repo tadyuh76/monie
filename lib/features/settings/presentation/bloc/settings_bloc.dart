@@ -173,8 +173,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           ));
         }
 
-        final userId = ... // Lấy user id hiện tại
-        await _repository.updateUserLanguage(userId, event.language);
       } else {
         emit(const SettingsError('Failed to update language'));
       }
@@ -218,6 +216,11 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           profile: _currentProfile!,
           settings: _currentSettings,
         ));
+
+        if (_authBloc != null) {
+          _authBloc.add(RefreshUserEvent());
+        }
+        add(LoadUserProfileEvent());
       } else {
         print('SettingsBloc: Profile update failed');
         emit(const SettingsError('Failed to update profile name'));

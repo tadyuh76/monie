@@ -573,21 +573,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () {
                   _showQuickNameEditDialog(context, displayName);
                 },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey[800]
-                        : Colors.grey[200],
-                    shape: BoxShape.circle,
-                  ),
-                  padding: const EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.edit_note,
-                    size: 16,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black87,
-                  ),
+                child: Icon(
+                  Icons.edit,
+                  size: 20,
+                  color: AppColors.primary,
                 ),
               ),
             ],
