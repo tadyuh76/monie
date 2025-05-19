@@ -275,11 +275,32 @@ class _SettingsPageState extends State<SettingsPage> {
           else
             Column(
               children: [
-                _buildThemeSelector(state),
-                const SizedBox(height: 16),
-                _buildLanguageSelector(state),
-                const SizedBox(height: 16),
-                _buildNotificationsToggle(state),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.surface
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: Theme.of(context).brightness == Brightness.light
+                        ? [BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          )]
+                        : null,
+                  ),
+                  child: Column(
+                    children: [
+                      _buildThemeSelector(state),
+                      const SizedBox(height: 16),
+                      _buildLanguageSelector(state),
+                      const SizedBox(height: 16),
+                      _buildNotificationsToggle(state),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 16),
                 SettingsSectionWidget(
                   title: context.tr('settings_account'),
