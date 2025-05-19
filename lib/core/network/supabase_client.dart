@@ -21,6 +21,7 @@ class SupabaseClientManager {
       anonKey: supabaseAnonKey,
       authOptions: const FlutterAuthClientOptions(
         authFlowType: AuthFlowType.pkce,
+        autoRefreshToken: true,
       ),
     );
 

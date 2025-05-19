@@ -4,40 +4,45 @@ import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
 import 'package:monie/features/authentication/domain/repositories/auth_repository.dart';
+import 'package:monie/features/authentication/domain/usecases/check_email_exists.dart';
 import 'package:monie/features/authentication/domain/usecases/get_current_user.dart';
 import 'package:monie/features/authentication/domain/usecases/is_email_verified.dart';
-import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
 import 'package:monie/features/authentication/domain/usecases/resend_verification_email.dart';
+import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_in.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
-import 'package:monie/features/authentication/domain/usecases/check_email_exists.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
+import 'package:monie/features/budgets/data/repositories/budget_repository_impl.dart';
+import 'package:monie/features/budgets/domain/repositories/budget_repository.dart';
+import 'package:monie/features/budgets/domain/usecases/get_budgets_usecase.dart';
+import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/home/data/repositories/account_repository_impl.dart';
 import 'package:monie/features/home/domain/repositories/account_repository.dart';
 import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
+import 'package:monie/features/home/domain/usecases/update_account_usecase.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
-import 'package:monie/features/transactions/data/repositories/transaction_repository_impl.dart';
-import 'package:monie/features/transactions/domain/repositories/transaction_repository.dart';
-import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
-import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
-import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
-import 'package:monie/features/budgets/domain/usecases/get_budgets_usecase.dart';
-import 'package:monie/features/budgets/data/repositories/budget_repository_impl.dart';
-import 'package:monie/features/budgets/domain/repositories/budget_repository.dart';
-import 'package:monie/features/transactions/data/datasources/transaction_remote_data_source.dart';
-import 'package:monie/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/get_transactions_by_type_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/get_transactions_by_date_range_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/add_transaction_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/update_transaction_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/delete_transaction_usecase.dart';
 import 'package:monie/features/transactions/data/datasources/category_remote_data_source.dart';
+import 'package:monie/features/transactions/data/datasources/transaction_remote_data_source.dart';
 import 'package:monie/features/transactions/data/repositories/category_repository_impl.dart';
+import 'package:monie/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:monie/features/transactions/domain/repositories/category_repository.dart';
+import 'package:monie/features/transactions/domain/repositories/transaction_repository.dart';
+import 'package:monie/features/transactions/domain/usecases/add_transaction_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/create_category_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/delete_transaction_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_categories_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_by_date_range_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_by_type_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/update_transaction_usecase.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
+
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import '../features/home/domain/usecases/add_account_usecase.dart';
+import '../features/home/domain/usecases/delete_account_usecase.dart';
 
 final getIt = GetIt.instance;
 
@@ -94,6 +99,10 @@ Future<void> configureDependencies() async {
 
   // Use cases
   getIt.registerLazySingleton(() => GetAccountsUseCase(getIt()));
+  getIt.registerLazySingleton(() => AddAccountUseCase(getIt()));
+  getIt.registerLazySingleton(() => UpdateAccountUseCase(getIt()));
+  getIt.registerLazySingleton(() => DeleteAccountUseCase(getIt()));
+
   getIt.registerLazySingleton(() => GetTransactionsUseCase(getIt()));
   getIt.registerLazySingleton(() => GetTransactionByIdUseCase(getIt()));
   getIt.registerLazySingleton(() => GetTransactionsByTypeUseCase(getIt()));
@@ -122,6 +131,15 @@ Future<void> configureDependencies() async {
   getIt.registerFactory<HomeBloc>(
     () =>
         HomeBloc(getAccountsUseCase: getIt(), getTransactionsUseCase: getIt()),
+  );
+
+  getIt.registerFactory<AccountBloc>(
+    () => AccountBloc(
+      getAccountsUseCase: getIt(),
+      addAccountUseCase: getIt(),
+      updateAccountUseCase: getIt(),
+      deleteAccountUseCase: getIt(),
+    ),
   );
 
   getIt.registerFactory<TransactionsBloc>(

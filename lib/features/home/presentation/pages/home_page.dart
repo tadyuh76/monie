@@ -362,7 +362,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 16),
                       GreetingWidget(name: userName),
                       const SizedBox(height: 24),
-                      AccountsSectionWidget(accounts: state.accounts),
+                      AccountsSectionWidget(accounts: state.accounts, transactions: state.recentTransactions,),
                       const SizedBox(height: 24),
                       AccountSummaryWidget(
                         accounts: state.accounts,

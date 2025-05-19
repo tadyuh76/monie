@@ -19,7 +19,7 @@ class AccountSummaryWidget extends StatelessWidget {
     // Calculate total balance
     final double totalBalance = accounts.fold(
       0,
-      (previousValue, account) => previousValue + account.balance,
+      (previousValue, account) => previousValue + (account.balance ?? 0.0),
     );
 
     // Calculate income and expense
