@@ -172,6 +172,9 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
             settings: _currentSettings,
           ));
         }
+
+        final userId = ... // Lấy user id hiện tại
+        await _repository.updateUserLanguage(userId, event.language);
       } else {
         emit(const SettingsError('Failed to update language'));
       }

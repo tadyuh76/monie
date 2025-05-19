@@ -276,7 +276,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Column(
               children: [
                 Container(
-                  width: double.infinity,
+                  width: double.infinity, 
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark
@@ -582,7 +582,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   padding: const EdgeInsets.all(6),
                   child: Icon(
-                    Icons.edit,
+                    Icons.edit_note,
                     size: 16,
                     color: Theme.of(context).brightness == Brightness.dark
                         ? Colors.white
