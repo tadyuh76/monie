@@ -77,8 +77,14 @@ class BudgetModel extends Budget {
       'is_recurring': isRecurring,
       'is_saving': isSaving,
       'frequency': frequency,
-      'color': color,
     };
+    
+    // Đảm bảo color không null khi lưu vào database
+    if (color != null && color!.isNotEmpty) {
+      json['color'] = color;
+    } else {
+      json['color'] = 'FF4CAF50'; // Default to green if no color
+    }
     
     // Only include categoryId if it's not null
     if (categoryId != null) {

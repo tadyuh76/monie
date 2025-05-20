@@ -32,7 +32,7 @@ class _BudgetFormState extends State<BudgetForm> {
   bool _isSaving = false;
   String? _categoryId;
   String? _frequency;
-  String? _color = 'FF4CAF50'; // Default green color
+  String _color = 'FF4CAF50'; // Default green color
   
   @override
   void initState() {
@@ -48,7 +48,12 @@ class _BudgetFormState extends State<BudgetForm> {
       _isSaving = widget.budget!.isSaving;
       _categoryId = widget.budget!.categoryId;
       _frequency = widget.budget!.frequency;
-      _color = widget.budget!.color ?? 'FF4CAF50';
+      if (widget.budget!.color != null && widget.budget!.color!.isNotEmpty) {
+        _color = widget.budget!.color!;
+      }
+      print('Loaded budget with color: ${widget.budget!.color}, set _color to: $_color');
+    } else {
+      print('Creating new budget, default color: $_color');
     }
   }
   
@@ -120,6 +125,9 @@ class _BudgetFormState extends State<BudgetForm> {
     if (_formKey.currentState!.validate()) {
       final double amount = double.parse(_amountController.text);
       
+      // Debug logs
+      print('Submitting form with color: $_color');
+      
       // Create or update budget
       final budget = widget.budget == null
           ? BudgetModel.create(
@@ -153,6 +161,9 @@ class _BudgetFormState extends State<BudgetForm> {
               frequency: _frequency,
               color: _color,
             );
+      
+      // Debug log
+      print('Budget color before submitting: ${budget.color}');
       
       // Dispatch event to bloc
       if (widget.budget == null) {
@@ -395,9 +406,11 @@ class _BudgetFormState extends State<BudgetForm> {
                   color: isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              // Các tùy chọn màu
               Wrap(
-                spacing: 12,
+                spacing: 16, // Tăng khoảng cách giữa các màu
+                runSpacing: 12, // Khoảng cách giữa các hàng
                 children: [
                   _colorOption('FF4CAF50'), // Green
                   _colorOption('FF2196F3'), // Blue
@@ -418,28 +431,30 @@ class _BudgetFormState extends State<BudgetForm> {
     final color = Color(int.parse('0x$colorHex'));
     final isSelected = _color == colorHex;
     
-    return InkWell(
+    return GestureDetector(
       onTap: () {
+        print('Color selected: $colorHex (current: $_color)');
         setState(() {
           _color = colorHex;
         });
+        print('Color after setState: $_color');
       },
       child: Container(
-        width: 40,
-        height: 40,
-        margin: const EdgeInsets.only(bottom: 8),
+        width: 50,
+        height: 50,
+        margin: const EdgeInsets.only(bottom: 4),
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
           border: Border.all(
             color: isSelected ? Colors.white : Colors.transparent,
-            width: 2,
+            width: 3,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.6),
-                    blurRadius: 8,
+                    color: color.withOpacity(0.7),
+                    blurRadius: 10,
                     spreadRadius: 2,
                   ),
                 ]
@@ -449,6 +464,7 @@ class _BudgetFormState extends State<BudgetForm> {
             ? const Icon(
                 Icons.check,
                 color: Colors.white,
+                size: 28,
               )
             : null,
       ),
