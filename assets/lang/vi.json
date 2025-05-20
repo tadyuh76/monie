@@ -153,5 +153,22 @@
   "common_edit": "Sửa",
   "common_add": "Thêm",
   "common_user": "Người dùng",
-  "common_today": "Hôm nay"
+  "common_today": "Hôm nay",
+
+  "accounts_add_new": "Thêm Tài Khoản Mới",
+  "accounts_edit": "Chỉnh Sửa Tài Khoản",
+  "accounts_name": "Tên Tài Khoản",
+  "accounts_name_required": "Vui lòng nhập tên tài khoản",
+  "accounts_type": "Loại Tài Khoản",
+  "accounts_balance": "Số Dư",
+  "accounts_balance_required": "Vui lòng nhập số dư",
+  "accounts_balance_invalid": "Vui lòng nhập số tiền hợp lệ",
+  "accounts_currency": "Tiền Tệ",
+  "accounts_color": "Màu Sắc",
+  "accounts_create": "Tạo Tài Khoản",
+  "accounts_delete_title": "Xóa Tài Khoản",
+  "accounts_delete_confirmation": "Bạn có chắc chắn muốn xóa tài khoản '{name}'?",
+  "accounts_auth_required": "Bạn phải đăng nhập để quản lý tài khoản",
+
+  "budget_auth_required": "Bạn phải đăng nhập để quản lý ngân sách"
 }

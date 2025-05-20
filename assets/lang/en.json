@@ -154,5 +154,22 @@
   "common_edit": "Edit",
   "common_add": "Add",
   "common_user": "User",
-  "common_today": "Today"
+  "common_today": "Today",
+
+  "accounts_add_new": "Add New Account",
+  "accounts_edit": "Edit Account",
+  "accounts_name": "Account Name",
+  "accounts_name_required": "Please enter an account name",
+  "accounts_type": "Account Type",
+  "accounts_balance": "Balance",
+  "accounts_balance_required": "Please enter a balance",
+  "accounts_balance_invalid": "Please enter a valid amount",
+  "accounts_currency": "Currency",
+  "accounts_color": "Color",
+  "accounts_create": "Create Account",
+  "accounts_delete_title": "Delete Account",
+  "accounts_delete_confirmation": "Are you sure you want to delete the account '{name}'?",
+  "accounts_auth_required": "You must be logged in to manage accounts",
+
+  "budget_auth_required": "You must be logged in to manage budgets"
 }

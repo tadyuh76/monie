@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 
 class AccountCardWidget extends StatelessWidget {
@@ -20,6 +21,7 @@ class AccountCardWidget extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
+      width: 160,
       decoration: BoxDecoration(
         color: isDarkMode ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -59,7 +61,7 @@ class AccountCardWidget extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '\$${(account.balance).abs().toStringAsFixed(0)}',
+            Formatters.formatCurrency(account.balance),
             style: textTheme.headlineMedium?.copyWith(
               color: isDarkMode ? Colors.white : Colors.black87,
               fontWeight: FontWeight.bold,

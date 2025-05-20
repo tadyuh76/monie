@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
@@ -6,12 +7,15 @@ import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/home/domain/entities/account.dart'
     as home_account;
+import 'package:monie/features/home/presentation/widgets/account_card_widget.dart';
 import 'package:monie/features/home/presentation/widgets/balance_chart_widget.dart';
 import 'package:monie/features/home/presentation/widgets/greeting_widget.dart';
 import 'package:monie/features/home/presentation/widgets/heat_map_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/pie_chart_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
-import 'package:monie/features/home/presentation/widgets/summary_section_widget.dart';
+import 'package:monie/features/transactions/domain/entities/account.dart'
+    as transaction_account;
+import 'package:monie/features/transactions/domain/entities/budget.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_state.dart';
@@ -22,6 +26,8 @@ import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.d
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
+import 'package:monie/features/transactions/presentation/widgets/account_form_bottom_sheet.dart';
+import 'package:monie/features/transactions/presentation/widgets/budget_form_bottom_sheet.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -131,18 +137,20 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 24),
 
-                // Summary section
-                BlocBuilder<TransactionBloc, TransactionState>(
-                  builder: (context, state) {
-                    if (state is TransactionsLoaded) {
-                      return SummarySectionWidget(
-                        transactions: state.transactions,
-                      );
-                    }
-                    return const Center(child: CircularProgressIndicator());
-                  },
-                ),
+                // Accounts section
+                _buildAccountsSection(context, userId),
 
+                // Summary section
+                // BlocBuilder<TransactionBloc, TransactionState>(
+                //   builder: (context, state) {
+                //     if (state is TransactionsLoaded) {
+                //       return SummarySectionWidget(
+                //         transactions: state.transactions,
+                //       );
+                //     }
+                //     return const Center(child: CircularProgressIndicator());
+                //   },
+                // ),
                 const SizedBox(height: 24),
 
                 // Balance Chart section
@@ -156,11 +164,6 @@ class _HomePageState extends State<HomePage> {
                     return const SizedBox();
                   },
                 ),
-
-                const SizedBox(height: 24),
-
-                // Accounts section
-                _buildAccountsSection(context, userId),
 
                 const SizedBox(height: 24),
 
@@ -280,9 +283,20 @@ class _HomePageState extends State<HomePage> {
                       balance: acc.balance,
                       currency: acc.currency,
                       color: acc.color ?? 'blue',
-                      pinned: true, // Set all accounts as pinned for now
+                      pinned: acc.pinned,
+                      archived: acc.archived,
                     );
                   }).toList();
+
+              // Sort accounts: pinned first, then by name
+              homeAccounts.sort((a, b) {
+                // First by pinned status
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+
+                // Then by name for unpinned accounts
+                return a.name.compareTo(b.name);
+              });
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,78 +310,23 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 16),
                   if (homeAccounts.isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Text(
-                          context.tr('home_no_accounts'),
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.white70 : Colors.black54,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    )
+                    _buildEmptyAccountsView(context)
                   else
                     SizedBox(
                       height: 150,
                       child: ListView.separated(
                         shrinkWrap: true,
                         scrollDirection: Axis.horizontal,
-                        itemCount: homeAccounts.length,
+                        itemCount: homeAccounts.length + 1, // +1 for add card
                         separatorBuilder: (_, __) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
-                          return SizedBox(
-                            width: 180,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    homeAccounts[index].getColor(),
-                                    homeAccounts[index].getColor().withValues(
-                                      alpha: 0.7,
-                                    ),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    homeAccounts[index].name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    homeAccounts[index].type,
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    '${homeAccounts[index].currency}${homeAccounts[index].balance}',
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
+                          // Add card at the end
+                          if (index == homeAccounts.length) {
+                            return _buildAddAccountCard(context);
+                          }
+
+                          final account = homeAccounts[index];
+                          return _buildAccountCard(context, account);
                         },
                       ),
                     ),
@@ -376,6 +335,300 @@ class _HomePageState extends State<HomePage> {
             }
             return const Center(child: CircularProgressIndicator());
           },
+        );
+      },
+    );
+  }
+
+  Widget _buildAccountCard(BuildContext context, home_account.Account account) {
+    return GestureDetector(
+      onTap: () {
+        // Toggle pinned status when tapped
+        _toggleAccountPin(account);
+      },
+      onLongPress: () {
+        // Show edit/delete options when long-pressed
+        _showEditAccountOptions(context, account);
+      },
+      child: AccountCardWidget(account: account),
+    );
+  }
+
+  Widget _buildAddAccountCard(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardBackgroundColor =
+        isDarkMode ? AppColors.cardDark : Colors.grey[200];
+
+    return SizedBox(
+      width: 160,
+      child: InkWell(
+        onTap: () {
+          _showAddAccountModal(context);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          height: 150,
+          decoration: BoxDecoration(
+            color: cardBackgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDarkMode ? Colors.white30 : Colors.black26,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add_circle_outline,
+                size: 32,
+                color: AppColors.primary,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                context.tr('accounts_add_new'),
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _toggleAccountPin(home_account.Account account) {
+    // Convert to transaction account
+    final transactionAccount = transaction_account.Account(
+      accountId: account.accountId,
+      userId: account.userId,
+      name: account.name,
+      type: account.type,
+      balance: account.balance,
+      currency: account.currency,
+      // Toggle pinned status
+      pinned: !account.pinned,
+    );
+
+    // Update account
+    context.read<AccountBloc>().add(UpdateAccountEvent(transactionAccount));
+  }
+
+  Widget _buildEmptyAccountsView(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      height: 150,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppColors.cardDark : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05),
+          width: 1,
+        ),
+        boxShadow:
+            !isDarkMode
+                ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+                : null,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.account_balance_wallet_outlined,
+            size: 28,
+            color: isDarkMode ? Colors.white30 : Colors.black26,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('home_no_accounts'),
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  context.tr('home_no_accounts_desc'),
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white54 : Colors.black54,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () {
+              _showAddAccountModal(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(context.tr('accounts_add_new')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddAccountModal(BuildContext context) {
+    // Implement account creation modal
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return const AccountFormBottomSheet();
+      },
+    );
+  }
+
+  void _showEditAccountOptions(
+    BuildContext context,
+    home_account.Account account,
+  ) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // Provide haptic feedback to indicate the long-press was recognized
+    HapticFeedback.mediumImpact();
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: isDarkMode ? AppColors.cardDark : Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Text(
+                  account.name,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.edit, color: AppColors.primary),
+                title: Text(context.tr('common_edit')),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showEditAccountModal(context, account);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: Text(context.tr('common_delete')),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteAccountConfirmation(context, account);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  transaction_account.Account _convertHomeAccountToTransactionAccount(
+    home_account.Account account,
+  ) {
+    return transaction_account.Account(
+      accountId: account.accountId,
+      userId: account.userId,
+      name: account.name,
+      type: account.type,
+      balance: account.balance,
+      currency: account.currency,
+      // The color parameter is nullable in the Transaction Account class
+    );
+  }
+
+  void _showEditAccountModal(
+    BuildContext context,
+    home_account.Account account,
+  ) {
+    final transactionAccount = _convertHomeAccountToTransactionAccount(account);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return AccountFormBottomSheet(account: transactionAccount);
+      },
+    );
+  }
+
+  void _showDeleteAccountConfirmation(
+    BuildContext context,
+    home_account.Account account,
+  ) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final String accountName = account.name;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: isDarkMode ? AppColors.cardDark : Colors.white,
+          title: Text(context.tr('accounts_delete_title')),
+          content: Text(
+            context
+                .tr('accounts_delete_confirmation')
+                .replaceAll('{name}', accountName),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(context.tr('common_cancel')),
+            ),
+            TextButton(
+              onPressed: () {
+                final accountBloc = context.read<AccountBloc>();
+                accountBloc.add(DeleteAccountEvent(account.accountId ?? ''));
+                Navigator.pop(context);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text(context.tr('common_delete')),
+            ),
+          ],
         );
       },
     );
@@ -400,27 +653,30 @@ class _HomePageState extends State<HomePage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                context.tr('home_budgets'),
-                style: textTheme.headlineMedium?.copyWith(
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    context.tr('home_budgets'),
+                    style: textTheme.headlineMedium?.copyWith(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.add_circle_outline,
+                      color: AppColors.primary,
+                    ),
+                    onPressed: () {
+                      _showAddBudgetModal(context);
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               if (activeBudgets.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Text(
-                      context.tr('home_no_budgets'),
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                )
+                _buildEmptyBudgetsView(context)
               else
                 ListView.separated(
                   shrinkWrap: true,
@@ -435,74 +691,107 @@ class _HomePageState extends State<HomePage> {
                     // We don't have spent amount available, so using a placeholder
                     final spentAmount = budget.amount * progress;
 
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDarkMode ? AppColors.cardDark : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow:
-                            !isDarkMode
-                                ? [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ]
-                                : null,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    return Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color:
+                                isDarkMode ? AppColors.cardDark : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow:
+                                !isDarkMode
+                                    ? [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ]
+                                    : null,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                budget.name,
-                                style: textTheme.titleMedium?.copyWith(
-                                  color:
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    budget.name,
+                                    style: textTheme.titleMedium?.copyWith(
+                                      color:
+                                          isDarkMode
+                                              ? Colors.white
+                                              : Colors.black87,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${spentAmount.toStringAsFixed(2)}/${budget.amount.toStringAsFixed(2)}',
+                                    style: textTheme.titleMedium?.copyWith(
+                                      color: _getBudgetColor(budget.color),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  backgroundColor:
                                       isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                  fontWeight: FontWeight.bold,
+                                          ? Colors.grey[800]
+                                          : Colors.grey[300],
+                                  minHeight: 10,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _getBudgetColor(budget.color),
+                                  ),
                                 ),
                               ),
+                              const SizedBox(height: 8),
                               Text(
-                                '${spentAmount.toStringAsFixed(2)}/${budget.amount.toStringAsFixed(2)}',
-                                style: textTheme.titleMedium?.copyWith(
-                                  color: _getBudgetColor(budget.color),
-                                  fontWeight: FontWeight.bold,
+                                'All Categories', // Using placeholder since categoryName isn't available
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color:
+                                      isDarkMode
+                                          ? AppColors.textSecondary
+                                          : Colors.black54,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor:
-                                  isDarkMode
-                                      ? Colors.grey[800]
-                                      : Colors.grey[300],
-                              minHeight: 10,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                _getBudgetColor(budget.color),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: InkWell(
+                            onTap: () {
+                              _showEditBudgetOptions(context, budget);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color:
+                                    (isDarkMode
+                                        ? Colors.white10
+                                        : Colors.black.withOpacity(0.05)),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.more_vert,
+                                color:
+                                    isDarkMode
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                size: 16,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'All Categories', // Using placeholder since categoryName isn't available
-                            style: textTheme.bodyMedium?.copyWith(
-                              color:
-                                  isDarkMode
-                                      ? AppColors.textSecondary
-                                      : Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -546,6 +835,155 @@ class _HomePageState extends State<HomePage> {
           );
         }
         return const Center(child: CircularProgressIndicator());
+      },
+    );
+  }
+
+  Widget _buildEmptyBudgetsView(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      height: 150,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppColors.cardDark : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow:
+            !isDarkMode
+                ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+                : null,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            context.tr('home_no_active_budgets'),
+            style: TextStyle(
+              color: isDarkMode ? Colors.white70 : Colors.black54,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              _showAddBudgetModal(context);
+            },
+            icon: const Icon(Icons.add),
+            label: Text(context.tr('budget_create')),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddBudgetModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return const BudgetFormBottomSheet();
+      },
+    );
+  }
+
+  void _showEditBudgetOptions(BuildContext context, Budget budget) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          decoration: BoxDecoration(
+            color: isDarkMode ? AppColors.cardDark : Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit, color: AppColors.primary),
+                title: Text(context.tr('common_edit')),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showEditBudgetModal(context, budget);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: Text(context.tr('common_delete')),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteBudgetConfirmation(context, budget);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditBudgetModal(BuildContext context, Budget budget) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return BudgetFormBottomSheet(budget: budget);
+      },
+    );
+  }
+
+  void _showDeleteBudgetConfirmation(BuildContext context, Budget budget) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: isDarkMode ? AppColors.cardDark : Colors.white,
+          title: Text(context.tr('budget_delete_title')),
+          content: Text(
+            context
+                .tr('budget_delete_confirmation')
+                .replaceAll('{name}', budget.name),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(context.tr('common_cancel')),
+            ),
+            TextButton(
+              onPressed: () {
+                final budgetBloc = context.read<BudgetBloc>();
+                budgetBloc.add(DeleteBudgetEvent(budget.budgetId));
+                Navigator.pop(context);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text(context.tr('common_delete')),
+            ),
+          ],
+        );
       },
     );
   }
