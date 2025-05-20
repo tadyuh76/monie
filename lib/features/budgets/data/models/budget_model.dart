@@ -70,6 +70,7 @@ class BudgetModel extends Budget {
     final json = {
       'budget_id': id,
       'user_id': userId,
+      'name': name,
       'amount': totalAmount,
       'start_date': startDate.toIso8601String().split('T')[0], // Format as YYYY-MM-DD
       'end_date': endDate.toIso8601String().split('T')[0],
