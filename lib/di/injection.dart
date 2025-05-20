@@ -24,6 +24,10 @@ import 'package:monie/features/transactions/domain/usecases/get_transactions_use
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/budgets/domain/usecases/get_budgets_usecase.dart';
+import 'package:monie/features/budgets/domain/usecases/get_active_budgets_usecase.dart';
+import 'package:monie/features/budgets/domain/usecases/add_budget_usecase.dart';
+import 'package:monie/features/budgets/domain/usecases/update_budget_usecase.dart';
+import 'package:monie/features/budgets/domain/usecases/delete_budget_usecase.dart';
 import 'package:monie/features/budgets/data/repositories/budget_repository_impl.dart';
 import 'package:monie/features/budgets/domain/repositories/budget_repository.dart';
 import 'package:monie/features/transactions/data/datasources/transaction_remote_data_source.dart';
@@ -93,7 +97,9 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<CategoryRepository>(
     () => CategoryRepositoryImpl(remoteDataSource: getIt()),
   );
-  getIt.registerLazySingleton<BudgetRepository>(() => BudgetRepositoryImpl());
+  getIt.registerLazySingleton<BudgetRepository>(
+    () => BudgetRepositoryImpl(getIt<SupabaseClientManager>()),
+  );
 
   // Use cases
   getIt.registerLazySingleton(() => GetAccountsUseCase(getIt()));
@@ -105,6 +111,10 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton(() => UpdateTransactionUseCase(getIt()));
   getIt.registerLazySingleton(() => DeleteTransactionUseCase(getIt()));
   getIt.registerLazySingleton(() => GetBudgetsUseCase(getIt()));
+  getIt.registerLazySingleton(() => GetActiveBudgetsUseCase(getIt()));
+  getIt.registerLazySingleton(() => AddBudgetUseCase(getIt()));
+  getIt.registerLazySingleton(() => UpdateBudgetUseCase(getIt()));
+  getIt.registerLazySingleton(() => DeleteBudgetUseCase(getIt()));
   getIt.registerLazySingleton(() => GetCategoriesUseCase(getIt()));
   getIt.registerLazySingleton(() => CreateCategoryUseCase(getIt()));
 
@@ -139,7 +149,13 @@ Future<void> configureDependencies() async {
   );
 
   getIt.registerFactory<BudgetsBloc>(
-    () => BudgetsBloc(getBudgetsUseCase: getIt()),
+    () => BudgetsBloc(
+      getBudgetsUseCase: getIt(),
+      getActiveBudgetsUseCase: getIt(),
+      addBudgetUseCase: getIt(),
+      updateBudgetUseCase: getIt(),
+      deleteBudgetUseCase: getIt(),
+    ),
   );
 
   getIt.registerFactory<CategoriesBloc>(

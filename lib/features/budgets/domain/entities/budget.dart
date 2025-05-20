@@ -10,9 +10,15 @@ class Budget extends Equatable {
   final DateTime startDate;
   final DateTime endDate;
   final String? category;
+  final String? categoryId;
   final double progressPercentage;
   final double dailySavingTarget;
   final int daysRemaining;
+  final String? userId;
+  final bool isRecurring;
+  final bool isSaving;
+  final String? frequency;
+  final String? color;
 
   const Budget({
     required this.id,
@@ -24,9 +30,15 @@ class Budget extends Equatable {
     required this.startDate,
     required this.endDate,
     this.category,
+    this.categoryId,
     required this.progressPercentage,
     required this.dailySavingTarget,
     required this.daysRemaining,
+    this.userId,
+    this.isRecurring = false,
+    this.isSaving = false,
+    this.frequency,
+    this.color,
   });
 
   @override
@@ -40,8 +52,14 @@ class Budget extends Equatable {
     startDate,
     endDate,
     category,
+    categoryId,
     progressPercentage,
     dailySavingTarget,
     daysRemaining,
+    userId,
+    isRecurring,
+    isSaving,
+    frequency,
+    color,
   ];
 }
