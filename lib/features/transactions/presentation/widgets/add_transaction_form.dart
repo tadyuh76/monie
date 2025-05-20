@@ -279,6 +279,8 @@ class AddTransactionFormState extends State<AddTransactionForm> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       // Use 80% of screen height
       constraints: BoxConstraints(
@@ -287,12 +289,22 @@ class AddTransactionFormState extends State<AddTransactionForm> {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppColors.background : Colors.white,
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
         ),
+        boxShadow:
+            isDarkMode
+                ? null
+                : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -309,12 +321,15 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                   Text(
                     _getStepTitle(),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
+                      color: isDarkMode ? Colors.white : Colors.black87,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: Icon(
+                      Icons.close,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -370,6 +385,8 @@ class AddTransactionFormState extends State<AddTransactionForm> {
   }
 
   Widget _buildTransactionTypeSelector() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       children: [
         Expanded(
@@ -388,8 +405,10 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'expense'
-                        ? AppColors.expense.withValues(alpha: 0.2)
-                        : AppColors.cardDark,
+                        ? AppColors.expense.withValues(alpha: .2)
+                        : isDarkMode
+                        ? AppColors.cardDark
+                        : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color:
@@ -405,7 +424,9 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                   color:
                       _transactionType == 'expense'
                           ? AppColors.expense
-                          : Colors.white,
+                          : isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -429,8 +450,10 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'income'
-                        ? AppColors.income.withValues(alpha: 0.2)
-                        : AppColors.cardDark,
+                        ? AppColors.income.withValues(alpha: .2)
+                        : isDarkMode
+                        ? AppColors.cardDark
+                        : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color:
@@ -446,7 +469,9 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                   color:
                       _transactionType == 'income'
                           ? AppColors.income
-                          : Colors.white,
+                          : isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -458,22 +483,32 @@ class AddTransactionFormState extends State<AddTransactionForm> {
   }
 
   Widget _buildTitleStep() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Transaction Title',
-          style: TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontSize: 16,
+          ),
         ),
         SizedBox(height: 12),
         TextFormField(
           controller: _titleController,
-          style: TextStyle(color: Colors.white, fontSize: 18),
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontSize: 18,
+          ),
           decoration: InputDecoration(
             hintText: 'e.g., Grocery shopping, Monthly rent',
-            hintStyle: TextStyle(color: Colors.white54),
+            hintStyle: TextStyle(
+              color: isDarkMode ? Colors.white54 : Colors.black38,
+            ),
             filled: true,
-            fillColor: AppColors.cardDark,
+            fillColor: isDarkMode ? AppColors.cardDark : Colors.grey.shade100,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
@@ -491,17 +526,22 @@ class AddTransactionFormState extends State<AddTransactionForm> {
 
         Text(
           'Description (Optional)',
-          style: TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontSize: 16,
+          ),
         ),
         SizedBox(height: 12),
         TextFormField(
           controller: _descriptionController,
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
           decoration: InputDecoration(
             hintText: 'Add notes about this transaction',
-            hintStyle: TextStyle(color: Colors.white54),
+            hintStyle: TextStyle(
+              color: isDarkMode ? Colors.white54 : Colors.black38,
+            ),
             filled: true,
-            fillColor: AppColors.cardDark,
+            fillColor: isDarkMode ? AppColors.cardDark : Colors.grey.shade100,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
@@ -515,6 +555,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
   }
 
   Widget _buildCategoryStep() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final categories =
         _transactionType == 'expense'
             ? TransactionCategories.expenseCategories
@@ -525,7 +566,10 @@ class AddTransactionFormState extends State<AddTransactionForm> {
       children: [
         Text(
           'Select a category',
-          style: TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontSize: 16,
+          ),
         ),
         SizedBox(height: 16),
         GridView.builder(
@@ -611,6 +655,12 @@ class AddTransactionFormState extends State<AddTransactionForm> {
     String categoryName =
         _selectedCategory?['name']?.toString().toLowerCase() ?? '';
     String iconPath = CategoryIcons.getIconPath(categoryName);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final buttonColor = isDarkMode ? AppColors.cardDark : Colors.grey.shade100;
+    final operatorColor = AppColors.primary;
+
+    // Calculator layout
+    const valueTextStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.bold);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -656,10 +706,10 @@ class AddTransactionFormState extends State<AddTransactionForm> {
         // Amount display
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(16),
+            color: isDarkMode ? AppColors.cardDark : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -667,137 +717,124 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               if (_calculatorExpression.isNotEmpty)
                 Text(
                   _calculatorExpression,
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
-                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white60 : Colors.black54,
+                    fontSize: 16,
+                  ),
                 ),
-              Text(
-                '\$${_amountController.text}',
-                style: TextStyle(
-                  color:
-                      _transactionType == 'expense'
-                          ? AppColors.expense
-                          : AppColors.income,
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.right,
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _transactionType == 'expense' ? '-' : '+',
+                    style: TextStyle(
+                      fontSize: 32,
+                      color:
+                          _transactionType == 'expense'
+                              ? AppColors.expense
+                              : AppColors.income,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '\$${_amountController.text}',
+                    style: TextStyle(
+                      fontSize: 32,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
-        // Calculator
-        Column(
+        // Calculator buttons
+        GridView.count(
+          crossAxisCount: 4,
+          shrinkWrap: true,
+          childAspectRatio: 1.3,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          physics: const NeverScrollableScrollPhysics(),
           children: [
-            _buildCalculatorRow(['7', '8', '9', '÷']),
-            _buildCalculatorRow(['4', '5', '6', '×']),
-            _buildCalculatorRow(['1', '2', '3', '-']),
-            _buildCalculatorRow(['0', '.', '⌫', '+']),
-            Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ElevatedButton(
-                      onPressed: () => _updateCalculatorExpression('C'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: AppColors.surface,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'C',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ElevatedButton(
-                      onPressed: () => _updateCalculatorExpression('='),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        '=',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            _buildCalcButton('7', buttonColor, isDarkMode),
+            _buildCalcButton('8', buttonColor, isDarkMode),
+            _buildCalcButton('9', buttonColor, isDarkMode),
+            _buildCalcButton('÷', operatorColor, isDarkMode, isOperator: true),
+            _buildCalcButton('4', buttonColor, isDarkMode),
+            _buildCalcButton('5', buttonColor, isDarkMode),
+            _buildCalcButton('6', buttonColor, isDarkMode),
+            _buildCalcButton('×', operatorColor, isDarkMode, isOperator: true),
+            _buildCalcButton('1', buttonColor, isDarkMode),
+            _buildCalcButton('2', buttonColor, isDarkMode),
+            _buildCalcButton('3', buttonColor, isDarkMode),
+            _buildCalcButton('-', operatorColor, isDarkMode, isOperator: true),
+            _buildCalcButton('0', buttonColor, isDarkMode),
+            _buildCalcButton('.', buttonColor, isDarkMode),
+            _buildCalcButton(
+              'C',
+              AppColors.expense,
+              isDarkMode,
+              isOperator: true,
             ),
+            _buildCalcButton('+', operatorColor, isDarkMode, isOperator: true),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildCalculatorRow(List<String> buttons) {
-    return Row(
-      children:
-          buttons.map((button) {
-            final isOperation = ['+', '-', '×', '÷'].contains(button);
-            final isAction = ['C', '=', '⌫'].contains(button);
+  Widget _buildCalcButton(
+    String text,
+    Color bgColor,
+    bool isDarkMode, {
+    bool isOperator = false,
+  }) {
+    final textColor =
+        isOperator
+            ? Colors.white
+            : isDarkMode
+            ? Colors.white
+            : Colors.black87;
 
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ElevatedButton(
-                  onPressed: () => _updateCalculatorExpression(button),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.all(16),
-                    backgroundColor:
-                        isOperation
-                            ? AppColors.primary
-                            : isAction
-                            ? AppColors.surface
-                            : AppColors.cardDark,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    button,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
+    return InkWell(
+      onTap: () => _updateCalculatorExpression(text),
+      child: Container(
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildAdditionalInfoStep() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Date selector
         Text(
-          'Transaction Date',
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          'Date',
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontSize: 16,
+          ),
         ),
         const SizedBox(height: 12),
         InkWell(
@@ -805,18 +842,31 @@ class AddTransactionFormState extends State<AddTransactionForm> {
             final DateTime? pickedDate = await showDatePicker(
               context: context,
               initialDate: _selectedDate,
-              firstDate: DateTime(DateTime.now().year - 1),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
-              builder: (context, child) {
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2030),
+              builder: (BuildContext context, Widget? child) {
                 return Theme(
-                  data: ThemeData.dark().copyWith(
-                    colorScheme: const ColorScheme.dark(
-                      primary: AppColors.primary,
-                      onPrimary: Colors.white,
-                      surface: AppColors.surface,
-                      onSurface: Colors.white,
-                    ),
-                  ),
+                  data:
+                      isDarkMode
+                          ? ThemeData.dark().copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: AppColors.primary,
+                              onPrimary: Colors.white,
+                              surface: AppColors.surface,
+                              onSurface: Colors.white,
+                            ),
+                            dialogTheme: DialogThemeData(
+                              backgroundColor: AppColors.surface,
+                            ),
+                          )
+                          : ThemeData.light().copyWith(
+                            colorScheme: ColorScheme.light(
+                              primary: AppColors.primary,
+                              onPrimary: Colors.white,
+                              surface: Colors.white,
+                              onSurface: Colors.black87,
+                            ),
+                          ),
                   child: child!,
                 );
               },
@@ -830,7 +880,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.cardDark,
+              color: isDarkMode ? AppColors.cardDark : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -838,9 +888,15 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               children: [
                 Text(
                   DateFormat('MMM dd, yyyy').format(_selectedDate),
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                    fontSize: 16,
+                  ),
                 ),
-                const Icon(Icons.calendar_today, color: Colors.white),
+                Icon(
+                  Icons.calendar_today,
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
               ],
             ),
           ),
@@ -852,9 +908,12 @@ class AddTransactionFormState extends State<AddTransactionForm> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Recurring Transaction',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black87,
+                fontSize: 16,
+              ),
             ),
             Switch(
               value: _isRecurring,
@@ -873,28 +932,38 @@ class AddTransactionFormState extends State<AddTransactionForm> {
         // Account selector (dropdown)
         Text(
           'Account',
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontSize: 16,
+          ),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
+            color: isDarkMode ? AppColors.cardDark : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _selectedAccountId,
-              hint: const Text(
+              hint: Text(
                 'Select Account',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
               ),
               isExpanded: true,
-              dropdownColor: AppColors.surface,
-              style: const TextStyle(color: Colors.white),
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+              dropdownColor: isDarkMode ? AppColors.surface : Colors.white,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+              icon: Icon(
+                Icons.arrow_drop_down,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
               items: [
-                const DropdownMenuItem(
+                DropdownMenuItem(
                   value: '1',
                   child: Row(
                     children: [
@@ -904,7 +973,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                     ],
                   ),
                 ),
-                const DropdownMenuItem(
+                DropdownMenuItem(
                   value: '2',
                   child: Row(
                     children: [
@@ -929,28 +998,38 @@ class AddTransactionFormState extends State<AddTransactionForm> {
         // Budget selector (dropdown)
         Text(
           'Budget (Optional)',
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontSize: 16,
+          ),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
+            color: isDarkMode ? AppColors.cardDark : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _selectedBudgetId,
-              hint: const Text(
+              hint: Text(
                 'Select Budget',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
               ),
               isExpanded: true,
-              dropdownColor: AppColors.surface,
-              style: const TextStyle(color: Colors.white),
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+              dropdownColor: isDarkMode ? AppColors.surface : Colors.white,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+              icon: Icon(
+                Icons.arrow_drop_down,
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
               items: [
-                const DropdownMenuItem(
+                DropdownMenuItem(
                   value: '1',
                   child: Row(
                     children: [
@@ -974,6 +1053,8 @@ class AddTransactionFormState extends State<AddTransactionForm> {
   }
 
   Widget _buildNavigationButtons() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(top: 24.0),
       child: Row(
@@ -984,7 +1065,10 @@ class AddTransactionFormState extends State<AddTransactionForm> {
             OutlinedButton(
               onPressed: _previousStep,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.white30),
+                side: BorderSide(
+                  color: isDarkMode ? Colors.white30 : Colors.grey.shade400,
+                ),
+                foregroundColor: isDarkMode ? Colors.white : Colors.black87,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 12,
@@ -993,7 +1077,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Back', style: TextStyle(color: Colors.white)),
+              child: const Text('Back'),
             )
           else
             const SizedBox(width: 0), // Empty space if no back button
@@ -1002,15 +1086,13 @@ class AddTransactionFormState extends State<AddTransactionForm> {
             onPressed: _nextStep,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: Text(
-              _currentStep == 3 ? 'Save Transaction' : 'Next',
-              style: const TextStyle(color: Colors.white),
-            ),
+            child: Text(_currentStep == 3 ? 'Save Transaction' : 'Next'),
           ),
         ],
       ),

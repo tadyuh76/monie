@@ -12,6 +12,7 @@ import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 import 'package:monie/features/transactions/presentation/widgets/transaction_card.dart';
 import 'package:monie/features/transactions/presentation/widgets/transaction_form.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -47,6 +48,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   void _showAddTransactionSheet(BuildContext context, User user) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     // Use outer context's bloc
     final transactionsBloc = BlocProvider.of<TransactionsBloc>(context);
     final categoriesBloc = BlocProvider.of<CategoriesBloc>(context);
@@ -62,12 +64,19 @@ class _TransactionsPageState extends State<TransactionsPage> {
             value: categoriesBloc,
             child: Container(
               height: MediaQuery.of(context).size.height * 0.85,
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                color: isDarkMode ? AppColors.surface : Colors.white,
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
+                boxShadow: isDarkMode ? null : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
               ),
               child: AddTransactionForm(
                 onSubmit: (Map<String, dynamic> transaction) {
@@ -103,6 +112,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     User user,
     Transaction transaction,
   ) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     // Get references to the blocs before opening the modal
     final transactionsBloc = BlocProvider.of<TransactionsBloc>(context);
     final categoriesBloc = BlocProvider.of<CategoriesBloc>(context);
@@ -119,12 +129,19 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ],
           child: Container(
             height: MediaQuery.of(context).size.height * 0.85,
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: isDarkMode ? AppColors.surface : Colors.white,
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
               ),
+              boxShadow: isDarkMode ? null : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
             ),
             child: TransactionForm(userId: user.id, transaction: transaction),
           ),
@@ -141,14 +158,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
       context: context,
       builder:
           (dialogContext) => AlertDialog(
-            title: const Text('Delete Transaction'),
-            content: const Text(
-              'Are you sure you want to delete this transaction?',
+            title: Text(context.tr('transactions_delete')),
+            content: Text(
+              context.tr('transactions_delete_confirm'),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
+                child: Text(context.tr('common_cancel')),
               ),
               TextButton(
                 onPressed: () {
@@ -158,7 +175,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     DeleteExistingTransaction(transactionId),
                   );
                 },
-                child: const Text('Delete'),
+                child: Text(context.tr('common_delete')),
               ),
             ],
           ),
@@ -178,15 +195,17 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   Widget _buildScaffold(BuildContext context, User user) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDarkMode ? AppColors.background : Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: isDarkMode ? AppColors.background : Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: Text(
-          'Transactions',
+          context.tr('transactions_title'),
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            color: Colors.white,
+            color: isDarkMode ? Colors.white : Colors.black87,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -199,300 +218,163 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 _filterByType(value);
               }
             },
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'all',
-                    child: Text('All Transactions'),
-                  ),
-                  const PopupMenuItem(value: 'income', child: Text('Income')),
-                  const PopupMenuItem(
-                    value: 'expense',
-                    child: Text('Expenses'),
-                  ),
-                ],
-            icon: const Icon(Icons.filter_list),
+            icon: Icon(
+              Icons.filter_list,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'all',
+                child: Text('All'),
+              ),
+              const PopupMenuItem(
+                value: 'expense',
+                child: Text('Expenses'),
+              ),
+              const PopupMenuItem(
+                value: 'income',
+                child: Text('Income'),
+              ),
+            ],
           ),
         ],
       ),
-      body: BlocConsumer<TransactionsBloc, TransactionsState>(
-        listener: (context, state) {
-          if (state is TransactionActionSuccess) {
-            // Refresh UI after a successful action
-            _filterByMonth(_selectedMonth);
-          } else if (state is TransactionsError) {
-            // No need to show error, it will be handled globally
-          }
-        },
-        builder: (context, state) {
-          if (state is TransactionsLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is TransactionsLoaded) {
-            return _buildContent(context, state, user);
-          } else if (state is TransactionsError) {
-            return Center(child: Text('Error: ${state.message}'));
-          }
-          return const Center(child: CircularProgressIndicator());
-        },
-      ),
-    );
-  }
-
-  Widget _buildContent(
-    BuildContext context,
-    TransactionsLoaded state,
-    User user,
-  ) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
         children: [
           _buildMonthSelector(context),
-          _buildSummaryBar(context, state),
-          const SizedBox(height: 16),
-          _buildTransactionsList(context, state, user),
-          const SizedBox(height: 100), // Extra space at the bottom
+          Expanded(
+            child: BlocBuilder<TransactionsBloc, TransactionsState>(
+              builder: (context, state) {
+                if (state is TransactionsLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is TransactionsLoaded) {
+                  if (state.transactions.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.receipt_long,
+                            size: 64,
+                            color: isDarkMode ? Colors.white30 : Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            context.tr('transactions_empty'),
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white60 : Colors.grey.shade600,
+                              fontSize: 18,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    itemCount: state.transactions.length,
+                    itemBuilder: (context, index) {
+                      final transaction = state.transactions[index];
+                      
+                      return TransactionCard(
+                        transaction: transaction,
+                        onEdit: () => _showEditTransactionSheet(
+                          context,
+                          user,
+                          transaction,
+                        ),
+                        onDelete: () => _confirmDeleteTransaction(
+                          context,
+                          transaction.id,
+                        ),
+                      );
+                    },
+                  );
+                } else if (state is TransactionsError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${state.message}',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 16,
+                      ),
+                    ),
+                  );
+                }
+                
+                return const Center(child: Text('No transactions found'));
+              },
+            ),
+          ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddTransactionSheet(context, user),
+        child: const Icon(Icons.add),
       ),
     );
   }
 
   Widget _buildMonthSelector(BuildContext context) {
-    final currentMonth = DateTime.now();
-    List<DateTime> months = [];
-
-    // Generate the last 3 months and next 3 months
-    for (int i = -3; i <= 3; i++) {
-      months.add(DateTime(currentMonth.year, currentMonth.month + i, 1));
-    }
-
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    final currentMonth = DateFormat('MMMM yyyy').format(_selectedMonth);
+    
     return Container(
-      height: 60,
-      alignment: Alignment.center,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: months.length,
-        itemBuilder: (context, index) {
-          final month = months[index];
-          final monthName = DateFormat('MMMM').format(month);
-          final isSelected =
-              month.month == _selectedMonth.month &&
-              month.year == _selectedMonth.year;
-
-          return GestureDetector(
-            onTap: () => _filterByMonth(month),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    monthName,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color:
-                          isSelected ? Colors.white : AppColors.textSecondary,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                  if (isSelected)
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      width: 24,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSummaryBar(BuildContext context, TransactionsLoaded state) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
+        color: isDarkMode ? AppColors.surface : Colors.white,
+        boxShadow: isDarkMode 
+          ? null 
+          : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Expense
-          Column(
-            children: [
-              Text(
-                '↓ \$${state.totalExpense.toStringAsFixed(0)}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.expense,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Expenses',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
+          IconButton(
+            icon: Icon(
+              Icons.chevron_left, 
+              color: isDarkMode ? Colors.white : Colors.black87
+            ),
+            onPressed: () {
+              final previousMonth = DateTime(
+                _selectedMonth.year,
+                _selectedMonth.month - 1,
+                1,
+              );
+              _filterByMonth(previousMonth);
+            },
           ),
-
-          // Income
-          Column(
-            children: [
-              Text(
-                '↑ \$${state.totalIncome.toStringAsFixed(0)}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.income,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Income',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
+          Text(
+            currentMonth,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
           ),
-
-          // Net
-          Column(
-            children: [
-              Text(
-                '= \$${state.netAmount.toStringAsFixed(0)}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Net',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
+          IconButton(
+            icon: Icon(
+              Icons.chevron_right, 
+              color: isDarkMode ? Colors.white : Colors.black87
+            ),
+            onPressed: () {
+              final nextMonth = DateTime(
+                _selectedMonth.year,
+                _selectedMonth.month + 1,
+                1,
+              );
+              _filterByMonth(nextMonth);
+            },
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionsList(
-    BuildContext context,
-    TransactionsLoaded state,
-    User user,
-  ) {
-    final transactions = state.transactions;
-
-    if (transactions.isEmpty) {
-      return SizedBox(
-        height: 200,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.receipt_long,
-                size: 48,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No transactions found',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () => _showAddTransactionSheet(context, user),
-                child: const Text('Add Transaction'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Group transactions by date
-    final Map<String, List<Transaction>> groupedTransactions = {};
-
-    for (var transaction in transactions) {
-      final dateString = DateFormat('EEEE, MMMM d').format(transaction.date);
-      if (!groupedTransactions.containsKey(dateString)) {
-        groupedTransactions[dateString] = [];
-      }
-      groupedTransactions[dateString]!.add(transaction);
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ...groupedTransactions.entries.map((entry) {
-            final totalForDay = entry.value.fold<double>(
-              0,
-              (sum, transaction) => sum + transaction.amount,
-            );
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      entry.key,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      '\$${totalForDay.toStringAsFixed(0)}',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(color: Colors.white),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ...entry.value.map((transaction) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: TransactionCard(
-                      transaction: transaction,
-                      onEdit:
-                          () => _showEditTransactionSheet(
-                            context,
-                            user,
-                            transaction,
-                          ),
-                      onDelete:
-                          () => _confirmDeleteTransaction(
-                            context,
-                            transaction.id,
-                          ),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 16),
-              ],
-            );
-          }),
         ],
       ),
     );

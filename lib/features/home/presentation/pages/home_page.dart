@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_data.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
@@ -81,6 +82,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Controller và vị trí hiện tại cho PageView của ngân sách
+  final PageController _budgetPageController = PageController(viewportFraction: 0.93);
+  int _currentBudgetPage = 0;
+
   @override
   void initState() {
     super.initState();
@@ -88,18 +93,45 @@ class _HomePageState extends State<HomePage> {
     context.read<HomeBloc>().add(const LoadHomeData());
     // Make sure budgets are loaded too
     context.read<BudgetsBloc>().add(const LoadBudgets());
+
+    // Lắng nghe sự kiện thay đổi trang
+    _budgetPageController.addListener(_onBudgetPageChanged);
+  }
+
+  @override
+  void dispose() {
+    _budgetPageController.removeListener(_onBudgetPageChanged);
+    _budgetPageController.dispose();
+    super.dispose();
+  }
+
+  void _onBudgetPageChanged() {
+    if (_budgetPageController.page!.round() != _currentBudgetPage) {
+      setState(() {
+        _currentBudgetPage = _budgetPageController.page!.round();
+      });
+    }
   }
 
   // Widget to build the budget section based on BudgetsBloc state
   Widget _buildBudgetSection() {
     return BlocBuilder<BudgetsBloc, BudgetsState>(
       builder: (context, state) {
+        final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        
         if (state is BudgetsLoading) {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: isDarkMode ? AppColors.surface : Colors.white,
               borderRadius: BorderRadius.circular(16),
+              boxShadow: !isDarkMode ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                )
+              ] : null,
             ),
             child: const Center(
               child: SizedBox(
@@ -112,14 +144,21 @@ class _HomePageState extends State<HomePage> {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: isDarkMode ? AppColors.surface : Colors.white,
               borderRadius: BorderRadius.circular(16),
+              boxShadow: !isDarkMode ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                )
+              ] : null,
             ),
             child: Column(
               children: [
                 Text(
-                  'Error loading budgets: ${state.message}',
-                  style: const TextStyle(color: Colors.white),
+                  '${context.tr('common_error')}: ${state.message}',
+                  style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -127,39 +166,87 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () {
                     context.read<BudgetsBloc>().add(const LoadBudgets());
                   },
-                  child: const Text('Retry'),
+                  child: Text(context.tr('common_retry')),
                 ),
               ],
             ),
           );
         } else if (state is BudgetsLoaded) {
           if (state.budgets.isNotEmpty) {
-            return BudgetSectionWidget(budget: state.budgets.first);
+            // Tạo PageView để hiển thị tất cả ngân sách
+            return Column(
+              children: [
+                SizedBox(
+                  height: 200, // Tăng chiều cao lên để có đủ không gian
+                  child: PageView.builder(
+                    itemCount: state.budgets.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: BudgetSectionWidget(budget: state.budgets[index]),
+                      );
+                    },
+                    // Thêm hiệu ứng lướt mượt và hiển thị một phần ngân sách kế tiếp
+                    controller: _budgetPageController,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Hiển thị indicator để biết đang ở vị trí nào
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    state.budgets.length,
+                    (index) => Container(
+                      width: 8,
+                      height: 8,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary.withOpacity(index == _currentBudgetPage ? 1.0 : 0.3),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
           } else {
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: isDarkMode ? AppColors.surface : Colors.white,
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: !isDarkMode ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  )
+                ] : null,
               ),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.account_balance_wallet_outlined,
-                      color: Colors.white70,
+                      color: isDarkMode ? Colors.white70 : Colors.black45,
                       size: 48,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
-                      'No active budgets',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                      context.tr('home_no_active_budgets'),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                        fontSize: 16
+                      ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Create a budget to start tracking your spending',
-                      style: TextStyle(color: Colors.white54, fontSize: 14),
+                      context.tr('home_create_budget_hint'),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white54 : Colors.black54,
+                        fontSize: 14
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -173,15 +260,22 @@ class _HomePageState extends State<HomePage> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: isDarkMode ? AppColors.surface : Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: !isDarkMode ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              )
+            ] : null,
           ),
-          child: const SizedBox(
+          child: SizedBox(
             height: 100,
             child: Center(
               child: Text(
-                'Loading budgets...',
-                style: TextStyle(color: Colors.white70),
+                context.tr('home_loading_budgets'),
+                style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
               ),
             ),
           ),
@@ -203,121 +297,30 @@ class _HomePageState extends State<HomePage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            'Monie',
+            context.tr('app_name'),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.bold,
             ),
           ),
           actions: [
-            // More options menu
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
-              onSelected: (value) {
-                if (value == 'reset_categories') {
-                  // Show confirmation dialog
-                  showDialog(
-                    context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          backgroundColor: AppColors.surface,
-                          title: const Text(
-                            'Reset Categories',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          content: const Text(
-                            'This will ensure all default categories are available in the database. Continue?',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                _resetCategories(context);
-                              },
-                              child: const Text('Reset Categories'),
-                            ),
-                          ],
-                        ),
-                  );
-                } else if (value == 'logout') {
-                  // Show logout confirmation dialog
-                  showDialog(
-                    context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          backgroundColor: AppColors.surface,
-                          title: const Text(
-                            'Logout',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          content: const Text(
-                            'Are you sure you want to logout?',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                context.read<AuthBloc>().add(SignOutEvent());
-
-                                // Also manually navigate to login page for redundancy
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(
-                                    builder: (context) => const LoginPage(),
-                                  ),
-                                  (route) => false,
-                                );
-                              },
-                              child: Text(
-                                'Logout',
-                                style: TextStyle(color: AppColors.expense),
-                              ),
-                            ),
-                          ],
-                        ),
-                  );
-                }
+            // Settings icon button
+            IconButton(
+              icon: Icon(
+                Icons.settings,
+                color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black87
+              ),
+              onPressed: () {
+                // Navigate to settings page
+                Navigator.of(context).pushNamed('/settings');
               },
-              itemBuilder:
-                  (context) => [
-                    const PopupMenuItem<String>(
-                      value: 'reset_categories',
-                      child: Row(
-                        children: [
-                          Icon(Icons.refresh, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text(
-                            'Reset Categories',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'logout',
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text('Logout', style: TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                    ),
-                  ],
             ),
           ],
         ),
@@ -325,15 +328,35 @@ class _HomePageState extends State<HomePage> {
           child: BlocBuilder<HomeBloc, HomeState>(
             builder: (context, state) {
               if (state is HomeLoading) {
-                return const Center(child: CircularProgressIndicator());
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        context.tr('common_loading'),
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               } else if (state is HomeError) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Error loading data: ${state.message}',
-                        style: const TextStyle(color: Colors.white),
+                        '${context.tr('common_error')}: ${state.message}',
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -341,7 +364,7 @@ class _HomePageState extends State<HomePage> {
                         onPressed: () {
                           context.read<HomeBloc>().add(const LoadHomeData());
                         },
-                        child: const Text('Retry'),
+                        child: Text(context.tr('common_retry')),
                       ),
                     ],
                   ),
@@ -351,8 +374,8 @@ class _HomePageState extends State<HomePage> {
                 final authState = context.watch<AuthBloc>().state;
                 final userName =
                     authState is Authenticated
-                        ? authState.user.displayName ?? 'User'
-                        : 'User';
+                        ? authState.user.displayName ?? context.tr('common_user')
+                        : context.tr('common_user');
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -395,8 +418,8 @@ class _HomePageState extends State<HomePage> {
                           } else {
                             // Fallback to traditional navigation if not provided
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Tab switching not available'),
+                              SnackBar(
+                                content: Text(context.tr('home_tab_switching_unavailable')),
                                 backgroundColor: Colors.orange,
                               ),
                             );

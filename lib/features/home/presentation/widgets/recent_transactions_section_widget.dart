@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/home/presentation/widgets/transaction_item_widget.dart';
@@ -17,6 +18,7 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Sort by date (newest first) and limit to 3 transactions
     final sortedTransactions = List<Transaction>.from(transactions)
@@ -41,9 +43,9 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: Text(
-            'Recent Transactions',
+            context.tr('home_recent_transactions'),
             style: textTheme.headlineMedium?.copyWith(
-              color: Colors.white,
+              color: isDarkMode ? Colors.white : Colors.black87,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -69,13 +71,13 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
                   Text(
                     entry.key,
                     style: textTheme.bodyLarge?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                     ),
                   ),
                   Text(
                     Formatters.formatCurrency(totalForDay),
                     style: textTheme.bodyLarge?.copyWith(
-                      color: Colors.white,
+                      color: isDarkMode ? Colors.white : Colors.black87,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -100,7 +102,7 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
         Center(
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: isDarkMode ? AppColors.surface : Colors.grey[100],
               borderRadius: BorderRadius.circular(24),
             ),
             child: TextButton(
@@ -115,7 +117,7 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'View All Transactions',
+                    '${context.tr('home_see_all')} ${context.tr('home_transactions')}',
                     style: textTheme.labelLarge?.copyWith(
                       color: AppColors.primary,
                     ),

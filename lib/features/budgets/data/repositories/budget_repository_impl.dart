@@ -1,74 +1,143 @@
 import 'package:injectable/injectable.dart';
-import 'package:monie/core/utils/mock_data.dart';
+import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/budgets/data/models/budget_model.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/budgets/domain/repositories/budget_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 @Injectable(as: BudgetRepository)
 class BudgetRepositoryImpl implements BudgetRepository {
+  final SupabaseClientManager _supabaseClient;
+
+  BudgetRepositoryImpl(this._supabaseClient);
+
   @override
   Future<List<Budget>> getBudgets() async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    return MockData.budgets;
+    try {
+      final userId = _supabaseClient.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final response = await _supabaseClient.client
+          .from('budgets')
+          .select()
+          .eq('user_id', userId)
+          .order('start_date', ascending: false);
+
+      return response.map<Budget>((json) => 
+          BudgetModel.fromSupabaseJson(json)).toList();
+    } catch (error) {
+      throw Exception('Failed to get budgets: $error');
+    }
   }
 
   @override
   Future<Budget> getBudgetById(String id) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      final userId = _supabaseClient.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
 
-    final budget = MockData.budgets.firstWhere(
-      (budget) => budget.id == id,
-      orElse: () => throw Exception('Budget not found'),
-    );
+      final response = await _supabaseClient.client
+          .from('budgets')
+          .select()
+          .eq('budget_id', id)
+          .eq('user_id', userId)
+          .single();
 
-    return budget;
+      return BudgetModel.fromSupabaseJson(response);
+    } catch (error) {
+      throw Exception('Failed to get budget: $error');
+    }
   }
 
   @override
   Future<List<Budget>> getActiveBudgets() async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final userId = _supabaseClient.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
 
-    // Filter to get only active budgets (where end date is in the future)
-    final now = DateTime.now();
-    final activeBudgets =
-        MockData.budgets
-            .where((budget) => budget.endDate.isAfter(now))
-            .toList();
+      final today = DateTime.now().toIso8601String().split('T')[0];
 
-    return activeBudgets;
+      final response = await _supabaseClient.client
+          .from('budgets')
+          .select()
+          .eq('user_id', userId)
+          .gte('end_date', today)
+          .order('start_date', ascending: true);
+
+      return response.map<Budget>((json) => 
+          BudgetModel.fromSupabaseJson(json)).toList();
+    } catch (error) {
+      throw Exception('Failed to get active budgets: $error');
+    }
   }
 
   @override
   Future<void> addBudget(Budget budget) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      final userId = _supabaseClient.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
 
-    final budgetModel = BudgetModel.fromEntity(budget);
-    MockData.budgets.add(budgetModel);
+      final budgetModel = budget is BudgetModel 
+          ? budget 
+          : BudgetModel.fromEntity(budget);
+
+      // Ensure userId is set
+      final Map<String, dynamic> budgetData = budgetModel.toSupabaseJson();
+      budgetData['user_id'] = userId;
+
+      await _supabaseClient.client
+          .from('budgets')
+          .insert(budgetData);
+    } catch (error) {
+      throw Exception('Failed to add budget: $error');
+    }
   }
 
   @override
   Future<void> updateBudget(Budget budget) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      final userId = _supabaseClient.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
 
-    final index = MockData.budgets.indexWhere((b) => b.id == budget.id);
+      final budgetModel = budget is BudgetModel 
+          ? budget 
+          : BudgetModel.fromEntity(budget);
 
-    if (index >= 0) {
-      MockData.budgets[index] = BudgetModel.fromEntity(budget);
-    } else {
-      throw Exception('Budget not found');
+      await _supabaseClient.client
+          .from('budgets')
+          .update(budgetModel.toSupabaseJson())
+          .eq('budget_id', budget.id)
+          .eq('user_id', userId);
+    } catch (error) {
+      throw Exception('Failed to update budget: $error');
     }
   }
 
   @override
   Future<void> deleteBudget(String id) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 600));
+    try {
+      final userId = _supabaseClient.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
 
-    MockData.budgets.removeWhere((budget) => budget.id == id);
+      await _supabaseClient.client
+          .from('budgets')
+          .delete()
+          .eq('budget_id', id)
+          .eq('user_id', userId);
+    } catch (error) {
+      throw Exception('Failed to delete budget: $error');
+    }
   }
 }

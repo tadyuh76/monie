@@ -42,6 +42,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
        _checkEmailExists = checkEmailExists,
        super(AuthInitial()) {
     on<GetCurrentUserEvent>(_onGetCurrentUser);
+    on<RefreshUserEvent>(_onRefreshUser);
     on<SignUpEvent>(_onSignUp);
     on<SignInEvent>(_onSignIn);
     on<SignOutEvent>(_onSignOut);
@@ -49,6 +50,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<CheckVerificationStatusEvent>(_onCheckVerificationStatus);
     on<ResetPasswordEvent>(_onResetPassword);
     on<CheckEmailExistsEvent>(_onCheckEmailExists);
+  }
+
+  Future<void> _onRefreshUser(
+    RefreshUserEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    // Simply re-use the getCurrentUser handler
+    await _onGetCurrentUser(GetCurrentUserEvent(), emit);
   }
 
   Future<void> _onGetCurrentUser(

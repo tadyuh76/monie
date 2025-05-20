@@ -3,6 +3,7 @@ import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 
 class AccountSummaryWidget extends StatelessWidget {
   final List<Account> accounts;
@@ -16,6 +17,8 @@ class AccountSummaryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     // Calculate total balance
     final double totalBalance = accounts.fold(
       0,
@@ -35,8 +38,15 @@ class AccountSummaryWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isDarkMode ? AppColors.surface : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: !isDarkMode ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ] : null,
       ),
       child: Row(
         children: [
@@ -45,10 +55,10 @@ class AccountSummaryWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Balance',
+                Text(
+                  context.tr('home_balance'),
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                     fontSize: 14,
                   ),
                 ),
@@ -56,7 +66,9 @@ class AccountSummaryWidget extends StatelessWidget {
                 Text(
                   Formatters.formatCurrency(totalBalance),
                   style: TextStyle(
-                    color: totalBalance >= 0 ? Colors.white : AppColors.expense,
+                    color: totalBalance >= 0 
+                        ? isDarkMode ? Colors.white : Colors.black87
+                        : AppColors.expense,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -69,10 +81,10 @@ class AccountSummaryWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Income',
+                Text(
+                  context.tr('home_income'),
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                     fontSize: 14,
                   ),
                 ),
@@ -93,10 +105,10 @@ class AccountSummaryWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Expense',
+                Text(
+                  context.tr('home_expense'),
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                     fontSize: 14,
                   ),
                 ),
