@@ -82,6 +82,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Controller và vị trí hiện tại cho PageView của ngân sách
+  final PageController _budgetPageController = PageController(viewportFraction: 0.93);
+  int _currentBudgetPage = 0;
+
   @override
   void initState() {
     super.initState();
@@ -89,6 +93,24 @@ class _HomePageState extends State<HomePage> {
     context.read<HomeBloc>().add(const LoadHomeData());
     // Make sure budgets are loaded too
     context.read<BudgetsBloc>().add(const LoadBudgets());
+
+    // Lắng nghe sự kiện thay đổi trang
+    _budgetPageController.addListener(_onBudgetPageChanged);
+  }
+
+  @override
+  void dispose() {
+    _budgetPageController.removeListener(_onBudgetPageChanged);
+    _budgetPageController.dispose();
+    super.dispose();
+  }
+
+  void _onBudgetPageChanged() {
+    if (_budgetPageController.page!.round() != _currentBudgetPage) {
+      setState(() {
+        _currentBudgetPage = _budgetPageController.page!.round();
+      });
+    }
   }
 
   // Widget to build the budget section based on BudgetsBloc state
@@ -151,7 +173,42 @@ class _HomePageState extends State<HomePage> {
           );
         } else if (state is BudgetsLoaded) {
           if (state.budgets.isNotEmpty) {
-            return BudgetSectionWidget(budget: state.budgets.first);
+            // Tạo PageView để hiển thị tất cả ngân sách
+            return Column(
+              children: [
+                SizedBox(
+                  height: 200, // Tăng chiều cao lên để có đủ không gian
+                  child: PageView.builder(
+                    itemCount: state.budgets.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: BudgetSectionWidget(budget: state.budgets[index]),
+                      );
+                    },
+                    // Thêm hiệu ứng lướt mượt và hiển thị một phần ngân sách kế tiếp
+                    controller: _budgetPageController,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Hiển thị indicator để biết đang ở vị trí nào
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    state.budgets.length,
+                    (index) => Container(
+                      width: 8,
+                      height: 8,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary.withOpacity(index == _currentBudgetPage ? 1.0 : 0.3),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
           } else {
             return Container(
               padding: const EdgeInsets.all(16),
