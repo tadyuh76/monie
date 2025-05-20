@@ -30,7 +30,8 @@ class AccountCardWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                account.name,
+                account.name ?? '',
+                softWrap: true,
                 style: textTheme.titleLarge?.copyWith(color: Colors.white),
               ),
               Container(
@@ -45,7 +46,7 @@ class AccountCardWidget extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '\$${account.balance.abs().toStringAsFixed(0)}',
+            '\$${(account.balance ?? 0.0).abs().toStringAsFixed(0)}',
             style: textTheme.headlineMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.bold,

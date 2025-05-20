@@ -11,7 +11,7 @@ class SupabaseClientManager {
   SupabaseClientManager._();
 
   static Future<void> initialize() async {
-    await dotenv.load();
+   
 
     final supabaseUrl = dotenv.env['SUPABASE_URL']!;
     final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']!;
@@ -21,6 +21,7 @@ class SupabaseClientManager {
       anonKey: supabaseAnonKey,
       authOptions: const FlutterAuthClientOptions(
         authFlowType: AuthFlowType.pkce,
+        autoRefreshToken: true,
       ),
     );
 

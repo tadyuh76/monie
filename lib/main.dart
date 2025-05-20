@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/themes/app_theme.dart';
 // import 'package:monie/core/themes/color_extensions.dart';
 import 'package:monie/di/injection.dart';
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/pages/auth_wrapper.dart';
@@ -16,12 +18,15 @@ import 'package:monie/features/transactions/presentation/bloc/categories_bloc.da
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 
+import 'features/account/presentation/pages/edit_accounts_page.dart';
+
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+   await dotenv.load();
 
   // Lock orientation to portrait
   await SystemChrome.setPreferredOrientations([
@@ -72,12 +77,15 @@ class MyApp extends StatelessWidget {
         BlocProvider<CategoriesBloc>(
           create: (context) => getIt<CategoriesBloc>(),
         ),
+        BlocProvider<AccountBloc>(
+          create: (context) => getIt<AccountBloc>(),
+        ),
       ],
       child: MaterialApp(
         title: 'Monie',
         theme: AppTheme.darkTheme,
         scaffoldMessengerKey: rootScaffoldMessengerKey,
-        home: const AuthWrapper(),
+        home: const HomePage(),
         routes: {
           '/home': (context) => const HomePage(),
           '/transactions': (context) => const TransactionsPage(),

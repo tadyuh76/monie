@@ -97,7 +97,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       // Calculate totals
       final totalBalance = accounts.fold<double>(
         0,
-        (sum, account) => sum + account.balance,
+        (sum, account) => sum + (account.balance ?? 0.0),
       );
 
       // Calculate totals with updated transaction model

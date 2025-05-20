@@ -17,8 +17,12 @@ class AppColors {
   static const Color income = Color(0xFF81C784);
 
   // Account colors
-  static const Color bank = Color(0xFF81C784);
-  static const Color cash = Color(0xFF4DD0E1);
+  static const Color bank = Color(0xFF81C784);      // Green
+  static const Color cash = Color(0xFF4DD0E1);      // Light Blue
+  static const Color credit = Color.fromARGB(255, 152, 139, 229);    // Red
+  static const Color debit = Color(0xFF64B5F6);     // Blue
+  static const Color savings = Color(0xFFFFB74D);   // Orange
+  static const Color investment = Color(0xFFBA68C8); // Purple
 
   // Chart colors
   static const Color chartLine = Color(0xFF81C784);

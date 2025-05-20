@@ -78,7 +78,7 @@ class MockData {
     TransactionModel(
       id: '5',
       description: 'New shirt for work',
-      amount: -45.0,
+      amount:  -45.0,
       userId: 'user1',
       date: DateTime.now().subtract(const Duration(days: 8)),
       categoryName: 'Clothing',
