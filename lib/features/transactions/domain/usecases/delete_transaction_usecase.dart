@@ -7,7 +7,7 @@ class DeleteTransactionUseCase {
 
   DeleteTransactionUseCase(this.repository);
 
-  Future<void> call(String id) async {
-    return await repository.deleteTransaction(id);
+  Future<bool> call(String transactionId) async {
+    return await repository.deleteTransaction(transactionId);
   }
 }

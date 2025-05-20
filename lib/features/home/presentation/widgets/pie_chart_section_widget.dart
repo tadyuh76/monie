@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_data.dart';
-import 'package:monie/core/utils/mock_data.dart';
 import 'package:monie/features/home/presentation/widgets/category_pie_chart.dart';
-import 'package:monie/core/localization/app_localizations.dart';
 
 class PieChartSectionWidget extends StatefulWidget {
   const PieChartSectionWidget({super.key});
@@ -26,8 +25,8 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
     final incomeCategories = CategoryData.getIncomeCategories();
 
     // Calculate totals based on mock transactions
-    final totalExpenses = CategoryData.getTotalExpenses(MockData.transactions);
-    final totalIncome = CategoryData.getTotalIncome(MockData.transactions);
+    // final totalExpenses = CategoryData.getTotalExpenses(MockData.transactions);
+    // final totalIncome = CategoryData.getTotalIncome(MockData.transactions);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,14 +71,14 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
               // Expense pie chart
               CategoryPieChart(
                 isExpense: true,
-                totalAmount: totalExpenses,
+                totalAmount: 2000,
                 categories: expenseCategories,
                 isDarkMode: isDarkMode,
               ),
               // Income pie chart
               CategoryPieChart(
                 isExpense: false,
-                totalAmount: totalIncome,
+                totalAmount: 3000,
                 categories: incomeCategories,
                 isDarkMode: isDarkMode,
               ),

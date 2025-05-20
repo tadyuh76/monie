@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
-import 'package:monie/core/utils/mock_data.dart';
 import 'package:monie/features/groups/domain/entities/expense_group.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 
@@ -44,7 +43,8 @@ class GroupsPage extends StatelessWidget {
 
   Widget _buildGroupsOverview(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final groups = MockData.expenseGroups;
+    // TODO: Replace with actual data from repository
+    final groups = <ExpenseGroup>[];
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final totalAmount = groups.fold<double>(
@@ -69,7 +69,12 @@ class GroupsPage extends StatelessWidget {
             !isDarkMode
                 ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withValues(
+                      red: 0,
+                      green: 0,
+                      blue: 0,
+                      alpha: 13,
+                    ),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -142,7 +147,8 @@ class GroupsPage extends StatelessWidget {
   }
 
   List<Widget> _buildGroupsList(BuildContext context) {
-    final groups = MockData.expenseGroups;
+    // TODO: Replace with actual data from repository
+    final groups = <ExpenseGroup>[];
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return [
@@ -191,7 +197,12 @@ class GroupsPage extends StatelessWidget {
             !isDarkMode && !group.isSettled
                 ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withValues(
+                      red: 0,
+                      green: 0,
+                      blue: 0,
+                      alpha: 13,
+                    ),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -223,7 +234,7 @@ class GroupsPage extends StatelessWidget {
                     color: (isDarkMode
                             ? AppColors.textSecondary
                             : Colors.grey.shade400)
-                        .withValues(alpha: 0.2),
+                        .withValues(alpha: 51),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -344,7 +355,12 @@ class GroupsPage extends StatelessWidget {
             !isDarkMode
                 ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withValues(
+                      red: 0,
+                      green: 0,
+                      blue: 0,
+                      alpha: 13,
+                    ),
                     blurRadius: 5,
                     offset: const Offset(0, 2),
                   ),

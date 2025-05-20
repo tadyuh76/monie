@@ -38,7 +38,7 @@ class _TransactionFormState extends State<TransactionForm> {
 
     if (widget.transaction != null) {
       _amountController.text = widget.transaction!.amount.abs().toString();
-      _descriptionController.text = widget.transaction!.description;
+      _descriptionController.text = widget.transaction!.description ?? '';
       _titleController.text = widget.transaction!.title;
       _selectedDate = widget.transaction!.date;
       _isIncome = widget.transaction!.amount >= 0;
@@ -57,7 +57,7 @@ class _TransactionFormState extends State<TransactionForm> {
               () => {
                 'name': widget.transaction!.categoryName!,
                 'svgName': _isIncome ? 'salary' : 'shopping',
-                'color': widget.transaction!.categoryColor ?? '#9E9E9E',
+                'color': widget.transaction!.color ?? '#9E9E9E',
               },
         );
       }
@@ -119,20 +119,18 @@ class _TransactionFormState extends State<TransactionForm> {
       } else {
         // Update existing transaction
         final updatedTransaction = Transaction(
-          id: widget.transaction!.id,
+          transactionId: widget.transaction!.transactionId,
           amount: signedAmount,
           description: description,
           title: title,
           date: _selectedDate,
           userId: widget.userId,
           categoryName: categoryName,
-          categoryColor: categoryColor,
+          color: categoryColor,
           accountId: _selectedAccountId,
           budgetId: _selectedBudgetId,
           isRecurring: widget.transaction!.isRecurring,
           receiptUrl: widget.transaction!.receiptUrl,
-          createdAt: widget.transaction!.createdAt,
-          updatedAt: DateTime.now(),
         );
 
         context.read<TransactionsBloc>().add(

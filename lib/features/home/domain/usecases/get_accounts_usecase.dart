@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
-import 'package:monie/features/home/domain/repositories/account_repository.dart';
+import '../entities/account.dart';
+import '../repositories/account_repository.dart';
 
 @injectable
 class GetAccountsUseCase {
@@ -8,7 +8,7 @@ class GetAccountsUseCase {
 
   GetAccountsUseCase(this.repository);
 
-  Future<List<Account>> call() async {
-    return await repository.getAccounts();
+  Future<List<Account>> call(String userId) async {
+    return await repository.getAccounts(userId);
   }
 }

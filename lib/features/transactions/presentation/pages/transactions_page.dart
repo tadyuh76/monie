@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:monie/core/themes/app_colors.dart';
-import 'package:monie/features/authentication/domain/entities/user.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_event.dart';
-import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
-import 'package:monie/features/transactions/presentation/widgets/transaction_card.dart';
-import 'package:monie/features/transactions/presentation/widgets/transaction_form.dart';
-import 'package:monie/core/localization/app_localizations.dart';
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -22,164 +20,145 @@ class TransactionsPage extends StatefulWidget {
 }
 
 class _TransactionsPageState extends State<TransactionsPage> {
-  DateTime _selectedMonth = DateTime.now();
-  // We don't need the _showSnackBar method anymore as snackbars are handled globally
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  String _selectedType = 'all'; // 'all', 'expense', 'income'
 
   @override
   void initState() {
     super.initState();
-    // Load transactions for the current month
-    _filterByMonth(_selectedMonth);
-
-    // Load categories
+    _loadTransactions();
     context.read<CategoriesBloc>().add(const LoadCategories());
   }
 
-  void _filterByMonth(DateTime month) {
-    context.read<TransactionsBloc>().add(FilterTransactionsByMonth(month));
+  void _loadTransactions() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      // By default, load all transactions for the selected month
+      _dispatchFilterEvent();
+    }
+  }
+
+  void _changeMonth(int offset) {
     setState(() {
-      _selectedMonth = month;
+      _selectedMonth = DateTime(
+        _selectedMonth.year,
+        _selectedMonth.month + offset,
+      );
     });
+    _dispatchFilterEvent();
   }
 
-  void _filterByType(String? type) {
-    context.read<TransactionsBloc>().add(FilterTransactionsByType(type));
-    setState(() {});
+  void _changeType(String type) {
+    setState(() {
+      _selectedType = type;
+    });
+    _dispatchFilterEvent();
   }
 
-  void _showAddTransactionSheet(BuildContext context, User user) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    // Use outer context's bloc
-    final transactionsBloc = BlocProvider.of<TransactionsBloc>(context);
-    final categoriesBloc = BlocProvider.of<CategoriesBloc>(context);
+  void _dispatchFilterEvent() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! Authenticated) return;
+    final userId = authState.user.id;
+    // Dispatch a filter event with userId, type, and month
+    context.read<TransactionBloc>().add(
+      FilterTransactionsEvent(
+        userId: userId,
+        type: _selectedType,
+        month: _selectedMonth,
+      ),
+    );
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext modalContext) {
-        return BlocProvider.value(
-          value: transactionsBloc,
-          child: BlocProvider.value(
-            value: categoriesBloc,
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.85,
-              decoration: BoxDecoration(
-                color: isDarkMode ? AppColors.surface : Colors.white,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-                boxShadow:
-                    isDarkMode
-                        ? null
-                        : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, -2),
-                          ),
-                        ],
-              ),
-              child: AddTransactionForm(
-                onSubmit: (Map<String, dynamic> transaction) {
-                  // Dispatch add transaction event using the parent context's bloc
-                  transactionsBloc.add(
-                    AddNewTransaction(
-                      amount: transaction['amount'],
-                      description: transaction['description'] ?? '',
-                      title: transaction['title'],
-                      date: DateTime.parse(transaction['date']),
-                      userId: user.id,
-                      categoryName: transaction['category_name'],
-                      categoryColor: transaction['category_color'],
-                      accountId: null,
-                      budgetId: null,
-                      isIncome: transaction['amount'] >= 0,
+  void _showAddTransactionForm() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder:
+            (context) => AddTransactionForm(
+              onSubmit: (transactionData) {
+                context.read<TransactionBloc>().add(
+                  CreateTransactionEvent(
+                    Transaction(
+                      userId: authState.user.id,
+                      amount: transactionData['amount'],
+                      title: transactionData['title'],
+                      date: DateTime.parse(transactionData['date']),
+                      description: transactionData['description'],
+                      categoryName: transactionData['category_name'],
+                      color: transactionData['category_color'],
+                      accountId: transactionData['account_id'],
+                      budgetId: transactionData['budget_id'],
                     ),
-                  );
-
-                  // Note: We don't need to show a success message or refresh data here
-                  // That will be handled by the BlocListener in the page
-                },
-              ),
+                  ),
+                );
+                Navigator.pop(context);
+                _loadTransactions();
+              },
             ),
-          ),
-        );
-      },
-    );
+      );
+    }
   }
 
-  void _showEditTransactionSheet(
-    BuildContext context,
-    User user,
-    Transaction transaction,
-  ) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    // Get references to the blocs before opening the modal
-    final transactionsBloc = BlocProvider.of<TransactionsBloc>(context);
-    final categoriesBloc = BlocProvider.of<CategoriesBloc>(context);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext modalContext) {
-        return MultiBlocProvider(
-          providers: [
-            BlocProvider.value(value: transactionsBloc),
-            BlocProvider.value(value: categoriesBloc),
-          ],
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.85,
-            decoration: BoxDecoration(
-              color: isDarkMode ? AppColors.surface : Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-              boxShadow:
-                  isDarkMode
-                      ? null
-                      : [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, -2),
-                        ),
-                      ],
+  void _showEditTransactionForm(Transaction transaction) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder:
+            (context) => AddTransactionForm(
+              transaction: transaction,
+              onSubmit: (transactionData) {
+                context.read<TransactionBloc>().add(
+                  UpdateTransactionEvent(
+                    transaction.copyWith(
+                      amount: transactionData['amount'],
+                      title: transactionData['title'],
+                      date: DateTime.parse(transactionData['date']),
+                      description: transactionData['description'],
+                      categoryName: transactionData['category_name'],
+                      color: transactionData['category_color'],
+                      accountId: transactionData['account_id'],
+                      budgetId: transactionData['budget_id'],
+                    ),
+                  ),
+                );
+                Navigator.pop(context);
+                _loadTransactions();
+              },
             ),
-            child: TransactionForm(userId: user.id, transaction: transaction),
-          ),
-        );
-      },
-    );
+      );
+    }
   }
 
-  void _confirmDeleteTransaction(BuildContext context, String transactionId) {
-    // Get reference to the transactions bloc
-    final transactionsBloc = BlocProvider.of<TransactionsBloc>(context);
-
+  void _confirmDeleteTransaction(String transactionId) {
     showDialog(
       context: context,
       builder:
-          (dialogContext) => AlertDialog(
-            title: Text(context.tr('transactions_delete')),
-            content: Text(context.tr('transactions_delete_confirm')),
+          (context) => AlertDialog(
+            title: const Text('Delete Transaction'),
+            content: const Text(
+              'Are you sure you want to delete this transaction?',
+            ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(context.tr('common_cancel')),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.pop(dialogContext);
-                  // Use the captured bloc reference
-                  transactionsBloc.add(
-                    DeleteExistingTransaction(transactionId),
+                  context.read<TransactionBloc>().add(
+                    DeleteTransactionEvent(transactionId),
                   );
+                  Navigator.pop(context);
+                  _loadTransactions();
                 },
-                child: Text(context.tr('common_delete')),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
             ],
           ),
@@ -190,203 +169,240 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
-        if (authState is Authenticated) {
-          return _buildScaffold(context, authState.user);
+        if (authState is! Authenticated) {
+          return const Center(child: CircularProgressIndicator());
         }
-        return const Center(child: CircularProgressIndicator());
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Transactions'),
+            actions: [
+              PopupMenuButton<String>(
+                onSelected: _changeType,
+                initialValue: _selectedType,
+                itemBuilder:
+                    (context) => [
+                      const PopupMenuItem(value: 'all', child: Text('All')),
+                      const PopupMenuItem(
+                        value: 'expense',
+                        child: Text('Expenses'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'income',
+                        child: Text('Income'),
+                      ),
+                    ],
+                icon: const Icon(Icons.filter_list),
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              // Month selector
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8.0,
+                  horizontal: 16.0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left),
+                      onPressed: () => _changeMonth(-1),
+                    ),
+                    Text(
+                      DateFormat('MMMM yyyy').format(_selectedMonth),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right),
+                      onPressed: () => _changeMonth(1),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: BlocBuilder<TransactionBloc, TransactionState>(
+                  builder: (context, state) {
+                    if (state is TransactionLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (state is TransactionsLoaded) {
+                      // Filter by month and type in UI for now
+                      final transactions =
+                          state.transactions.where((t) {
+                            final isSameMonth =
+                                t.date.year == _selectedMonth.year &&
+                                t.date.month == _selectedMonth.month;
+                            final isType =
+                                _selectedType == 'all' ||
+                                (_selectedType == 'expense' && t.amount < 0) ||
+                                (_selectedType == 'income' && t.amount >= 0);
+                            return isSameMonth && isType;
+                          }).toList();
+                      if (transactions.isEmpty) {
+                        return const Center(
+                          child: Text('No transactions found.'),
+                        );
+                      }
+                      return ListView.builder(
+                        itemCount: transactions.length,
+                        itemBuilder: (context, index) {
+                          final transaction = transactions[index];
+                          return ListTile(
+                            title: Text(transaction.title),
+                            subtitle: Text(transaction.description ?? ''),
+                            trailing: PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  _showEditTransactionForm(transaction);
+                                } else if (value == 'delete') {
+                                  _confirmDeleteTransaction(
+                                    transaction.transactionId,
+                                  );
+                                }
+                              },
+                              itemBuilder:
+                                  (context) => [
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Text('Edit'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text('Delete'),
+                                    ),
+                                  ],
+                            ),
+                          );
+                        },
+                      );
+                    } else if (state is TransactionError) {
+                      return Center(child: Text(state.message));
+                    }
+                    return const SizedBox();
+                  },
+                ),
+              ),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: _showAddTransactionForm,
+            child: const Icon(Icons.add),
+          ),
+        );
       },
     );
   }
+}
 
-  Widget _buildScaffold(BuildContext context, User user) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+class TransactionListItem extends StatelessWidget {
+  final Transaction transaction;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-    return Scaffold(
-      backgroundColor:
-          isDarkMode
-              ? AppColors.background
-              : Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor:
-            isDarkMode
-                ? AppColors.background
-                : Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
+  const TransactionListItem({
+    super.key,
+    required this.transaction,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isExpense = transaction.amount < 0;
+    final formattedAmount = NumberFormat.currency(
+      symbol: '\$',
+      decimalDigits: 2,
+    ).format(transaction.amount.abs());
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
         title: Text(
-          context.tr('transactions_title'),
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            color: isDarkMode ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          transaction.title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'all') {
-                _filterByType(null);
-              } else {
-                _filterByType(value);
-              }
-            },
-            icon: Icon(
-              Icons.filter_list,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(value: 'all', child: Text('All')),
-                  const PopupMenuItem(
-                    value: 'expense',
-                    child: Text('Expenses'),
-                  ),
-                  const PopupMenuItem(value: 'income', child: Text('Income')),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (transaction.description != null &&
+                transaction.description!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(transaction.description!),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 16),
+                  const SizedBox(width: 4),
+                  Text(DateFormat('MMM d, yyyy').format(transaction.date)),
+                  if (transaction.accountId != null) ...[
+                    const SizedBox(width: 16),
+                    const Icon(Icons.account_balance_wallet, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Account ID: ${transaction.accountId!.substring(0, 8)}...',
+                    ),
+                  ],
                 ],
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildMonthSelector(context),
-          Expanded(
-            child: BlocBuilder<TransactionsBloc, TransactionsState>(
-              builder: (context, state) {
-                if (state is TransactionsLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (state is TransactionsLoaded) {
-                  if (state.transactions.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+              ),
+            ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              formattedAmount,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isExpense ? Colors.red : Colors.green,
+                fontSize: 18,
+              ),
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'edit') {
+                  onEdit();
+                } else if (value == 'delete') {
+                  onDelete();
+                }
+              },
+              itemBuilder:
+                  (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
                         children: [
-                          Icon(
-                            Icons.receipt_long,
-                            size: 64,
-                            color:
-                                isDarkMode
-                                    ? Colors.white30
-                                    : Colors.grey.shade300,
-                          ),
-                          const SizedBox(height: 16),
+                          const Icon(Icons.edit),
+                          const SizedBox(width: 8),
+                          Text(context.tr('edit')),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.delete, color: Colors.red),
+                          const SizedBox(width: 8),
                           Text(
-                            context.tr('transactions_empty'),
-                            style: TextStyle(
-                              color:
-                                  isDarkMode
-                                      ? Colors.white60
-                                      : Colors.grey.shade600,
-                              fontSize: 18,
-                            ),
-                            textAlign: TextAlign.center,
+                            context.tr('delete'),
+                            style: const TextStyle(color: Colors.red),
                           ),
                         ],
                       ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    itemCount: state.transactions.length,
-                    itemBuilder: (context, index) {
-                      final transaction = state.transactions[index];
-
-                      return TransactionCard(
-                        transaction: transaction,
-                        onEdit:
-                            () => _showEditTransactionSheet(
-                              context,
-                              user,
-                              transaction,
-                            ),
-                        onDelete:
-                            () => _confirmDeleteTransaction(
-                              context,
-                              transaction.id,
-                            ),
-                      );
-                    },
-                  );
-                } else if (state is TransactionsError) {
-                  return Center(
-                    child: Text(
-                      'Error: ${state.message}',
-                      style: TextStyle(color: Colors.red, fontSize: 16),
                     ),
-                  );
-                }
-
-                return const Center(child: Text('No transactions found'));
-              },
+                  ],
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddTransactionSheet(context, user),
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildMonthSelector(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    final currentMonth = DateFormat('MMMM yyyy').format(_selectedMonth);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-      decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.surface : Colors.white,
-        boxShadow:
-            isDarkMode
-                ? null
-                : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: Icon(
-              Icons.chevron_left,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
-            onPressed: () {
-              final previousMonth = DateTime(
-                _selectedMonth.year,
-                _selectedMonth.month - 1,
-                1,
-              );
-              _filterByMonth(previousMonth);
-            },
-          ),
-          Text(
-            currentMonth,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.chevron_right,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
-            onPressed: () {
-              final nextMonth = DateTime(
-                _selectedMonth.year,
-                _selectedMonth.month + 1,
-                1,
-              );
-              _filterByMonth(nextMonth);
-            },
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

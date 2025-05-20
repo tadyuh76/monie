@@ -9,6 +9,7 @@ import 'package:monie/features/budgets/presentation/pages/budgets_page.dart';
 import 'package:monie/features/groups/presentation/pages/groups_page.dart';
 import 'package:monie/features/home/presentation/pages/home_page.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
@@ -35,7 +36,7 @@ class _MainScreenState extends State<MainScreen> {
 
   // Use a getter for screens to rebuild them each time they're accessed
   List<Widget> get _screens => [
-    HomePage(onSwitchTab: _switchTab),
+    const HomePage(),
     const TransactionsPage(),
     const BudgetsPage(),
     const GroupsPage(),
@@ -81,11 +82,11 @@ class _MainScreenState extends State<MainScreen> {
             return true; // Listen to all state changes
           },
           listener: (context, state) {
-            if (state is TransactionActionInProgress) {
+            if (state is TransactionLoading) {
               // Do nothing, transaction is in progress
-            } else if (state is TransactionActionSuccess) {
+            } else if (state is TransactionLoaded) {
               // Show success message globally
-              _showGlobalSnackBar(state.message, backgroundColor: Colors.green);
+              // _showGlobalSnackBar(state.message, backgroundColor: Colors.green);
 
               // Ensure transactions are reloaded after successful action
               if (_currentIndex == 1) {
@@ -95,12 +96,17 @@ class _MainScreenState extends State<MainScreen> {
                 );
               } else {
                 // Otherwise just reload all transactions
-                context.read<TransactionsBloc>().add(const LoadTransactions());
+                final authState = context.read<AuthBloc>().state;
+                if (authState is Authenticated) {
+                  context.read<TransactionsBloc>().add(
+                    LoadTransactions(userId: authState.user.id),
+                  );
+                }
               }
             } else if (state is TransactionsError) {
               // Show error globally
               _showGlobalSnackBar(state.message, backgroundColor: Colors.red);
-            } else if (state is TransactionsLoaded) {
+            } else if (state is TransactionLoaded) {
               // Do nothing, transactions loaded successfully
             }
           },
@@ -211,7 +217,14 @@ class _MainScreenState extends State<MainScreen> {
                         FilterTransactionsByMonth(DateTime.now()),
                       );
                     } else {
-                      transactionsBloc.add(const LoadTransactions());
+                      if (!context.mounted) return;
+
+                      final authState = context.read<AuthBloc>().state;
+                      if (authState is Authenticated) {
+                        transactionsBloc.add(
+                          LoadTransactions(userId: authState.user.id),
+                        );
+                      }
                     }
                   });
                 } else {

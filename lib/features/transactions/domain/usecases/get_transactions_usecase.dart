@@ -8,7 +8,7 @@ class GetTransactionsUseCase {
 
   GetTransactionsUseCase(this.repository);
 
-  Future<List<Transaction>> call() async {
-    return await repository.getTransactions();
+  Future<List<Transaction>> call(String userId) async {
+    return await repository.getTransactions(userId);
   }
 }

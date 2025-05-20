@@ -1,61 +1,71 @@
 import 'package:monie/features/home/domain/entities/account.dart';
 
+/// A model class that represents an account in the application.
+/// This class extends the base [Account] entity and provides JSON serialization capabilities.
 class AccountModel extends Account {
-  AccountModel({
-    super.id,
-    super.user_id,
-    super.name,
-    super.type,
-    required super.balance,
-    super.currency,
-    super.archived,
+  /// Creates a new [AccountModel] instance.
+  const AccountModel({
+    super.accountId,
+    required super.userId,
+    required super.name,
+    required super.type,
+    super.balance = 0.0,
+    super.currency = 'USD',
     super.color,
-    super.pinned,
-    super.transactionCount,
+    super.archived = false,
+    super.pinned = false,
   });
 
+  /// Creates an [AccountModel] instance from a JSON map.
   factory AccountModel.fromJson(Map<String, dynamic> json) {
     return AccountModel(
-      id: json['id'],
-      user_id: json['user_id'],
-      name: json['name'],
-      type: json['type'],
-      balance: json['balance'].toDouble(),
-      currency: json['currency'],
-      archived: json['archived'],
-      color: json['color'],
-      pinned: json['pinned'],
-      transactionCount: json['transactionCount'],
+      accountId: json['account_id'] as String?,
+      userId: json['user_id'] as String,
+      name: json['name'] as String,
+      type: json['type'] as String,
+      balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
+      currency: json['currency'] as String? ?? 'USD',
+      color: json['color'] as String?,
+      archived: json['archived'] as bool? ?? false,
+      pinned: json['pinned'] as bool? ?? false,
     );
   }
 
+  /// Converts this [AccountModel] instance to a JSON map.
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'user_id': user_id,
+    final Map<String, dynamic> json = {
+      'user_id': userId,
       'name': name,
       'type': type,
       'balance': balance,
       'currency': currency,
       'archived': archived,
-      'color': color,
       'pinned': pinned,
-      'transactionCount': transactionCount,
     };
+
+    if (accountId != null) {
+      json['account_id'] = accountId!;
+    }
+
+    if (color != null) {
+      json['color'] = color!;
+    }
+
+    return json;
   }
 
+  /// Creates an [AccountModel] instance from an [Account] entity.
   factory AccountModel.fromEntity(Account entity) {
     return AccountModel(
-      id: entity.id,
-      user_id: entity.user_id,
+      accountId: entity.accountId,
+      userId: entity.userId,
       name: entity.name,
       type: entity.type,
       balance: entity.balance,
       currency: entity.currency,
-      archived: entity.archived,
       color: entity.color,
+      archived: entity.archived,
       pinned: entity.pinned,
-      transactionCount: entity.transactionCount,
     );
   }
 }

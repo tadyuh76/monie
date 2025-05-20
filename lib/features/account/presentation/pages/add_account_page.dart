@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:monie/core/themes/category_colors.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
@@ -29,7 +29,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
     'interestRate': TextEditingController(),
     'creditLimit': TextEditingController(),
   };
-  Color _selectedColor = Colors.green;
+  String _selectedColorName = 'blue';
 
   Account? get account => widget.account;
 
@@ -38,10 +38,10 @@ class _AddAccountPageState extends State<AddAccountPage> {
     super.initState();
     if (account != null) {
       _controllers['name']!.text = account?.name ?? '';
-      _controllers['balance']!.text = account?.balance?.toString() ?? '';
+      _controllers['balance']!.text = account?.balance.toString() ?? '';
       _controllers['currency']!.text = account?.currency ?? 'USD';
       _accountType = account?.type ?? 'cash';
-      _selectedColor = account!.getColor();
+      _selectedColorName = account?.color ?? 'blue';
     }
   }
 
@@ -114,33 +114,81 @@ class _AddAccountPageState extends State<AddAccountPage> {
     );
   }
 
+  Color get _selectedColor {
+    switch (_selectedColorName.toLowerCase()) {
+      case 'blue':
+        return CategoryColors.blue;
+      case 'green':
+        return CategoryColors.green;
+      case 'coolGrey':
+        return CategoryColors.coolGrey;
+      case 'warmGrey':
+        return CategoryColors.warmGrey;
+      case 'teal':
+        return CategoryColors.teal;
+      case 'darkBlue':
+        return CategoryColors.darkBlue;
+      case 'red':
+        return CategoryColors.red;
+      case 'gold':
+        return CategoryColors.gold;
+      case 'orange':
+        return CategoryColors.orange;
+      case 'plum':
+        return CategoryColors.plum;
+      case 'purple':
+        return CategoryColors.purple;
+      case 'indigo':
+        return CategoryColors.indigo;
+      default:
+        return CategoryColors.blue;
+    }
+  }
+
   Widget _colorPicker() {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Account Color:'),
-        const SizedBox(width: 12),
-        GestureDetector(
-          onTap: () async {
-            final color = await showDialog<Color>(
-              context: context,
-              builder:
-                  (context) => AlertDialog(
-                    title: const Text('Pick a color'),
-                    content: SingleChildScrollView(
-                      child: BlockPicker(
-                        pickerColor: _selectedColor,
-                        onColorChanged: (color) {
-                          Navigator.of(context).pop(color);
-                        },
-                      ),
-                    ),
-                  ),
-            );
-            if (color != null) setState(() => _selectedColor = color);
-          },
-          child: CircleAvatar(backgroundColor: _selectedColor, radius: 16),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _colorOption('blue', CategoryColors.blue),
+            _colorOption('green', CategoryColors.green),
+            _colorOption('coolGrey', CategoryColors.coolGrey),
+            _colorOption('warmGrey', CategoryColors.warmGrey),
+            _colorOption('teal', CategoryColors.teal),
+            _colorOption('darkBlue', CategoryColors.darkBlue),
+            _colorOption('red', CategoryColors.red),
+            _colorOption('gold', CategoryColors.gold),
+            _colorOption('orange', CategoryColors.orange),
+            _colorOption('plum', CategoryColors.plum),
+            _colorOption('purple', CategoryColors.purple),
+            _colorOption('indigo', CategoryColors.indigo),
+          ],
         ),
       ],
+    );
+  }
+
+  Widget _colorOption(String name, Color color) {
+    return GestureDetector(
+      onTap: () => setState(() => _selectedColorName = name),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color:
+                _selectedColorName == name ? Colors.white : Colors.transparent,
+            width: 2,
+          ),
+        ),
+      ),
     );
   }
 
@@ -198,8 +246,15 @@ class _AddAccountPageState extends State<AddAccountPage> {
               BlocListener<AccountBloc, AccountState>(
                 listener: (context, state) {
                   if (state is AddAccountState || state is UpdateAccountState) {
-                    context.read<HomeBloc>().add(const LoadHomeData());
-                    context.read<AccountBloc>().add(GetAccountsEvent());
+                    final authState = context.read<AuthBloc>().state;
+                    if (authState is Authenticated) {
+                      context.read<HomeBloc>().add(
+                        LoadHomeData(authState.user.id),
+                      );
+                      context.read<AccountBloc>().add(
+                        GetAccountsEvent(userId: authState.user.id),
+                      );
+                    }
                     Navigator.of(context).pop();
                   }
                 },
@@ -216,11 +271,8 @@ class _AddAccountPageState extends State<AddAccountPage> {
                             onPressed: () async {
                               if (_formKey.currentState!.validate()) {
                                 Account accountRequest = Account(
-                                  id:
-                                      account?.id ??
-                                      DateTime.now().millisecondsSinceEpoch
-                                          .toString(),
-                                  user_id: authState.user.id,
+                                  accountId: account?.accountId,
+                                  userId: authState.user.id,
                                   name: _controllers['name']!.text,
                                   type: _accountType,
                                   balance:
@@ -229,10 +281,9 @@ class _AddAccountPageState extends State<AddAccountPage> {
                                       ) ??
                                       0,
                                   currency: _controllers['currency']!.text,
-                                  color: _selectedColor.toARGB32(),
+                                  color: _selectedColorName,
                                   archived: account?.archived ?? false,
-                                  pinned: true,
-                                  transactionCount: 0,
+                                  pinned: account?.pinned ?? false,
                                 );
 
                                 if (mounted) {

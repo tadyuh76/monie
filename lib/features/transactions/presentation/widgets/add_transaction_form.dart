@@ -10,8 +10,10 @@ import 'package:monie/core/utils/category_utils.dart';
 
 class AddTransactionForm extends StatefulWidget {
   final Function(Map<String, dynamic>)? onSubmit;
+  final dynamic
+  transaction; // Accept a transaction for editing (can be Transaction or Map)
 
-  const AddTransactionForm({super.key, this.onSubmit});
+  const AddTransactionForm({super.key, this.onSubmit, this.transaction});
 
   @override
   AddTransactionFormState createState() => AddTransactionFormState();
@@ -59,6 +61,23 @@ class AddTransactionFormState extends State<AddTransactionForm> {
     super.initState();
     _amountController.text = '0';
     _selectedAccountId = '1'; // Default to first account
+
+    // If editing, prefill fields
+    if (widget.transaction != null) {
+      final t = widget.transaction;
+      _titleController.text = t.title ?? '';
+      _amountController.text =
+          t.amount != null ? t.amount.abs().toString() : '0';
+      _descriptionController.text = t.description ?? '';
+      _selectedDate = t.date ?? DateTime.now();
+      _selectedCategory =
+          t.categoryName != null ? {'name': t.categoryName} : null;
+      _transactionType =
+          (t.amount != null && t.amount < 0) ? 'expense' : 'income';
+      _selectedAccountId = t.accountId;
+      _selectedBudgetId = t.budgetId;
+      _isRecurring = t.isRecurring ?? false;
+    }
   }
 
   @override

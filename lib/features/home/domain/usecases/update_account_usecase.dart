@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
-import 'package:monie/features/home/domain/repositories/account_repository.dart';
+import '../entities/account.dart';
+import '../repositories/account_repository.dart';
 
 @injectable
 class UpdateAccountUseCase {
@@ -8,7 +8,7 @@ class UpdateAccountUseCase {
 
   UpdateAccountUseCase(this.repository);
 
-  Future<void> call(Account account) async {
+  Future<Account> call(Account account) async {
     return await repository.updateAccount(account);
   }
 }

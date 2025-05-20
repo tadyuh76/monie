@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/di/injection.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/authentication/presentation/pages/login_page.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/domain/models/user_profile.dart';
+import 'package:monie/features/settings/domain/repositories/settings_repository.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_state.dart';
@@ -24,6 +26,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  final SettingsRepository _settingsRepository = sl<SettingsRepository>();
   final _displayNameController = TextEditingController();
   final _phoneNumberController = TextEditingController();
   final _currentPasswordController = TextEditingController();
@@ -82,6 +85,8 @@ class _SettingsPageState extends State<SettingsPage> {
         source: ImageSource.gallery,
       );
 
+      if (!mounted) return;
+
       if (image != null) {
         // Upload the image to storage
 
@@ -92,10 +97,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
         try {
           // Lấy repository để thực hiện việc upload
-          final settingsRepository = bloc.repository;
 
           // Upload ảnh và lấy URL công khai hoặc đường dẫn cục bộ
-          final String? avatarUrl = await settingsRepository.uploadAvatar(
+          final String? avatarUrl = await _settingsRepository.uploadAvatar(
             image.path,
           );
 

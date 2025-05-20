@@ -23,7 +23,6 @@ class DetailAccountsPage extends StatefulWidget {
 
 class _DetailAccountsPageState extends State<DetailAccountsPage> {
   Account get account => widget.account;
-
   List<Transaction> get transactions => widget.transactions;
   Map<String, double> dataMap = {};
 
@@ -55,8 +54,8 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
   void initState() {
     super.initState();
     dataMap = <String, double>{
-      "Balance": (account.balance ?? 0.0),
-      "Transaction": account.transactionCount?.toDouble() ?? 1.0,
+      "Balance": account.balance,
+      "Transaction": account.transactionCount.toDouble(),
     };
   }
 
@@ -79,7 +78,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
           children: [
             const SizedBox(height: 15),
             Text(
-              account.name ?? '',
+              account.name,
               maxLines: 1,
               softWrap: true,
               overflow: TextOverflow.ellipsis,
@@ -94,7 +93,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
               width: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 20),
               decoration: BoxDecoration(
-                color: (account.getColor()).withAlpha(50),
+                color: account.getColor().withAlpha(50),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -170,7 +169,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
               width: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
               decoration: BoxDecoration(
-                color: (account.getColor()).withAlpha(50),
+                color: account.getColor().withAlpha(50),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(

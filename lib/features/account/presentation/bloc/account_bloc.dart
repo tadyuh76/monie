@@ -25,9 +25,11 @@ class AddAccountEvent extends AccountEvent {
 }
 
 class GetAccountsEvent extends AccountEvent {
-  const GetAccountsEvent();
+  final String userId;
+  const GetAccountsEvent({required this.userId});
+
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [userId];
 }
 
 class UpdateAccountEvent extends AccountEvent {
@@ -133,7 +135,7 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
   ) async {
     emit(const Loading());
     try {
-      final accounts = await getAccountsUseCase();
+      final accounts = await getAccountsUseCase(event.userId);
       emit(GetAccountsState(accounts: accounts));
     } catch (e) {
       emit(Error(e.toString()));
@@ -162,7 +164,7 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     try {
       // Add to repository
       await updateAccountUseCase(event.account);
-      final accounts = await getAccountsUseCase();
+      final accounts = await getAccountsUseCase(event.account.userId);
       emit(UpdateAccountState(accounts: accounts));
     } catch (e) {
       emit(Error(e.toString()));
@@ -176,8 +178,8 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     emit(const Loading());
     try {
       // Add to repository
-      await deleteAccountUseCase(event.account.id ?? '');
-      final accounts = await getAccountsUseCase();
+      await deleteAccountUseCase(event.account.accountId ?? '');
+      final accounts = await getAccountsUseCase(event.account.userId);
       emit(DeleteAccountState(accounts: accounts));
     } catch (e) {
       emit(Error(e.toString()));

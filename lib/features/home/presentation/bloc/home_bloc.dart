@@ -15,7 +15,11 @@ abstract class HomeEvent extends Equatable {
 }
 
 class LoadHomeData extends HomeEvent {
-  const LoadHomeData();
+  final String userId;
+  const LoadHomeData(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
 }
 
 // States
@@ -74,13 +78,15 @@ class HomeError extends HomeState {
 // Bloc
 @injectable
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
-  final GetAccountsUseCase getAccountsUseCase;
-  final GetTransactionsUseCase getTransactionsUseCase;
+  final GetAccountsUseCase _getAccountsUseCase;
+  final GetTransactionsUseCase _getTransactionsUseCase;
 
   HomeBloc({
-    required this.getAccountsUseCase,
-    required this.getTransactionsUseCase,
-  }) : super(const HomeInitial()) {
+    required GetAccountsUseCase getAccountsUseCase,
+    required GetTransactionsUseCase getTransactionsUseCase,
+  }) : _getAccountsUseCase = getAccountsUseCase,
+       _getTransactionsUseCase = getTransactionsUseCase,
+       super(const HomeInitial()) {
     on<LoadHomeData>(_onLoadHomeData);
   }
 
@@ -91,13 +97,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     emit(const HomeLoading());
 
     try {
-      final accounts = await getAccountsUseCase();
-      final transactions = await getTransactionsUseCase();
+      final accounts = await _getAccountsUseCase(event.userId);
+      final transactions = await _getTransactionsUseCase(event.userId);
 
       // Calculate totals
       final totalBalance = accounts.fold<double>(
         0,
-        (sum, account) => sum + (account.balance ?? 0.0),
+        (sum, account) => sum + (account.balance),
       );
 
       // Calculate totals with updated transaction model

@@ -10,6 +10,7 @@ import 'package:monie/core/themes/app_theme.dart';
 import 'package:monie/di/injection.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
+import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/authentication/presentation/pages/auth_wrapper.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/budgets/presentation/pages/budgets_page.dart';
@@ -20,7 +21,10 @@ import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_state.dart';
 import 'package:monie/features/settings/presentation/pages/settings_page.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/budget_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 
@@ -65,26 +69,39 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) => getIt<AuthBloc>()..add(GetCurrentUserEvent()),
+          create: (context) => sl<AuthBloc>()..add(GetCurrentUserEvent()),
         ),
         BlocProvider<HomeBloc>(
-          create: (context) => getIt<HomeBloc>()..add(const LoadHomeData()),
+          create: (context) {
+            final authState = sl<AuthBloc>().state;
+            if (authState is Authenticated) {
+              return sl<HomeBloc>()..add(LoadHomeData(authState.user.id));
+            }
+            return sl<HomeBloc>();
+          },
         ),
         BlocProvider<TransactionsBloc>(
-          create:
-              (context) =>
-                  getIt<TransactionsBloc>()..add(const LoadTransactions()),
+          create: (context) {
+            final authState = sl<AuthBloc>().state;
+            if (authState is Authenticated) {
+              return sl<TransactionsBloc>()
+                ..add(LoadTransactions(userId: authState.user.id));
+            }
+            return sl<TransactionsBloc>();
+          },
         ),
+        BlocProvider<TransactionBloc>(
+          create: (context) => sl<TransactionBloc>(),
+        ),
+        BlocProvider<AccountBloc>(create: (context) => sl<AccountBloc>()),
+        BlocProvider<BudgetBloc>(create: (context) => sl<BudgetBloc>()),
         BlocProvider<BudgetsBloc>(
-          create: (context) => getIt<BudgetsBloc>()..add(const LoadBudgets()),
+          create: (context) => sl<BudgetsBloc>()..add(const LoadBudgets()),
         ),
-        BlocProvider<CategoriesBloc>(
-          create: (context) => getIt<CategoriesBloc>(),
-        ),
+        BlocProvider<CategoriesBloc>(create: (context) => sl<CategoriesBloc>()),
         BlocProvider<SettingsBloc>(
           create:
-              (context) =>
-                  getIt<SettingsBloc>()..add(const LoadSettingsEvent()),
+              (context) => sl<SettingsBloc>()..add(const LoadSettingsEvent()),
         ),
       ],
       child: BlocBuilder<SettingsBloc, SettingsState>(
@@ -122,7 +139,14 @@ class MyApp extends StatelessWidget {
             home: const AuthWrapper(),
             routes: {
               '/home': (context) => const HomePage(),
-              '/transactions': (context) => const TransactionsPage(),
+              '/transactions': (context) {
+                // Get the authenticated user's ID
+                final authState = context.read<AuthBloc>().state;
+                if (authState is Authenticated) {
+                  return TransactionsPage();
+                }
+                return const HomePage(); // Fallback if not authenticated
+              },
               '/budgets': (context) => const BudgetsPage(),
               '/settings': (context) => const SettingsPage(),
             },

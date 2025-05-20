@@ -1,25 +1,38 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
-import 'package:monie/features/settings/data/repositories/settings_repository.dart';
+import 'package:monie/features/settings/domain/usecases/get_app_settings.dart';
+import 'package:monie/features/settings/domain/usecases/save_app_settings.dart';
+import 'package:monie/features/settings/domain/usecases/get_user_profile.dart';
+import 'package:monie/features/settings/domain/usecases/update_user_profile.dart';
+import 'package:monie/features/settings/domain/usecases/change_password.dart';
+import 'package:monie/features/settings/domain/usecases/upload_avatar.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/domain/models/user_profile.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_state.dart';
 
 class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
-  final SettingsRepository _repository;
-  final AuthBloc? _authBloc; // Optional for synchronization
+  final GetAppSettings getAppSettings;
+  final SaveAppSettings saveAppSettings;
+  final GetUserProfile getUserProfile;
+  final UpdateUserProfile updateUserProfile;
+  final ChangePassword changePassword;
+  final UploadAvatar uploadAvatar;
+  final AuthBloc? _authBloc;
   AppSettings _currentSettings = const AppSettings();
   UserProfile? _currentProfile;
 
-  // Getter để cho phép truy cập repository từ bên ngoài
-  SettingsRepository get repository => _repository;
-
-  SettingsBloc({required SettingsRepository repository, AuthBloc? authBloc})
-    : _repository = repository,
-      _authBloc = authBloc,
-      super(const SettingsInitial()) {
+  SettingsBloc({
+    required this.getAppSettings,
+    required this.saveAppSettings,
+    required this.getUserProfile,
+    required this.updateUserProfile,
+    required this.changePassword,
+    required this.uploadAvatar,
+    AuthBloc? authBloc,
+  }) : _authBloc = authBloc,
+       super(const SettingsInitial()) {
     on<LoadSettingsEvent>(_onLoadSettings);
     on<LoadUserProfileEvent>(_onLoadUserProfile);
     on<UpdateNotificationsEvent>(_onUpdateNotifications);
@@ -37,7 +50,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) async {
     emit(const SettingsLoading());
     try {
-      _currentSettings = await _repository.getAppSettings();
+      _currentSettings = await getAppSettings();
       emit(SettingsLoaded(_currentSettings));
     } catch (e) {
       emit(SettingsError('Failed to load settings: ${e.toString()}'));
@@ -50,20 +63,16 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) async {
     emit(const ProfileLoading());
     try {
-      final profile = await _repository.getUserProfile();
+      final profile = await getUserProfile();
       if (profile != null) {
         _currentProfile = profile;
         emit(ProfileLoaded(profile: profile, settings: _currentSettings));
-
-        // After loading the profile, try to ensure auth metadata is up-to-date
-        // This helps when profile changes haven't been fully propagated
         if (profile.displayName == 'User' || profile.displayName.isEmpty) {
-          // Try to update with better name if possible
           try {
             final updatedProfile = profile.copyWith(
               displayName: profile.email.split('@')[0],
             );
-            await _repository.updateUserProfile(updatedProfile);
+            await updateUserProfile(updatedProfile);
             _currentProfile = updatedProfile;
             emit(
               ProfileLoaded(
@@ -71,9 +80,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
                 settings: _currentSettings,
               ),
             );
-          } catch (e) {
-            // Ignore any errors here, we already have a profile loaded
-          }
+          } catch (e) {}
         }
       } else {
         emit(const SettingsError('No user profile found'));
@@ -91,9 +98,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       final newSettings = _currentSettings.copyWith(
         notificationsEnabled: event.enabled,
       );
-
-      final success = await _repository.saveAppSettings(newSettings);
-
+      final success = await saveAppSettings(newSettings);
       if (success) {
         _currentSettings = newSettings;
         emit(
@@ -116,13 +121,9 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) async {
     try {
       final newSettings = _currentSettings.copyWith(themeMode: event.themeMode);
-
-      final success = await _repository.saveAppSettings(newSettings);
-
+      final success = await saveAppSettings(newSettings);
       if (success) {
         _currentSettings = newSettings;
-
-        // Giữ lại thông tin profile trong trạng thái thành công
         if (_currentProfile != null) {
           emit(
             ProfileLoaded(
@@ -152,13 +153,9 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   ) async {
     try {
       final newSettings = _currentSettings.copyWith(language: event.language);
-
-      final success = await _repository.saveAppSettings(newSettings);
-
+      final success = await saveAppSettings(newSettings);
       if (success) {
         _currentSettings = newSettings;
-
-        // Giữ lại thông tin profile trong trạng thái thành công
         if (_currentProfile != null) {
           emit(
             ProfileLoaded(
@@ -190,22 +187,16 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       emit(const SettingsError('No user profile loaded'));
       return;
     }
-
     try {
       final updatedProfile = _currentProfile!.copyWith(
         displayName: event.displayName,
       );
-
-      final success = await _repository.updateUserProfile(updatedProfile);
-
+      final success = await updateUserProfile(updatedProfile);
       if (success) {
         _currentProfile = updatedProfile;
-
-        // If auth bloc is available, trigger a refresh
         if (_authBloc != null) {
           _authBloc.add(RefreshUserEvent());
         }
-
         emit(
           ProfileUpdateSuccess(
             message: 'Profile name updated',
@@ -213,7 +204,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
             settings: _currentSettings,
           ),
         );
-
         if (_authBloc != null) {
           _authBloc.add(RefreshUserEvent());
         }
@@ -234,23 +224,21 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       emit(const SettingsError('No user profile loaded'));
       return;
     }
-
     try {
+      // Use the uploadAvatar use case to upload the avatar and get the URL
+      final avatarUrl = await uploadAvatar(event.avatarUrl);
+      if (avatarUrl == null) {
+        emit(const SettingsError('Failed to upload avatar'));
+        return;
+      }
       // Update the profile with the new avatar URL
-      final updatedProfile = _currentProfile!.copyWith(
-        avatarUrl: event.avatarUrl,
-      );
-
-      final success = await _repository.updateUserProfile(updatedProfile);
-
+      final updatedProfile = _currentProfile!.copyWith(avatarUrl: avatarUrl);
+      final success = await updateUserProfile(updatedProfile);
       if (success) {
         _currentProfile = updatedProfile;
-
-        // If auth bloc is available, trigger a refresh
         if (_authBloc != null) {
           _authBloc.add(RefreshUserEvent());
         }
-
         emit(
           ProfileUpdateSuccess(
             message: 'Avatar updated',
@@ -258,6 +246,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
             settings: _currentSettings,
           ),
         );
+        add(LoadUserProfileEvent());
       } else {
         emit(const SettingsError('Failed to update avatar'));
       }
@@ -280,7 +269,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         phoneNumber: event.phoneNumber,
       );
 
-      final success = await _repository.updateUserProfile(updatedProfile);
+      final success = await updateUserProfile(updatedProfile);
 
       if (success) {
         _currentProfile = updatedProfile;
@@ -306,7 +295,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     emit(const SettingsLoading());
 
     try {
-      final result = await _repository.changePassword(
+      final result = await changePassword(
         event.currentPassword,
         event.newPassword,
       );

@@ -1,9 +1,25 @@
-import 'package:monie/features/home/domain/entities/account.dart';
+import '../entities/account.dart';
 
+/// Repository interface for managing accounts
 abstract class AccountRepository {
-  Future<List<Account>> getAccounts();
-  Future<Account> getAccountById(String id);
-  Future<void> addAccount(Account account);
-  Future<void> updateAccount(Account account);
-  Future<void> deleteAccount(String id);
+  /// Get all accounts for a user
+  Future<List<Account>> getAccounts(String userId);
+
+  /// Create a new account
+  Future<Account> createAccount(Account account);
+
+  /// Update an existing account
+  Future<Account> updateAccount(Account account);
+
+  /// Delete an account
+  Future<void> deleteAccount(String accountId);
+
+  /// Archives or unarchives an account
+  Future<Account> toggleArchiveAccount(String accountId, bool archived);
+
+  /// Pins or unpins an account
+  Future<Account> togglePinAccount(String accountId, bool pinned);
+
+  /// Updates account balance
+  Future<Account> updateBalance(String accountId, double newBalance);
 }

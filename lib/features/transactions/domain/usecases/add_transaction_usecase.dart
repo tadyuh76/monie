@@ -8,7 +8,7 @@ class AddTransactionUseCase {
 
   AddTransactionUseCase(this.repository);
 
-  Future<void> call(Transaction transaction) async {
-    return await repository.addTransaction(transaction);
+  Future<Transaction> call(Transaction transaction) async {
+    return await repository.createTransaction(transaction);
   }
 }

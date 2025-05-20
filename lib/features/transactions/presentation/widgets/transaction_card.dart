@@ -47,9 +47,10 @@ class TransactionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            if (transaction.description.isNotEmpty)
+            if (transaction.description != null &&
+                transaction.description!.isNotEmpty)
               Text(
-                transaction.description,
+                transaction.description!,
                 style: TextStyle(
                   color: isDarkMode ? Colors.white70 : Colors.black54,
                 ),
@@ -165,11 +166,10 @@ class TransactionCard extends StatelessWidget {
 
     // Get the proper category color
     Color categoryColor;
-    if (transaction.categoryColor != null) {
+    if (transaction.color != null) {
       // Use the stored category color if available
       categoryColor = Color(
-        int.parse(transaction.categoryColor!.substring(1), radix: 16) +
-            0xFF000000,
+        int.parse(transaction.color!.substring(1), radix: 16) + 0xFF000000,
       );
     } else {
       // Otherwise, get the color from our mapping

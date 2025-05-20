@@ -4,19 +4,21 @@ import 'dart:io';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/domain/models/user_profile.dart';
+import 'package:monie/features/settings/domain/repositories/settings_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SettingsRepository {
+class SettingsRepositoryImpl implements SettingsRepository {
   final SupabaseClientManager _supabaseClient;
   final SharedPreferences _preferences;
 
-  SettingsRepository({
+  SettingsRepositoryImpl({
     required SupabaseClientManager supabaseClient,
     required SharedPreferences preferences,
   }) : _supabaseClient = supabaseClient,
        _preferences = preferences;
 
   // App Settings
+  @override
   Future<AppSettings> getAppSettings() async {
     try {
       // Load settings from SharedPreferences
@@ -38,6 +40,7 @@ class SettingsRepository {
     }
   }
 
+  @override
   Future<bool> saveAppSettings(AppSettings settings) async {
     try {
       await _preferences.setBool(
@@ -53,6 +56,7 @@ class SettingsRepository {
   }
 
   // User Profile
+  @override
   Future<UserProfile?> getUserProfile() async {
     try {
       final User? user = _supabaseClient.client.auth.currentUser;
@@ -130,6 +134,7 @@ class SettingsRepository {
     }
   }
 
+  @override
   Future<bool> updateUserProfile(UserProfile profile) async {
     try {
       final User? user = _supabaseClient.client.auth.currentUser;
@@ -179,6 +184,7 @@ class SettingsRepository {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> changePassword(
     String currentPassword,
     String newPassword,
@@ -223,6 +229,7 @@ class SettingsRepository {
   }
 
   // Avatar handling
+  @override
   Future<String?> uploadAvatar(String filePath) async {
     try {
       final User? user = _supabaseClient.client.auth.currentUser;

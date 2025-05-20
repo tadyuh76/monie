@@ -5,10 +5,10 @@ import 'package:monie/features/home/domain/entities/account.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 
 class HomeAccountCard extends StatelessWidget {
-  Account account;
-  List<Transaction> transactions;
+  final Account account;
+  final List<Transaction> transactions;
 
-  HomeAccountCard({
+  const HomeAccountCard({
     super.key,
     required this.account,
     required this.transactions,
@@ -43,7 +43,7 @@ class HomeAccountCard extends StatelessWidget {
                   Container(
                     margin: EdgeInsets.only(right: 40),
                     child: Text(
-                      account.name ?? '',
+                      account.name,
                       maxLines: 1,
                       softWrap: true,
                       overflow: TextOverflow.ellipsis,
@@ -55,14 +55,13 @@ class HomeAccountCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  if (account.type != null)
-                    Text(
-                      account.type ?? '',
-                      maxLines: 1,
-                      softWrap: true,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey[300], fontSize: 14),
-                    ),
+                  Text(
+                    account.type,
+                    maxLines: 1,
+                    softWrap: true,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey[300], fontSize: 14),
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     '${account.balance}${account.currency}',

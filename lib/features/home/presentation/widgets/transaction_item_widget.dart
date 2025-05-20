@@ -27,11 +27,10 @@ class TransactionItemWidget extends StatelessWidget {
 
     // Get the proper category color
     Color categoryColor;
-    if (transaction.categoryColor != null) {
+    if (transaction.color != null) {
       // Use the stored category color if available
       categoryColor = Color(
-        int.parse(transaction.categoryColor!.substring(1), radix: 16) +
-            0xFF000000,
+        int.parse(transaction.color!.substring(1), radix: 16) + 0xFF000000,
       );
     } else {
       // Otherwise, get the color from our mapping
@@ -85,7 +84,7 @@ class TransactionItemWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  transaction.description,
+                  transaction.description ?? '',
                   style: textTheme.bodySmall?.copyWith(
                     color:
                         isDarkMode ? AppColors.textSecondary : Colors.black54,

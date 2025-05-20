@@ -144,9 +144,7 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                },
+                onPressed: () => Navigator.of(context).pop(true),
                 child: const Text(
                   'Archive',
                   style: TextStyle(color: AppColors.primary),
@@ -157,9 +155,10 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
     );
     if (confirm == true) {
       setState(() {
-        accounts[index].archived = true;
+        final updatedAccount = accounts[index].copyWith(archived: true);
+        accounts[index] = updatedAccount;
         if (archiveAccount != null) {
-          archiveAccount(accounts[index]).call();
+          archiveAccount(updatedAccount).call();
         }
       });
       if (mounted) {
@@ -178,9 +177,10 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
     Function(Account account)? unarchiveAccount,
   }) {
     setState(() {
-      accounts[index].archived = false;
+      final updatedAccount = accounts[index].copyWith(archived: false);
+      accounts[index] = updatedAccount;
       if (unarchiveAccount != null) {
-        unarchiveAccount(accounts[index]).call();
+        unarchiveAccount(updatedAccount).call();
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -197,7 +197,9 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
   }) async {
     final acc = accounts[index];
     final otherAccounts =
-        accounts.where((a) => a.id != acc.id && a.archived != true).toList();
+        accounts
+            .where((a) => a.accountId != acc.accountId && !a.archived)
+            .toList();
     String? selectedId;
     final confirm = await showDialog<String>(
       context: context,
@@ -234,9 +236,9 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
                           otherAccounts
                               .map<DropdownMenuItem<String>>(
                                 (a) => DropdownMenuItem<String>(
-                                  value: a.id as String,
+                                  value: a.accountId,
                                   child: Text(
-                                    a.name ?? '',
+                                    a.name,
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                 ),
@@ -253,7 +255,7 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
                 ),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(-1),
+                    onPressed: () => Navigator.of(context).pop(null),
                     child: const Text(
                       'Cancel',
                       style: TextStyle(color: Colors.white),
@@ -272,13 +274,16 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
       },
     );
     if (confirm != null) {
-      final destIndex = accounts.indexWhere((a) => a.id == confirm);
+      final destIndex = accounts.indexWhere((a) => a.accountId == confirm);
       setState(() {
-        accounts[destIndex].balance =
-            (accounts[destIndex].balance ?? 0.0) + (acc.balance ?? 0.0);
-        acc.balance = 0;
+        final destAccount = accounts[destIndex].copyWith(
+          balance: accounts[destIndex].balance + acc.balance,
+        );
+        final sourceAccount = acc.copyWith(balance: 0);
+        accounts[destIndex] = destAccount;
+        accounts[index] = sourceAccount;
         if (reconcileAccount != null) {
-          reconcileAccount(accounts[destIndex], acc).call();
+          reconcileAccount(destAccount, sourceAccount).call();
         }
       });
       if (mounted) {
@@ -467,25 +472,40 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
         if (state is DeleteAccountState) {
           accounts = state.accounts;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text('Account deleted successfully!'),
               backgroundColor: AppColors.primary,
             ),
           );
-          context.read<HomeBloc>().add(const LoadHomeData());
-          context.read<AccountBloc>().add(GetAccountsEvent());
+          final authState = context.read<AuthBloc>().state;
+          if (authState is Authenticated) {
+            context.read<HomeBloc>().add(LoadHomeData(authState.user.id));
+            context.read<AccountBloc>().add(
+              GetAccountsEvent(userId: authState.user.id),
+            );
+          }
         }
 
         if (state is UpdateAccountState) {
           accounts = state.accounts;
-          context.read<AccountBloc>().add(GetAccountsEvent());
-          context.read<HomeBloc>().add(const LoadHomeData());
+          final authState = context.read<AuthBloc>().state;
+          if (authState is Authenticated) {
+            context.read<AccountBloc>().add(
+              GetAccountsEvent(userId: authState.user.id),
+            );
+            context.read<HomeBloc>().add(LoadHomeData(authState.user.id));
+          }
         }
 
         if (state is GetAccountsState) {
           accounts = state.accounts;
-          context.read<AccountBloc>().add(GetAccountsEvent());
-          context.read<HomeBloc>().add(const LoadHomeData());
+          final authState = context.read<AuthBloc>().state;
+          if (authState is Authenticated) {
+            context.read<AccountBloc>().add(
+              GetAccountsEvent(userId: authState.user.id),
+            );
+            context.read<HomeBloc>().add(LoadHomeData(authState.user.id));
+          }
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
@@ -535,7 +555,7 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
                             itemBuilder: (context, index) {
                               final acc = filteredAccounts[index];
                               return Dismissible(
-                                key: ValueKey(acc.id),
+                                key: ValueKey(acc.accountId),
                                 background: Container(
                                   color: Colors.red,
                                   alignment: Alignment.centerRight,
@@ -596,13 +616,13 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
                                                   MainAxisAlignment.center,
                                               children: [
                                                 Text(
-                                                  acc.name ?? '',
+                                                  acc.name,
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                   ),
                                                 ),
                                                 Text(
-                                                  '${acc.type} • ${acc.balance} ${acc.currency} • ${acc.transactionCount ?? 0} transactions',
+                                                  '${acc.type} • ${acc.balance} ${acc.currency} • ${acc.transactionCount} transactions',
                                                   style: const TextStyle(
                                                     color: Colors.white54,
                                                   ),
