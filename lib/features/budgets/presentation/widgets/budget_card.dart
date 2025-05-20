@@ -18,6 +18,27 @@ class BudgetCard extends StatelessWidget {
     this.onDelete,
   });
 
+  // Helper method to format display text without underscores
+  String _formatDisplayText(BuildContext context, String text) {
+    if (text.contains('_')) {
+      List<String> words = text.split('_');
+      return words.map((word) => word.isNotEmpty 
+          ? '${word[0].toUpperCase()}${word.substring(1)}' 
+          : '').join(' ');
+    }
+    return text;
+  }
+  
+  // Helper method to translate text and remove underscores for display
+  String _trDisplay(BuildContext context, String key) {
+    String translated = context.tr(key);
+    // If translation failed (key is returned), format the key for display
+    if (translated == key) {
+      return _formatDisplayText(context, key);
+    }
+    return translated;
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -81,7 +102,7 @@ class BudgetCard extends StatelessWidget {
                               children: [
                                 const Icon(Icons.edit, size: 18),
                                 const SizedBox(width: 8),
-                                Text(context.tr('common_edit')),
+                                Text(_trDisplay(context, 'common_edit')),
                               ],
                             ),
                           ),
@@ -93,7 +114,7 @@ class BudgetCard extends StatelessWidget {
                                 const Icon(Icons.delete, size: 18, color: Colors.red),
                                 const SizedBox(width: 8),
                                 Text(
-                                  context.tr('common_delete'),
+                                  _trDisplay(context, 'common_delete'),
                                   style: const TextStyle(color: Colors.red),
                                 ),
                               ],
@@ -105,7 +126,7 @@ class BudgetCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '\$${budget.remainingAmount.toStringAsFixed(2)} ${context.tr('budgets_left_of')} \$${budget.totalAmount.toStringAsFixed(2)}',
+                '\$${budget.remainingAmount.toStringAsFixed(2)} ${_trDisplay(context, 'budgets_left_of')} \$${budget.totalAmount.toStringAsFixed(2)}',
                 style: textTheme.titleLarge?.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 16),
@@ -168,13 +189,13 @@ class BudgetCard extends StatelessWidget {
                   if (budget.isRecurring)
                     _buildTag(
                       context,
-                      context.tr('budget_recurring'),
+                      _trDisplay(context, 'budget_recurring'),
                       Icons.repeat,
                     ),
                   if (budget.isSaving)
                     _buildTag(
                       context,
-                      context.tr('budget_saving'),
+                      _trDisplay(context, 'budget_saving'),
                       Icons.savings,
                     ),
                 ],
@@ -185,7 +206,7 @@ class BudgetCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
-                    context.tr('budget_saving_target')
+                    _trDisplay(context, 'budget_saving_target')
                       .replaceAll('{amount}', '\$${budget.dailySavingTarget.toStringAsFixed(2)}')
                       .replaceAll('{days}', '${budget.daysRemaining}'),
                     style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
@@ -213,10 +234,10 @@ class BudgetCard extends StatelessWidget {
       ),
       child: Text(
         isActive 
-            ? context.tr('common_today')
+            ? _trDisplay(context, 'common_today')
             : now.isBefore(budget.startDate)
-                ? context.tr('budget_upcoming')
-                : context.tr('budget_ended'),
+                ? _trDisplay(context, 'budget_upcoming')
+                : _trDisplay(context, 'budget_ended'),
         style: TextStyle(
           color: Theme.of(context).brightness == Brightness.dark 
               ? AppColors.background 

@@ -214,7 +214,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              context.tr('budget_summary'),
+              _trDisplay('budget_summary'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: isDarkMode ? Colors.white : Colors.black87,
                 fontWeight: FontWeight.bold,
@@ -225,7 +225,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
             // Total budgeted amount
             _buildSummaryItem(
               context,
-              context.tr('budget_total_budgeted'),
+              _trDisplay('budget_total_budgeted'),
               '\$${state.totalBudgeted.toStringAsFixed(2)}',
               AppColors.primary,
             ),
@@ -233,7 +233,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
             // Total spent amount
             _buildSummaryItem(
               context,
-              context.tr('budget_total_spent'),
+              _trDisplay('budget_total_spent'),
               '\$${state.totalSpent.toStringAsFixed(2)}',
               AppColors.expense,
             ),
@@ -249,7 +249,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
             // Total remaining
             _buildSummaryItem(
               context,
-              context.tr('budget_total_remaining'),
+              _trDisplay('budget_total_remaining'),
               '\$${state.totalRemaining.toStringAsFixed(2)}',
               state.totalRemaining >= 0 ? AppColors.income : AppColors.expense,
               isLarge: true,
@@ -338,6 +338,8 @@ class _BudgetsPageState extends State<BudgetsPage> {
   
   Widget _buildAddBudgetButton(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final locale = Localizations.localeOf(context);
+    final isVietnamese = locale.languageCode == 'vi';
     
     return Container(
       height: 80,
@@ -371,7 +373,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                context.tr('budget_add_new'),
+                isVietnamese ? "Thêm ngân sách mới" : "Add New Budget",
                 style: TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold,

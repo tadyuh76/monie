@@ -67,10 +67,9 @@ class BudgetModel extends Budget {
 
   // Convert to Supabase json format for insertion/update
   Map<String, dynamic> toSupabaseJson() {
-    return {
+    final json = {
       'budget_id': id,
       'user_id': userId,
-      'category_id': categoryId,
       'amount': totalAmount,
       'start_date': startDate.toIso8601String().split('T')[0], // Format as YYYY-MM-DD
       'end_date': endDate.toIso8601String().split('T')[0],
@@ -79,6 +78,13 @@ class BudgetModel extends Budget {
       'frequency': frequency,
       'color': color,
     };
+    
+    // Only include categoryId if it's not null
+    if (categoryId != null) {
+      json['category_id'] = categoryId;
+    }
+    
+    return json;
   }
 
   factory BudgetModel.fromJson(Map<String, dynamic> json) {
