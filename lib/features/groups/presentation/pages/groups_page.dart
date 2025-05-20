@@ -11,11 +11,17 @@ class GroupsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
-      backgroundColor: isDarkMode ? AppColors.background : Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor:
+          isDarkMode
+              ? AppColors.background
+              : Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: isDarkMode ? AppColors.background : Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor:
+            isDarkMode
+                ? AppColors.background
+                : Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: Text(
           context.tr('groups_title'),
@@ -49,7 +55,7 @@ class GroupsPage extends StatelessWidget {
     final activeAmount = groups
         .where((g) => !g.isSettled)
         .fold<double>(0, (sum, group) => sum + group.totalAmount);
-        
+
     final settledAmount = groups
         .where((g) => g.isSettled)
         .fold<double>(0, (sum, group) => sum + group.totalAmount);
@@ -59,13 +65,16 @@ class GroupsPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDarkMode ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: !isDarkMode ? [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          )
-        ] : null,
+        boxShadow:
+            !isDarkMode
+                ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+                : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +108,10 @@ class GroupsPage extends StatelessWidget {
               Text(
                 "${context.tr('groups_active')}: \$${activeAmount.toStringAsFixed(0)}",
                 style: textTheme.bodyMedium?.copyWith(
-                  color: isDarkMode ? AppColors.textSecondary : Colors.grey.shade600,
+                  color:
+                      isDarkMode
+                          ? AppColors.textSecondary
+                          : Colors.grey.shade600,
                 ),
               ),
               const SizedBox(width: 20),
@@ -107,7 +119,8 @@ class GroupsPage extends StatelessWidget {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: isDarkMode ? Colors.grey.shade500 : Colors.grey.shade400,
+                  color:
+                      isDarkMode ? Colors.grey.shade500 : Colors.grey.shade400,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -115,7 +128,10 @@ class GroupsPage extends StatelessWidget {
               Text(
                 "${context.tr('groups_settled')}: \$${settledAmount.toStringAsFixed(0)}",
                 style: textTheme.bodyMedium?.copyWith(
-                  color: isDarkMode ? AppColors.textSecondary : Colors.grey.shade600,
+                  color:
+                      isDarkMode
+                          ? AppColors.textSecondary
+                          : Colors.grey.shade600,
                 ),
               ),
             ],
@@ -163,15 +179,24 @@ class GroupsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border:
             group.isSettled
-                ? Border.all(color: isDarkMode ? AppColors.textSecondary : Colors.grey.shade400, width: 1)
+                ? Border.all(
+                  color:
+                      isDarkMode
+                          ? AppColors.textSecondary
+                          : Colors.grey.shade400,
+                  width: 1,
+                )
                 : null,
-        boxShadow: !isDarkMode && !group.isSettled ? [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          )
-        ] : null,
+        boxShadow:
+            !isDarkMode && !group.isSettled
+                ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+                : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,13 +220,19 @@ class GroupsPage extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: (isDarkMode ? AppColors.textSecondary : Colors.grey.shade400).withOpacity(0.2),
+                    color: (isDarkMode
+                            ? AppColors.textSecondary
+                            : Colors.grey.shade400)
+                        .withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     context.tr('groups_settled'),
                     style: textTheme.bodySmall?.copyWith(
-                      color: isDarkMode ? AppColors.textSecondary : Colors.grey.shade600,
+                      color:
+                          isDarkMode
+                              ? AppColors.textSecondary
+                              : Colors.grey.shade600,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -219,7 +250,8 @@ class GroupsPage extends StatelessWidget {
           Text(
             '${context.tr('groups_created')}: ${DateFormat('MMM d, yyyy').format(group.createdAt)}',
             style: textTheme.bodyMedium?.copyWith(
-              color: isDarkMode ? AppColors.textSecondary : Colors.grey.shade600,
+              color:
+                  isDarkMode ? AppColors.textSecondary : Colors.grey.shade600,
             ),
           ),
           const SizedBox(height: 16),
@@ -228,33 +260,36 @@ class GroupsPage extends StatelessWidget {
           Text(
             '${context.tr('groups_members')} (${group.members.length})',
             style: textTheme.titleSmall?.copyWith(
-              color: isDarkMode ? AppColors.textSecondary : Colors.grey.shade600,
+              color:
+                  isDarkMode ? AppColors.textSecondary : Colors.grey.shade600,
             ),
           ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: group.members.map((member) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: isDarkMode ? AppColors.surface : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  member,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-              );
-            }).toList(),
+            children:
+                group.members.map((member) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          isDarkMode ? AppColors.surface : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      member,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  );
+                }).toList(),
           ),
-          
+
           if (!group.isSettled) ...[
             const SizedBox(height: 16),
             Row(
@@ -295,7 +330,7 @@ class GroupsPage extends StatelessWidget {
 
   Widget _buildEmptyGroupCard(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       height: 180,
       decoration: BoxDecoration(
@@ -305,13 +340,16 @@ class GroupsPage extends StatelessWidget {
           color: isDarkMode ? AppColors.divider : Colors.grey.shade300,
           width: 1,
         ),
-        boxShadow: !isDarkMode ? [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ] : null,
+        boxShadow:
+            !isDarkMode
+                ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

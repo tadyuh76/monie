@@ -3,7 +3,6 @@ import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/budgets/data/models/budget_model.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/budgets/domain/repositories/budget_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 @Injectable(as: BudgetRepository)
 class BudgetRepositoryImpl implements BudgetRepository {
@@ -25,8 +24,9 @@ class BudgetRepositoryImpl implements BudgetRepository {
           .eq('user_id', userId)
           .order('start_date', ascending: false);
 
-      return response.map<Budget>((json) => 
-          BudgetModel.fromSupabaseJson(json)).toList();
+      return response
+          .map<Budget>((json) => BudgetModel.fromSupabaseJson(json))
+          .toList();
     } catch (error) {
       throw Exception('Failed to get budgets: $error');
     }
@@ -40,12 +40,13 @@ class BudgetRepositoryImpl implements BudgetRepository {
         throw Exception('User not authenticated');
       }
 
-      final response = await _supabaseClient.client
-          .from('budgets')
-          .select()
-          .eq('budget_id', id)
-          .eq('user_id', userId)
-          .single();
+      final response =
+          await _supabaseClient.client
+              .from('budgets')
+              .select()
+              .eq('budget_id', id)
+              .eq('user_id', userId)
+              .single();
 
       return BudgetModel.fromSupabaseJson(response);
     } catch (error) {
@@ -70,8 +71,9 @@ class BudgetRepositoryImpl implements BudgetRepository {
           .gte('end_date', today)
           .order('start_date', ascending: true);
 
-      return response.map<Budget>((json) => 
-          BudgetModel.fromSupabaseJson(json)).toList();
+      return response
+          .map<Budget>((json) => BudgetModel.fromSupabaseJson(json))
+          .toList();
     } catch (error) {
       throw Exception('Failed to get active budgets: $error');
     }
@@ -85,17 +87,14 @@ class BudgetRepositoryImpl implements BudgetRepository {
         throw Exception('User not authenticated');
       }
 
-      final budgetModel = budget is BudgetModel 
-          ? budget 
-          : BudgetModel.fromEntity(budget);
+      final budgetModel =
+          budget is BudgetModel ? budget : BudgetModel.fromEntity(budget);
 
       // Ensure userId is set
       final Map<String, dynamic> budgetData = budgetModel.toSupabaseJson();
       budgetData['user_id'] = userId;
 
-      await _supabaseClient.client
-          .from('budgets')
-          .insert(budgetData);
+      await _supabaseClient.client.from('budgets').insert(budgetData);
     } catch (error) {
       throw Exception('Failed to add budget: $error');
     }
@@ -109,9 +108,8 @@ class BudgetRepositoryImpl implements BudgetRepository {
         throw Exception('User not authenticated');
       }
 
-      final budgetModel = budget is BudgetModel 
-          ? budget 
-          : BudgetModel.fromEntity(budget);
+      final budgetModel =
+          budget is BudgetModel ? budget : BudgetModel.fromEntity(budget);
 
       await _supabaseClient.client
           .from('budgets')

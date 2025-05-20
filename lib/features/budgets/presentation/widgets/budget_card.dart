@@ -9,7 +9,7 @@ class BudgetCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
-  
+
   const BudgetCard({
     super.key,
     required this.budget,
@@ -22,13 +22,18 @@ class BudgetCard extends StatelessWidget {
   String _formatDisplayText(BuildContext context, String text) {
     if (text.contains('_')) {
       List<String> words = text.split('_');
-      return words.map((word) => word.isNotEmpty 
-          ? '${word[0].toUpperCase()}${word.substring(1)}' 
-          : '').join(' ');
+      return words
+          .map(
+            (word) =>
+                word.isNotEmpty
+                    ? '${word[0].toUpperCase()}${word.substring(1)}'
+                    : '',
+          )
+          .join(' ');
     }
     return text;
   }
-  
+
   // Helper method to translate text and remove underscores for display
   String _trDisplay(BuildContext context, String key) {
     String translated = context.tr(key);
@@ -43,24 +48,24 @@ class BudgetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Parse color from hex string or use default
     Color cardColor;
     try {
       if (budget.color != null) {
         cardColor = Color(int.parse('0x${budget.color}'));
       } else {
-        cardColor = isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
+        cardColor =
+            isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
       }
     } catch (e) {
-      cardColor = isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
+      cardColor =
+          isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
     }
-    
+
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: cardColor,
       child: InkWell(
         onTap: onTap,
@@ -94,33 +99,38 @@ class BudgetCard extends StatelessWidget {
                           onDelete!();
                         }
                       },
-                      itemBuilder: (context) => [
-                        if (onEdit != null)
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.edit, size: 18),
-                                const SizedBox(width: 8),
-                                Text(_trDisplay(context, 'common_edit')),
-                              ],
-                            ),
-                          ),
-                        if (onDelete != null)
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.delete, size: 18, color: Colors.red),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _trDisplay(context, 'common_delete'),
-                                  style: const TextStyle(color: Colors.red),
+                      itemBuilder:
+                          (context) => [
+                            if (onEdit != null)
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.edit, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(_trDisplay(context, 'common_edit')),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                      ],
+                              ),
+                            if (onDelete != null)
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.delete,
+                                      size: 18,
+                                      color: Colors.red,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _trDisplay(context, 'common_delete'),
+                                      style: const TextStyle(color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                     ),
                 ],
               ),
@@ -140,11 +150,15 @@ class BudgetCard extends StatelessWidget {
                     children: [
                       Text(
                         '${budget.progressPercentage.toStringAsFixed(1)}%',
-                        style: textTheme.bodyMedium?.copyWith(color: Colors.white),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                        ),
                       ),
                       Text(
                         '100%',
-                        style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: Colors.white70,
+                        ),
                       ),
                     ],
                   ),
@@ -155,7 +169,9 @@ class BudgetCard extends StatelessWidget {
                       value: budget.progressPercentage / 100,
                       backgroundColor: Colors.black26,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        isDarkMode ? AppColors.budgetProgress : Colors.white.withOpacity(0.9),
+                        isDarkMode
+                            ? AppColors.budgetProgress
+                            : Colors.white.withValues(alpha: 0.9),
                       ),
                       minHeight: 12,
                     ),
@@ -171,12 +187,16 @@ class BudgetCard extends StatelessWidget {
                   children: [
                     Text(
                       DateFormat('MMM d').format(budget.startDate),
-                      style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.white70,
+                      ),
                     ),
                     _buildDateIndicator(context, budget),
                     Text(
                       DateFormat('MMM d').format(budget.endDate),
-                      style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.white70,
+                      ),
                     ),
                   ],
                 ),
@@ -207,9 +227,14 @@ class BudgetCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
                     _trDisplay(context, 'budget_saving_target')
-                      .replaceAll('{amount}', '\$${budget.dailySavingTarget.toStringAsFixed(2)}')
-                      .replaceAll('{days}', '${budget.daysRemaining}'),
-                    style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                        .replaceAll(
+                          '{amount}',
+                          '\$${budget.dailySavingTarget.toStringAsFixed(2)}',
+                        )
+                        .replaceAll('{days}', '${budget.daysRemaining}'),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.white70,
+                    ),
                   ),
                 ),
             ],
@@ -218,62 +243,51 @@ class BudgetCard extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildDateIndicator(BuildContext context, Budget budget) {
     final now = DateTime.now();
-    final isActive = now.isAfter(budget.startDate) && now.isBefore(budget.endDate);
-    
+    final isActive =
+        now.isAfter(budget.startDate) && now.isBefore(budget.endDate);
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: isActive ? Colors.white : Colors.white54,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
-        isActive 
+        isActive
             ? _trDisplay(context, 'common_today')
             : now.isBefore(budget.startDate)
-                ? _trDisplay(context, 'budget_upcoming')
-                : _trDisplay(context, 'budget_ended'),
+            ? _trDisplay(context, 'budget_upcoming')
+            : _trDisplay(context, 'budget_ended'),
         style: TextStyle(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? AppColors.background 
-              : const Color(0xFF388E3C),
+          color:
+              Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.background
+                  : const Color(0xFF388E3C),
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),
       ),
     );
   }
-  
+
   Widget _buildTag(BuildContext context, String text, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: Colors.white,
-          ),
+          Icon(icon, size: 14, color: Colors.white),
           const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-            ),
-          ),
+          Text(text, style: const TextStyle(color: Colors.white, fontSize: 12)),
         ],
       ),
     );
   }
-} 
+}

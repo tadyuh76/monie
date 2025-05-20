@@ -300,7 +300,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                 ? null
                 : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -405,7 +405,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'expense'
-                        ? AppColors.expense.withValues(alpha: .2)
+                        ? AppColors.expense.withValues(alpha: 0.2)
                         : isDarkMode
                         ? AppColors.cardDark
                         : Colors.grey.shade100,
@@ -450,7 +450,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               decoration: BoxDecoration(
                 color:
                     _transactionType == 'income'
-                        ? AppColors.income.withValues(alpha: .2)
+                        ? AppColors.income.withValues(alpha: 0.2)
                         : isDarkMode
                         ? AppColors.cardDark
                         : Colors.grey.shade100,
@@ -660,7 +660,6 @@ class AddTransactionFormState extends State<AddTransactionForm> {
     final operatorColor = AppColors.primary;
 
     // Calculator layout
-    const valueTextStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.bold);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -839,12 +838,14 @@ class AddTransactionFormState extends State<AddTransactionForm> {
         const SizedBox(height: 12),
         InkWell(
           onTap: () async {
+            if (!mounted) return;
             final DateTime? pickedDate = await showDatePicker(
               context: context,
               initialDate: _selectedDate,
               firstDate: DateTime(2020),
               lastDate: DateTime(2030),
               builder: (BuildContext context, Widget? child) {
+                if (!mounted) return child!;
                 return Theme(
                   data:
                       isDarkMode
@@ -871,6 +872,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                 );
               },
             );
+            if (!mounted) return;
             if (pickedDate != null) {
               setState(() {
                 _selectedDate = pickedDate;

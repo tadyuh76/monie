@@ -70,13 +70,16 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
-                boxShadow: isDarkMode ? null : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
+                boxShadow:
+                    isDarkMode
+                        ? null
+                        : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, -2),
+                          ),
+                        ],
               ),
               child: AddTransactionForm(
                 onSubmit: (Map<String, dynamic> transaction) {
@@ -135,13 +138,16 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
               ),
-              boxShadow: isDarkMode ? null : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
+              boxShadow:
+                  isDarkMode
+                      ? null
+                      : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
             ),
             child: TransactionForm(userId: user.id, transaction: transaction),
           ),
@@ -159,9 +165,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       builder:
           (dialogContext) => AlertDialog(
             title: Text(context.tr('transactions_delete')),
-            content: Text(
-              context.tr('transactions_delete_confirm'),
-            ),
+            content: Text(context.tr('transactions_delete_confirm')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
@@ -196,11 +200,17 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
   Widget _buildScaffold(BuildContext context, User user) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
-      backgroundColor: isDarkMode ? AppColors.background : Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor:
+          isDarkMode
+              ? AppColors.background
+              : Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: isDarkMode ? AppColors.background : Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor:
+            isDarkMode
+                ? AppColors.background
+                : Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: Text(
           context.tr('transactions_title'),
@@ -222,20 +232,15 @@ class _TransactionsPageState extends State<TransactionsPage> {
               Icons.filter_list,
               color: isDarkMode ? Colors.white : Colors.black87,
             ),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'all',
-                child: Text('All'),
-              ),
-              const PopupMenuItem(
-                value: 'expense',
-                child: Text('Expenses'),
-              ),
-              const PopupMenuItem(
-                value: 'income',
-                child: Text('Income'),
-              ),
-            ],
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(value: 'all', child: Text('All')),
+                  const PopupMenuItem(
+                    value: 'expense',
+                    child: Text('Expenses'),
+                  ),
+                  const PopupMenuItem(value: 'income', child: Text('Income')),
+                ],
           ),
         ],
       ),
@@ -256,13 +261,19 @@ class _TransactionsPageState extends State<TransactionsPage> {
                           Icon(
                             Icons.receipt_long,
                             size: 64,
-                            color: isDarkMode ? Colors.white30 : Colors.grey.shade300,
+                            color:
+                                isDarkMode
+                                    ? Colors.white30
+                                    : Colors.grey.shade300,
                           ),
                           const SizedBox(height: 16),
                           Text(
                             context.tr('transactions_empty'),
                             style: TextStyle(
-                              color: isDarkMode ? Colors.white60 : Colors.grey.shade600,
+                              color:
+                                  isDarkMode
+                                      ? Colors.white60
+                                      : Colors.grey.shade600,
                               fontSize: 18,
                             ),
                             textAlign: TextAlign.center,
@@ -271,24 +282,26 @@ class _TransactionsPageState extends State<TransactionsPage> {
                       ),
                     );
                   }
-                  
+
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     itemCount: state.transactions.length,
                     itemBuilder: (context, index) {
                       final transaction = state.transactions[index];
-                      
+
                       return TransactionCard(
                         transaction: transaction,
-                        onEdit: () => _showEditTransactionSheet(
-                          context,
-                          user,
-                          transaction,
-                        ),
-                        onDelete: () => _confirmDeleteTransaction(
-                          context,
-                          transaction.id,
-                        ),
+                        onEdit:
+                            () => _showEditTransactionSheet(
+                              context,
+                              user,
+                              transaction,
+                            ),
+                        onDelete:
+                            () => _confirmDeleteTransaction(
+                              context,
+                              transaction.id,
+                            ),
                       );
                     },
                   );
@@ -296,14 +309,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   return Center(
                     child: Text(
                       'Error: ${state.message}',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.red, fontSize: 16),
                     ),
                   );
                 }
-                
+
                 return const Center(child: Text('No transactions found'));
               },
             ),
@@ -319,30 +329,31 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
   Widget _buildMonthSelector(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     final currentMonth = DateFormat('MMMM yyyy').format(_selectedMonth);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
       decoration: BoxDecoration(
         color: isDarkMode ? AppColors.surface : Colors.white,
-        boxShadow: isDarkMode 
-          ? null 
-          : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+        boxShadow:
+            isDarkMode
+                ? null
+                : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             icon: Icon(
-              Icons.chevron_left, 
-              color: isDarkMode ? Colors.white : Colors.black87
+              Icons.chevron_left,
+              color: isDarkMode ? Colors.white : Colors.black87,
             ),
             onPressed: () {
               final previousMonth = DateTime(
@@ -363,8 +374,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ),
           IconButton(
             icon: Icon(
-              Icons.chevron_right, 
-              color: isDarkMode ? Colors.white : Colors.black87
+              Icons.chevron_right,
+              color: isDarkMode ? Colors.white : Colors.black87,
             ),
             onPressed: () {
               final nextMonth = DateTime(

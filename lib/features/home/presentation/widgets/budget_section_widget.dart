@@ -11,11 +11,14 @@ class BudgetSectionWidget extends StatelessWidget {
 
   // Format số tiền lớn theo cách dễ đọc hơn
   String _formatLargeAmount(double amount) {
-    if (amount >= 1000000000) { // Tỷ
+    if (amount >= 1000000000) {
+      // Tỷ
       return '${(amount / 1000000000).toStringAsFixed(1)}B';
-    } else if (amount >= 1000000) { // Triệu
+    } else if (amount >= 1000000) {
+      // Triệu
       return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) { // Nghìn
+    } else if (amount >= 1000) {
+      // Nghìn
       return '${(amount / 1000).toStringAsFixed(1)}K';
     } else {
       return amount.toStringAsFixed(0);
@@ -32,25 +35,31 @@ class BudgetSectionWidget extends StatelessWidget {
     if (budget.color != null && budget.color!.isNotEmpty) {
       try {
         // Cắt bỏ # nếu có và chuyển đổi sang số nguyên với 0xFF làm prefix
-        final colorValue = int.parse('0xFF${budget.color!.replaceFirst('#', '')}');
+        final colorValue = int.parse(
+          '0xFF${budget.color!.replaceFirst('#', '')}',
+        );
         budgetColor = Color(colorValue);
       } catch (e) {
         // Nếu có lỗi, sử dụng màu mặc định
-        budgetColor = isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
+        budgetColor =
+            isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
       }
     } else {
       // Nếu không có màu, sử dụng màu mặc định
-      budgetColor = isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
+      budgetColor =
+          isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
     }
 
     // Định dạng số tiền để hiển thị phù hợp với không gian
     final bool isLargeAmount = budget.totalAmount > 100000;
     String amountText;
-    
+
     if (isLargeAmount) {
-      amountText = '\$${_formatLargeAmount(budget.remainingAmount)} left of \$${_formatLargeAmount(budget.totalAmount)}';
+      amountText =
+          '\$${_formatLargeAmount(budget.remainingAmount)} left of \$${_formatLargeAmount(budget.totalAmount)}';
     } else {
-      amountText = '${Formatters.formatCurrency(budget.remainingAmount)} left of ${Formatters.formatCurrency(budget.totalAmount)}';
+      amountText =
+          '${Formatters.formatCurrency(budget.remainingAmount)} left of ${Formatters.formatCurrency(budget.totalAmount)}';
     }
 
     return Container(
@@ -58,13 +67,16 @@ class BudgetSectionWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: budgetColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: !isDarkMode ? [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          )
-        ] : null,
+        boxShadow:
+            !isDarkMode
+                ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
+                : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min, // Giảm thiểu kích thước theo chiều dọc
@@ -93,7 +105,7 @@ class BudgetSectionWidget extends StatelessWidget {
               value: budget.progressPercentage / 100,
               backgroundColor: Colors.black26,
               valueColor: AlwaysStoppedAnimation<Color>(
-                Colors.white.withOpacity(0.8),
+                Colors.white.withValues(alpha: 0.8),
               ),
               minHeight: 12,
             ),
@@ -121,7 +133,7 @@ class BudgetSectionWidget extends StatelessWidget {
                   child: Text(
                     context.tr('common_today'),
                     style: textTheme.bodySmall?.copyWith(
-                      color: budgetColor.withOpacity(0.8),
+                      color: budgetColor.withValues(alpha: 0.8),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -138,11 +150,15 @@ class BudgetSectionWidget extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
-              context.tr('budget_saving_target')
-                .replaceAll('{amount}', isLargeAmount 
-                  ? '\$${_formatLargeAmount(budget.dailySavingTarget)}' 
-                  : Formatters.formatCurrency(budget.dailySavingTarget))
-                .replaceAll('{days}', '${budget.daysRemaining}'),
+              context
+                  .tr('budget_saving_target')
+                  .replaceAll(
+                    '{amount}',
+                    isLargeAmount
+                        ? '\$${_formatLargeAmount(budget.dailySavingTarget)}'
+                        : Formatters.formatCurrency(budget.dailySavingTarget),
+                  )
+                  .replaceAll('{days}', '${budget.daysRemaining}'),
               style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
               textAlign: TextAlign.center,
             ),

@@ -101,13 +101,16 @@ class HeatMapSectionWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDarkMode ? AppColors.cardDark : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: !isDarkMode ? [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              )
-            ] : null,
+            boxShadow:
+                !isDarkMode
+                    ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                    : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,7 +146,7 @@ class HeatMapSectionWidget extends StatelessWidget {
                         Text(
                           ' - ',
                           style: TextStyle(
-                            color: isDarkMode ? Colors.white70 : Colors.black54
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
                           ),
                         ),
                         Text(
@@ -188,10 +191,12 @@ class HeatMapSectionWidget extends StatelessWidget {
                                     Color cellColor;
                                     if (cashFlow == null) {
                                       // No transaction
-                                      cellColor = (isDarkMode 
-                                          ? AppColors.textSecondary 
-                                          : Colors.grey)
-                                          .withValues(alpha: isDarkMode ? 0.1 : 0.2);
+                                      cellColor = (isDarkMode
+                                              ? AppColors.textSecondary
+                                              : Colors.grey)
+                                          .withValues(
+                                            alpha: isDarkMode ? 0.1 : 0.2,
+                                          );
                                     } else if (cashFlow > 0) {
                                       // Positive cash flow (green)
                                       final intensity = min(
@@ -201,9 +206,10 @@ class HeatMapSectionWidget extends StatelessWidget {
                                       cellColor = const Color(
                                         0xFF66BB6A,
                                       ).withValues(
-                                        alpha: isDarkMode 
-                                            ? 0.3 + (intensity * 0.6)
-                                            : 0.4 + (intensity * 0.5),
+                                        alpha:
+                                            isDarkMode
+                                                ? 0.3 + (intensity * 0.6)
+                                                : 0.4 + (intensity * 0.5),
                                       );
                                     } else {
                                       // Negative cash flow (red)
@@ -214,9 +220,10 @@ class HeatMapSectionWidget extends StatelessWidget {
                                       cellColor = const Color(
                                         0xFFEF5350,
                                       ).withValues(
-                                        alpha: isDarkMode 
-                                            ? 0.3 + (intensity * 0.6)
-                                            : 0.4 + (intensity * 0.5),
+                                        alpha:
+                                            isDarkMode
+                                                ? 0.3 + (intensity * 0.6)
+                                                : 0.4 + (intensity * 0.5),
                                       );
                                     }
 
@@ -245,11 +252,12 @@ class HeatMapSectionWidget extends StatelessWidget {
                                     if (date.year == today.year &&
                                         date.month == today.month &&
                                         date.day == today.day) {
-                                      backgroundColor = (isDarkMode 
-                                          ? Colors.white 
-                                          : Colors.black).withValues(
-                                        alpha: isDarkMode ? 0.15 : 0.1,
-                                      );
+                                      backgroundColor = (isDarkMode
+                                              ? Colors.white
+                                              : Colors.black)
+                                          .withValues(
+                                            alpha: isDarkMode ? 0.15 : 0.1,
+                                          );
                                     }
 
                                     return Expanded(
@@ -274,9 +282,10 @@ class HeatMapSectionWidget extends StatelessWidget {
                                                           ? Icons.arrow_upward
                                                           : Icons
                                                               .arrow_downward,
-                                                      color: isDarkMode 
-                                                          ? Colors.white 
-                                                          : Colors.white,
+                                                      color:
+                                                          isDarkMode
+                                                              ? Colors.white
+                                                              : Colors.white,
                                                       size: 8,
                                                     ),
                                                   )
@@ -337,7 +346,12 @@ class HeatMapSectionWidget extends StatelessWidget {
   }
 
   // Helper method to build legend items
-  Widget _buildLegendItem(Color color, String text, TextTheme textTheme, bool isDarkMode) {
+  Widget _buildLegendItem(
+    Color color,
+    String text,
+    TextTheme textTheme,
+    bool isDarkMode,
+  ) {
     return Row(
       children: [
         Container(

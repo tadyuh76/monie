@@ -1,5 +1,4 @@
 import 'package:injectable/injectable.dart';
-import 'package:monie/core/utils/mock_data.dart';
 import 'package:monie/features/home/data/models/account_model.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 import 'package:monie/features/home/domain/repositories/account_repository.dart';
@@ -12,9 +11,8 @@ class AccountRepositoryImpl implements AccountRepository {
   @override
   Future<List<Account>> getAccounts() async {
     try {
-      final response = await  SupabaseClientManager.instance.client
-          .from('accounts')
-          .select();
+      final response =
+          await SupabaseClientManager.instance.client.from('accounts').select();
 
       return (response as List)
           .map((json) => AccountModel.fromJson(json))
@@ -35,33 +33,21 @@ class AccountRepositoryImpl implements AccountRepository {
           .eq('id', id);
       return (response as List).firstWhere((acc) => acc.id == id);
     } catch (e) {
-      throw ServerException(
-        message: 'Account not found',
-      );
+      throw ServerException(message: 'Account not found');
     }
   }
 
   @override
   Future<void> addAccount(Account account) async {
-    try {
-      final accountModel = AccountModel.fromEntity(account);
-      final response = await SupabaseClientManager.instance.client
-          .from('accounts')
-          .insert(accountModel.toJson())
-          .select();
-      print('Account added successfully');
-    } catch (e) {
+    try {} catch (e) {
       if (e.toString().contains('duplicate key')) {
         throw ServerException(message: 'Account already exists: $e');
       } else if (e.toString().contains('violates foreign key constraint')) {
-        throw ServerException(
-          message: 'Invalid reference: $e',
-        );
+        throw ServerException(message: 'Invalid reference: $e');
       } else {
         throw ServerException(message: 'Failed to add account: $e');
       }
     }
-
   }
 
   @override

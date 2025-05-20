@@ -20,6 +20,7 @@ class AuthWrapper extends StatelessWidget {
             (previous is AuthInitial);
       },
       listener: (context, state) {
+        if (!context.mounted) return;
         if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -30,6 +31,7 @@ class AuthWrapper extends StatelessWidget {
         } else if (state is Unauthenticated) {
           // Force navigation to login when unauthenticated
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const LoginPage()),
               (route) => false,
@@ -38,6 +40,7 @@ class AuthWrapper extends StatelessWidget {
         } else if (state is Authenticated) {
           // Force navigation to main screen when authenticated
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const MainScreen()),
               (route) => false,

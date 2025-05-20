@@ -7,15 +7,11 @@ import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/budgets/data/models/budget_model.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
-import 'package:uuid/uuid.dart';
 
 class BudgetForm extends StatefulWidget {
   final Budget? budget; // Null for new budget, non-null for editing
-  
-  const BudgetForm({
-    super.key,
-    this.budget,
-  });
+
+  const BudgetForm({super.key, this.budget});
 
   @override
   State<BudgetForm> createState() => _BudgetFormState();
@@ -25,7 +21,7 @@ class _BudgetFormState extends State<BudgetForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
-  
+
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
   bool _isRecurring = false;
@@ -33,11 +29,11 @@ class _BudgetFormState extends State<BudgetForm> {
   String? _categoryId;
   String? _frequency;
   String _color = 'FF4CAF50'; // Default green color
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     // If editing an existing budget, populate the form
     if (widget.budget != null) {
       _nameController.text = widget.budget!.name;
@@ -51,30 +47,32 @@ class _BudgetFormState extends State<BudgetForm> {
       if (widget.budget!.color != null && widget.budget!.color!.isNotEmpty) {
         _color = widget.budget!.color!;
       }
-      print('Loaded budget with color: ${widget.budget!.color}, set _color to: $_color');
-    } else {
-      print('Creating new budget, default color: $_color');
-    }
+    } else {}
   }
-  
+
   @override
   void dispose() {
     _nameController.dispose();
     _amountController.dispose();
     super.dispose();
   }
-  
+
   // Helper method to format display text without underscores
   String _formatDisplayText(String text) {
     if (text.contains('_')) {
       List<String> words = text.split('_');
-      return words.map((word) => word.isNotEmpty 
-          ? '${word[0].toUpperCase()}${word.substring(1)}' 
-          : '').join(' ');
+      return words
+          .map(
+            (word) =>
+                word.isNotEmpty
+                    ? '${word[0].toUpperCase()}${word.substring(1)}'
+                    : '',
+          )
+          .join(' ');
     }
     return text;
   }
-  
+
   // Helper method to translate text and remove underscores for display
   String _trDisplay(String key) {
     String translated = context.tr(key);
@@ -93,11 +91,11 @@ class _BudgetFormState extends State<BudgetForm> {
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
     );
-    
+
     if (picked != null && picked != _startDate) {
       setState(() {
         _startDate = picked;
-        
+
         // Ensure end date is after start date
         if (_endDate.isBefore(_startDate)) {
           _endDate = _startDate.add(const Duration(days: 30));
@@ -105,94 +103,94 @@ class _BudgetFormState extends State<BudgetForm> {
       });
     }
   }
-  
+
   Future<void> _selectEndDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _endDate.isAfter(_startDate) ? _endDate : _startDate.add(const Duration(days: 1)),
+      initialDate:
+          _endDate.isAfter(_startDate)
+              ? _endDate
+              : _startDate.add(const Duration(days: 1)),
       firstDate: _startDate,
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
     );
-    
+
     if (picked != null && picked != _endDate) {
       setState(() {
         _endDate = picked;
       });
     }
   }
-  
+
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       final double amount = double.parse(_amountController.text);
-      
+
       // Debug logs
-      print('Submitting form with color: $_color');
-      
+
       // Create or update budget
-      final budget = widget.budget == null
-          ? BudgetModel.create(
-              name: _nameController.text,
-              amount: amount,
-              startDate: _startDate,
-              endDate: _endDate,
-              categoryId: _categoryId,
-              isRecurring: _isRecurring,
-              isSaving: _isSaving,
-              frequency: _frequency,
-              color: _color,
-            )
-          : BudgetModel(
-              id: widget.budget!.id,
-              name: _nameController.text,
-              totalAmount: amount,
-              spentAmount: widget.budget!.spentAmount,
-              remainingAmount: amount - widget.budget!.spentAmount,
-              currency: widget.budget!.currency,
-              startDate: _startDate,
-              endDate: _endDate,
-              category: widget.budget!.category,
-              categoryId: _categoryId,
-              progressPercentage: widget.budget!.progressPercentage,
-              dailySavingTarget: widget.budget!.dailySavingTarget,
-              daysRemaining: _endDate.difference(DateTime.now()).inDays,
-              userId: widget.budget!.userId,
-              isRecurring: _isRecurring,
-              isSaving: _isSaving,
-              frequency: _frequency,
-              color: _color,
-            );
-      
+      final budget =
+          widget.budget == null
+              ? BudgetModel.create(
+                name: _nameController.text,
+                amount: amount,
+                startDate: _startDate,
+                endDate: _endDate,
+                categoryId: _categoryId,
+                isRecurring: _isRecurring,
+                isSaving: _isSaving,
+                frequency: _frequency,
+                color: _color,
+              )
+              : BudgetModel(
+                id: widget.budget!.id,
+                name: _nameController.text,
+                totalAmount: amount,
+                spentAmount: widget.budget!.spentAmount,
+                remainingAmount: amount - widget.budget!.spentAmount,
+                currency: widget.budget!.currency,
+                startDate: _startDate,
+                endDate: _endDate,
+                category: widget.budget!.category,
+                categoryId: _categoryId,
+                progressPercentage: widget.budget!.progressPercentage,
+                dailySavingTarget: widget.budget!.dailySavingTarget,
+                daysRemaining: _endDate.difference(DateTime.now()).inDays,
+                userId: widget.budget!.userId,
+                isRecurring: _isRecurring,
+                isSaving: _isSaving,
+                frequency: _frequency,
+                color: _color,
+              );
+
       // Debug log
-      print('Budget color before submitting: ${budget.color}');
-      
+
       // Dispatch event to bloc
       if (widget.budget == null) {
         context.read<BudgetsBloc>().add(AddBudget(budget));
       } else {
         context.read<BudgetsBloc>().add(UpdateBudget(budget));
       }
-      
+
       // Close the form
       Navigator.pop(context);
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.background : Colors.white,
       appBar: AppBar(
         backgroundColor: isDarkMode ? AppColors.background : Colors.white,
         elevation: 0,
         title: Text(
-          widget.budget == null 
-              ? _trDisplay('budget_new') 
+          widget.budget == null
+              ? _trDisplay('budget_new')
               : _trDisplay('budget_edit'),
-          style: TextStyle(
-            color: isDarkMode ? Colors.white : Colors.black87,
-          ),
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
         ),
         leading: IconButton(
           icon: Icon(
@@ -226,7 +224,7 @@ class _BudgetFormState extends State<BudgetForm> {
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: "${_trDisplay('budget_name')} *",
-                  hintText: _trDisplay('budget_name_hint') ?? "Nhập tên ngân sách",
+                  hintText: _trDisplay('budget_name_hint'),
                   border: const OutlineInputBorder(),
                   helperText: context.tr('field_required'),
                 ),
@@ -238,7 +236,7 @@ class _BudgetFormState extends State<BudgetForm> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Budget amount
               TextFormField(
                 controller: _amountController,
@@ -247,7 +245,9 @@ class _BudgetFormState extends State<BudgetForm> {
                   border: const OutlineInputBorder(),
                   prefixText: '\$ ',
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                 ],
@@ -267,7 +267,7 @@ class _BudgetFormState extends State<BudgetForm> {
                 },
               ),
               const SizedBox(height: 24),
-              
+
               // Date range
               Text(
                 _trDisplay('budget_date_range'),
@@ -301,16 +301,14 @@ class _BudgetFormState extends State<BudgetForm> {
                           border: const OutlineInputBorder(),
                           labelText: _trDisplay('budget_end_date'),
                         ),
-                        child: Text(
-                          DateFormat('MMM d, yyyy').format(_endDate),
-                        ),
+                        child: Text(DateFormat('MMM d, yyyy').format(_endDate)),
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               // Budget type options
               Text(
                 _trDisplay('budget_options'),
@@ -319,7 +317,7 @@ class _BudgetFormState extends State<BudgetForm> {
                 ),
               ),
               const SizedBox(height: 8),
-              
+
               // Saving budget
               SwitchListTile(
                 title: Text(
@@ -342,7 +340,7 @@ class _BudgetFormState extends State<BudgetForm> {
                 },
                 activeColor: AppColors.primary,
               ),
-              
+
               // Recurring budget
               SwitchListTile(
                 title: Text(
@@ -365,7 +363,7 @@ class _BudgetFormState extends State<BudgetForm> {
                 },
                 activeColor: AppColors.primary,
               ),
-              
+
               // Frequency selector (only show if recurring)
               if (_isRecurring) ...[
                 const SizedBox(height: 16),
@@ -396,9 +394,9 @@ class _BudgetFormState extends State<BudgetForm> {
                   },
                 ),
               ],
-              
+
               const SizedBox(height: 24),
-              
+
               // Color picker
               Text(
                 _trDisplay('budget_color'),
@@ -426,18 +424,16 @@ class _BudgetFormState extends State<BudgetForm> {
       ),
     );
   }
-  
+
   Widget _colorOption(String colorHex) {
     final color = Color(int.parse('0x$colorHex'));
     final isSelected = _color == colorHex;
-    
+
     return GestureDetector(
       onTap: () {
-        print('Color selected: $colorHex (current: $_color)');
         setState(() {
           _color = colorHex;
         });
-        print('Color after setState: $_color');
       },
       child: Container(
         width: 50,
@@ -450,24 +446,22 @@ class _BudgetFormState extends State<BudgetForm> {
             color: isSelected ? Colors.white : Colors.transparent,
             width: 3,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: color.withOpacity(0.7),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : null,
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.7),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                  : null,
         ),
-        child: isSelected
-            ? const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 28,
-              )
-            : null,
+        child:
+            isSelected
+                ? const Icon(Icons.check, color: Colors.white, size: 28)
+                : null,
       ),
     );
   }
-} 
+}

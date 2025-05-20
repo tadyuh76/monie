@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:monie/core/themes/app_colors.dart';
 import 'package:pie_chart/pie_chart.dart';
 
 import '../../../home/domain/entities/account.dart';
@@ -9,10 +8,10 @@ import '../../../transactions/domain/entities/transaction.dart';
 import 'item_transaction.dart';
 
 class DetailAccountsPage extends StatefulWidget {
-  Account account;
-  List<Transaction> transactions;
+  final Account account;
+  final List<Transaction> transactions;
 
-  DetailAccountsPage({
+  const DetailAccountsPage({
     super.key,
     required this.account,
     required this.transactions,
@@ -26,7 +25,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
   Account get account => widget.account;
 
   List<Transaction> get transactions => widget.transactions;
-  Map<String, double> dataMap = Map();
+  Map<String, double> dataMap = {};
 
   final colorList = <Color>[
     const Color(0xfffdcb6e),
@@ -36,22 +35,19 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
     const Color(0xff6c5ce7),
   ];
 
-  ChartType? _chartType = ChartType.disc;
-  bool _showCenterText = true;
-  bool _showCenterWidget = true;
-  double? _ringStrokeWidth = 32;
-  double? _chartLegendSpacing = 32;
+  final ChartType _chartType = ChartType.disc;
+  final double _ringStrokeWidth = 32;
+  final double _chartLegendSpacing = 32;
 
-  bool _showLegendsInRow = false;
-  bool _showLegends = true;
-  bool _showLegendLabel = false;
+  final bool _showLegendsInRow = false;
+  final bool _showLegends = true;
 
-  bool _showChartValueBackground = true;
-  bool _showChartValues = true;
-  bool _showChartValuesInPercentage = false;
-  bool _showChartValuesOutside = false;
+  final bool _showChartValueBackground = true;
+  final bool _showChartValues = true;
+  final bool _showChartValuesInPercentage = false;
+  final bool _showChartValuesOutside = false;
 
-  LegendPosition? _legendPosition = LegendPosition.right;
+  final LegendPosition _legendPosition = LegendPosition.right;
 
   int key = 0;
 
@@ -70,7 +66,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text('Details Account', style: TextStyle(color: Colors.white)),
-        backgroundColor: account.getColor() ?? AppColors.primary,
+        backgroundColor: account.getColor(),
       ),
       body: Container(
         margin: EdgeInsets.symmetric(vertical: 10, horizontal: 30),
@@ -98,23 +94,21 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
               width: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 20),
               decoration: BoxDecoration(
-                color: (account.getColor() ?? AppColors.primary).withAlpha(50),
+                color: (account.getColor()).withAlpha(50),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    child: Text(
-                      'Account Total',
-                      maxLines: 1,
-                      softWrap: true,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                  Text(
+                    'Account Total',
+                    maxLines: 1,
+                    softWrap: true,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -145,17 +139,17 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
               key: ValueKey(key),
               dataMap: dataMap,
               animationDuration: const Duration(milliseconds: 800),
-              chartLegendSpacing: _chartLegendSpacing!,
+              chartLegendSpacing: _chartLegendSpacing,
               chartRadius: math.min(
                 MediaQuery.of(context).size.width / 3.2,
                 300,
               ),
               colorList: colorList.sublist(0),
               initialAngleInDegree: 0,
-              chartType: _chartType!,
+              chartType: _chartType,
               legendOptions: LegendOptions(
                 showLegendsInRow: _showLegendsInRow,
-                legendPosition: _legendPosition!,
+                legendPosition: _legendPosition,
                 showLegends: _showLegends,
                 legendShape: BoxShape.circle,
                 legendTextStyle: const TextStyle(fontWeight: FontWeight.bold),
@@ -166,7 +160,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                 showChartValuesInPercentage: _showChartValuesInPercentage,
                 showChartValuesOutside: _showChartValuesOutside,
               ),
-              ringStrokeWidth: _ringStrokeWidth!,
+              ringStrokeWidth: _ringStrokeWidth,
               emptyColor: Colors.grey,
               emptyColorGradient: const [Color(0xff6c5ce7), Colors.blue],
               baseChartColor: Colors.transparent,
@@ -176,7 +170,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
               width: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
               decoration: BoxDecoration(
-                color: (account.getColor() ?? AppColors.primary).withAlpha(50),
+                color: (account.getColor()).withAlpha(50),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(

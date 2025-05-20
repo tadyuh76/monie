@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
-import 'package:monie/core/utils/category_data.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
-import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/authentication/presentation/pages/login_page.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
@@ -36,54 +34,11 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // A method to reset categories in the database
-  Future<void> _resetCategories(BuildContext context) async {
-    // Capture the ScaffoldMessenger before async operation
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      // Seed categories into database
-      final success = await CategoryData.seedCategoriesIntoDatabase();
-
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
-
-      // Show success/failure message
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Categories reset successfully!'
-                : 'Failed to reset categories.',
-          ),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
-    } catch (e) {
-      // Close loading dialog
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
-
-      // Show error message using captured ScaffoldMessenger
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
 
   // Controller và vị trí hiện tại cho PageView của ngân sách
-  final PageController _budgetPageController = PageController(viewportFraction: 0.93);
+  final PageController _budgetPageController = PageController(
+    viewportFraction: 0.93,
+  );
   int _currentBudgetPage = 0;
 
   @override
@@ -118,20 +73,23 @@ class _HomePageState extends State<HomePage> {
     return BlocBuilder<BudgetsBloc, BudgetsState>(
       builder: (context, state) {
         final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-        
+
         if (state is BudgetsLoading) {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isDarkMode ? AppColors.surface : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: !isDarkMode ? [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                )
-              ] : null,
+              boxShadow:
+                  !isDarkMode
+                      ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                      : null,
             ),
             child: const Center(
               child: SizedBox(
@@ -146,19 +104,24 @@ class _HomePageState extends State<HomePage> {
             decoration: BoxDecoration(
               color: isDarkMode ? AppColors.surface : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: !isDarkMode ? [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                )
-              ] : null,
+              boxShadow:
+                  !isDarkMode
+                      ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                      : null,
             ),
             child: Column(
               children: [
                 Text(
                   '${context.tr('common_error')}: ${state.message}',
-                  style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -183,7 +146,9 @@ class _HomePageState extends State<HomePage> {
                     itemBuilder: (context, index) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: BudgetSectionWidget(budget: state.budgets[index]),
+                        child: BudgetSectionWidget(
+                          budget: state.budgets[index],
+                        ),
                       );
                     },
                     // Thêm hiệu ứng lướt mượt và hiển thị một phần ngân sách kế tiếp
@@ -202,7 +167,9 @@ class _HomePageState extends State<HomePage> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.primary.withOpacity(index == _currentBudgetPage ? 1.0 : 0.3),
+                        color: AppColors.primary.withValues(
+                          alpha: index == _currentBudgetPage ? 1.0 : 0.3,
+                        ),
                       ),
                     ),
                   ),
@@ -215,13 +182,16 @@ class _HomePageState extends State<HomePage> {
               decoration: BoxDecoration(
                 color: isDarkMode ? AppColors.surface : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: !isDarkMode ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  )
-                ] : null,
+                boxShadow:
+                    !isDarkMode
+                        ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ]
+                        : null,
               ),
               child: Center(
                 child: Column(
@@ -237,7 +207,7 @@ class _HomePageState extends State<HomePage> {
                       context.tr('home_no_active_budgets'),
                       style: TextStyle(
                         color: isDarkMode ? Colors.white70 : Colors.black87,
-                        fontSize: 16
+                        fontSize: 16,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -245,7 +215,7 @@ class _HomePageState extends State<HomePage> {
                       context.tr('home_create_budget_hint'),
                       style: TextStyle(
                         color: isDarkMode ? Colors.white54 : Colors.black54,
-                        fontSize: 14
+                        fontSize: 14,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -262,20 +232,25 @@ class _HomePageState extends State<HomePage> {
           decoration: BoxDecoration(
             color: isDarkMode ? AppColors.surface : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: !isDarkMode ? [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              )
-            ] : null,
+            boxShadow:
+                !isDarkMode
+                    ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                    : null,
           ),
           child: SizedBox(
             height: 100,
             child: Center(
               child: Text(
                 context.tr('home_loading_budgets'),
-                style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
               ),
             ),
           ),
@@ -313,9 +288,10 @@ class _HomePageState extends State<HomePage> {
             IconButton(
               icon: Icon(
                 Icons.settings,
-                color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black87
+                color:
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black87,
               ),
               onPressed: () {
                 // Navigate to settings page
@@ -337,9 +313,10 @@ class _HomePageState extends State<HomePage> {
                       Text(
                         context.tr('common_loading'),
                         style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87
+                          color:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black87,
                         ),
                       ),
                     ],
@@ -353,9 +330,10 @@ class _HomePageState extends State<HomePage> {
                       Text(
                         '${context.tr('common_error')}: ${state.message}',
                         style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87
+                          color:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -374,7 +352,8 @@ class _HomePageState extends State<HomePage> {
                 final authState = context.watch<AuthBloc>().state;
                 final userName =
                     authState is Authenticated
-                        ? authState.user.displayName ?? context.tr('common_user')
+                        ? authState.user.displayName ??
+                            context.tr('common_user')
                         : context.tr('common_user');
 
                 return SingleChildScrollView(
@@ -385,7 +364,10 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 16),
                       GreetingWidget(name: userName),
                       const SizedBox(height: 24),
-                      AccountsSectionWidget(accounts: state.accounts, transactions: state.recentTransactions,),
+                      AccountsSectionWidget(
+                        accounts: state.accounts,
+                        transactions: state.recentTransactions,
+                      ),
                       const SizedBox(height: 24),
                       AccountSummaryWidget(
                         accounts: state.accounts,
@@ -419,7 +401,9 @@ class _HomePageState extends State<HomePage> {
                             // Fallback to traditional navigation if not provided
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(context.tr('home_tab_switching_unavailable')),
+                                content: Text(
+                                  context.tr('home_tab_switching_unavailable'),
+                                ),
                                 backgroundColor: Colors.orange,
                               ),
                             );

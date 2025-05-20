@@ -104,7 +104,6 @@ flutter:
     - assets/icons/
     - assets/icons/expense/
     - assets/icons/income/
-    - assets/images/
     - assets/lang/
     - .env
 

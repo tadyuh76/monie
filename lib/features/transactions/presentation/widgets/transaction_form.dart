@@ -145,12 +145,14 @@ class _TransactionFormState extends State<TransactionForm> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    if (!mounted) return;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
+        if (!mounted) return child!;
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.dark(
@@ -165,7 +167,8 @@ class _TransactionFormState extends State<TransactionForm> {
       },
     );
 
-    if (picked != null && picked != _selectedDate && mounted) {
+    if (!mounted) return;
+    if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
       });

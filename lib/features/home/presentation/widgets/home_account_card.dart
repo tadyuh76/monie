@@ -1,6 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:monie/features/account/presentation/pages/detail_accounts_page.dart';
 import 'package:monie/features/account/presentation/pages/detail_accounts_page.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 
@@ -9,7 +7,6 @@ import '../../../transactions/domain/entities/transaction.dart';
 class HomeAccountCard extends StatelessWidget {
   Account account;
   List<Transaction> transactions;
-
 
   HomeAccountCard({
     super.key,
@@ -20,12 +17,14 @@ class HomeAccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: (){
+      onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder:
-                (context) =>
-             DetailAccountsPage(account: account, transactions: transactions,),
+                (context) => DetailAccountsPage(
+                  account: account,
+                  transactions: transactions,
+                ),
           ),
         );
       },
@@ -43,79 +42,79 @@ class HomeAccountCard extends StatelessWidget {
                 children: [
                   Container(
                     margin: EdgeInsets.only(right: 40),
-                    child: Text(account.name ?? '',
-                        maxLines: 1,
-                        softWrap: true,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        )),
-                  ),
-                  const SizedBox(height: 8),
-                  if (account.type != null)
-                    Text(account.type ?? '',
-                        maxLines: 1,
-                        softWrap: true,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.grey[300],
-                          fontSize: 14,
-                        )),
-                  const SizedBox(height: 8),
-                  Text('${account.balance}${account.currency}',
+                    child: Text(
+                      account.name ?? '',
                       maxLines: 1,
                       softWrap: true,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 26,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
-                      )),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(account.transactionCount.toString() ?? '',
+                  if (account.type != null)
+                    Text(
+                      account.type ?? '',
                       maxLines: 1,
                       softWrap: true,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[400],
-                      )),
-
+                      style: TextStyle(color: Colors.grey[300], fontSize: 14),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${account.balance}${account.currency}',
+                    maxLines: 1,
+                    softWrap: true,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    account.transactionCount.toString(),
+                    maxLines: 1,
+                    softWrap: true,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                  ),
                 ],
               ),
               Positioned(
                 right: 0,
                 top: 5,
                 child: Row(
-                    children: [
-                      Container(
-                        width: 15,
-                        height: 15,
+                  children: [
+                    Container(
+                      width: 15,
+                      height: 15,
+                      margin: const EdgeInsets.only(left: 4),
+                      decoration: BoxDecoration(
+                        color: account.getColor().withAlpha(99),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+
+                    Transform.translate(
+                      offset: const Offset(-10, -4),
+                      child: Container(
+                        width: 13,
+                        height: 13,
                         margin: const EdgeInsets.only(left: 4),
                         decoration: BoxDecoration(
-                          color: account.getColor().withAlpha(99),
+                          color: account.getColor(),
                           shape: BoxShape.circle,
                         ),
                       ),
-
-                      Transform.translate(
-                          offset: const Offset(-10, -4),
-                          child: Container(
-                            width: 13,
-                            height: 13,
-                            margin: const EdgeInsets.only(left: 4),
-                            decoration: BoxDecoration(
-                              color: account.getColor() ?? Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          )
-                      ),
-
-                    ]
+                    ),
+                  ],
                 ),
-              )
+              ),
             ],
           ),
         ),

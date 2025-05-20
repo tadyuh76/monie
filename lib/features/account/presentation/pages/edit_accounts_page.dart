@@ -14,10 +14,10 @@ import 'add_account_page.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 
 class EditAccountsPage extends StatefulWidget {
-  List<Account> accounts;
-  List<Transaction> transactions;
+  final List<Account> accounts;
+  final List<Transaction> transactions;
 
-  EditAccountsPage({
+  const EditAccountsPage({
     super.key,
     required this.accounts,
     required this.transactions,
@@ -28,14 +28,23 @@ class EditAccountsPage extends StatefulWidget {
 }
 
 class _EditAccountsPageState extends State<EditAccountsPage> {
-  List<Account> get accounts => widget.accounts ?? [];
+  late List<Account> _accounts;
+
+  @override
+  void initState() {
+    super.initState();
+    _accounts = List.from(widget.accounts);
+    _selectedType = items.map((item) => item.type).toList();
+  }
+
+  List<Account> get accounts => _accounts;
   set accounts(List<Account> newAccounts) {
     setState(() {
-      widget.accounts = newAccounts;
+      _accounts = newAccounts;
     });
   }
 
-  var items = [
+  final items = [
     Sort(name: 'Cash', type: 'cash'),
     Sort(name: 'Bank', type: 'bank'),
     Sort(name: 'Savings', type: 'savings'),
@@ -45,12 +54,6 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
   ];
   List _selectedType = [];
   bool showArchived = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedType = items.map((item) => item.type).toList();
-  }
 
   Future<bool> _deleteAccount(int index, {Function(int)? remove}) async {
     final name = accounts[index].name;
@@ -114,7 +117,10 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
     return false;
   }
 
-  void _archiveAccount(int index, {Function(Account account)? archiveAccount}) async {
+  void _archiveAccount(
+    int index, {
+    Function(Account account)? archiveAccount,
+  }) async {
     final name = accounts[index].name;
     final confirm = await showDialog<bool>(
       context: context,
@@ -152,23 +158,28 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
     if (confirm == true) {
       setState(() {
         accounts[index].archived = true;
-        if(archiveAccount != null){
+        if (archiveAccount != null) {
           archiveAccount(accounts[index]).call();
         }
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account archived successfully!'),
-          backgroundColor: AppColors.primary,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account archived successfully!'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
     }
   }
 
-  void _unarchiveAccount(int index, {Function(Account account)? unarchiveAccount}) {
+  void _unarchiveAccount(
+    int index, {
+    Function(Account account)? unarchiveAccount,
+  }) {
     setState(() {
       accounts[index].archived = false;
-      if(unarchiveAccount != null){
+      if (unarchiveAccount != null) {
         unarchiveAccount(accounts[index]).call();
       }
     });
@@ -180,7 +191,10 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
     );
   }
 
-  void _reconcileAccount(int index, {Function(Account account1, Account account2)? reconcileAccount}) async {
+  void _reconcileAccount(
+    int index, {
+    Function(Account account1, Account account2)? reconcileAccount,
+  }) async {
     final acc = accounts[index];
     final otherAccounts =
         accounts.where((a) => a.id != acc.id && a.archived != true).toList();
@@ -257,32 +271,36 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
         );
       },
     );
-    if (confirm != null && confirm is String) {
+    if (confirm != null) {
       final destIndex = accounts.indexWhere((a) => a.id == confirm);
       setState(() {
         accounts[destIndex].balance =
             (accounts[destIndex].balance ?? 0.0) + (acc.balance ?? 0.0);
         acc.balance = 0;
-        if(reconcileAccount != null){
+        if (reconcileAccount != null) {
           reconcileAccount(accounts[destIndex], acc).call();
         }
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Reconciled successfully!'),
-          backgroundColor: AppColors.primary,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reconciled successfully!'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
     }
   }
 
   void _editAccount(int index) async {
+    if (!mounted) return;
     final acc = accounts[index];
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AddAccountPage(account: acc, isEdit: true),
       ),
     );
+    if (!mounted) return;
     if (result != null) {
       setState(() {
         accounts[index] = result;
@@ -315,6 +333,7 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
   }
 
   void _showFilterDialog() async {
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (context) {
@@ -598,41 +617,65 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
                                               color: AppColors.primary,
                                             ),
                                             onSelected: (value) {
-                                              if (value == 'edit')
+                                              if (value == 'edit') {
                                                 _editAccount(index);
-                                              if (value == 'archive')
-                                                _archiveAccount(index, archiveAccount: (Account account) {
-                                                  context.read<AccountBloc>().add(
-                                                    UpdateAccountEvent(
-                                                      account: account,
-                                                    ),
-                                                  );
-                                                },);
-                                              if (value == 'unarchive')
-                                                _unarchiveAccount(index, unarchiveAccount: (Account account) {
-                                                  context.read<AccountBloc>().add(
-                                                    UpdateAccountEvent(
-                                                      account: account,
-                                                    ),
-                                                  );
-                                                });
-                                              if (value == 'reconcile')
-                                                _reconcileAccount(index, reconcileAccount: (Account account1, Account account2) {
-                                                  context
-                                                      .read<AccountBloc>()
-                                                      .add(
-                                                    UpdateAccountEvent(
-                                                      account: account1,
-                                                    ),
-                                                  );
-                                                  context
-                                                      .read<AccountBloc>()
-                                                      .add(
-                                                    UpdateAccountEvent(
-                                                      account: account2,
-                                                    ),
-                                                  );
-                                                });
+                                              }
+                                              if (value == 'archive') {
+                                                _archiveAccount(
+                                                  index,
+                                                  archiveAccount: (
+                                                    Account account,
+                                                  ) {
+                                                    context
+                                                        .read<AccountBloc>()
+                                                        .add(
+                                                          UpdateAccountEvent(
+                                                            account: account,
+                                                          ),
+                                                        );
+                                                  },
+                                                );
+                                              }
+                                              if (value == 'unarchive') {
+                                                _unarchiveAccount(
+                                                  index,
+                                                  unarchiveAccount: (
+                                                    Account account,
+                                                  ) {
+                                                    context
+                                                        .read<AccountBloc>()
+                                                        .add(
+                                                          UpdateAccountEvent(
+                                                            account: account,
+                                                          ),
+                                                        );
+                                                  },
+                                                );
+                                              }
+                                              if (value == 'reconcile') {
+                                                _reconcileAccount(
+                                                  index,
+                                                  reconcileAccount: (
+                                                    Account account1,
+                                                    Account account2,
+                                                  ) {
+                                                    context
+                                                        .read<AccountBloc>()
+                                                        .add(
+                                                          UpdateAccountEvent(
+                                                            account: account1,
+                                                          ),
+                                                        );
+                                                    context
+                                                        .read<AccountBloc>()
+                                                        .add(
+                                                          UpdateAccountEvent(
+                                                            account: account2,
+                                                          ),
+                                                        );
+                                                  },
+                                                );
+                                              }
                                               if (value == 'delete') {
                                                 _deleteAccount(
                                                   index,
@@ -738,19 +781,21 @@ class _EditAccountsPageState extends State<EditAccountsPage> {
                     onPressed: () async {
                       final result = await Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => AddAccountPage(account: null,),
+                          builder: (context) => AddAccountPage(account: null),
                         ),
                       );
                       if (result != null) {
                         setState(() {
                           accounts.add(result);
                         });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Account added successfully!'),
-                            backgroundColor: AppColors.primary,
-                          ),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Account added successfully!'),
+                              backgroundColor: AppColors.primary,
+                            ),
+                          );
+                        }
                       }
                     },
                     child: Container(

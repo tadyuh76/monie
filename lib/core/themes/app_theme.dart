@@ -123,15 +123,15 @@ class AppTheme {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black87),
         titleTextStyle: const TextStyle(
-          color: Colors.black87, 
-          fontSize: 20, 
-          fontWeight: FontWeight.bold
+          color: Colors.black87,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
         ),
       ),
       cardTheme: CardTheme(
         color: Colors.white,
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(16)),
         ),
@@ -189,10 +189,7 @@ class AppTheme {
         foregroundColor: Colors.white,
         shape: const CircleBorder(),
       ),
-      dividerTheme: const DividerThemeData(
-        color: Colors.black12,
-        thickness: 1,
-      ),
+      dividerTheme: const DividerThemeData(color: Colors.black12, thickness: 1),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.grey[100],
@@ -212,7 +209,10 @@ class AppTheme {
           borderRadius: const BorderRadius.all(Radius.circular(12)),
           borderSide: BorderSide(color: AppColors.expense, width: 1),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         labelStyle: const TextStyle(color: Colors.black54),
         hintStyle: const TextStyle(color: Colors.black38),
       ),

@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:monie/features/home/data/models/account_model.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
-
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
+import 'package:monie/features/home/domain/entities/account.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
-import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 
 class AddAccountPage extends StatefulWidget {
-  Account? account;
-  bool isEdit;
+  final Account? account;
+  final bool isEdit;
 
-  AddAccountPage({super.key, this.account, this.isEdit = false});
+  const AddAccountPage({super.key, this.account, this.isEdit = false});
 
   @override
   State<AddAccountPage> createState() => _AddAccountPageState();
@@ -34,19 +32,13 @@ class _AddAccountPageState extends State<AddAccountPage> {
   Color _selectedColor = Colors.green;
 
   Account? get account => widget.account;
-  set account(Account? newAccount) {
-    setState(() {
-      widget.account = newAccount;
-    });
-  }
 
   @override
   void initState() {
     super.initState();
     if (account != null) {
       _controllers['name']!.text = account?.name ?? '';
-      _controllers['balance']!.text =
-          account?.balance?.toString() ?? '';
+      _controllers['balance']!.text = account?.balance?.toString() ?? '';
       _controllers['currency']!.text = account?.currency ?? 'USD';
       _accountType = account?.type ?? 'cash';
       _selectedColor = account!.getColor();
@@ -203,93 +195,87 @@ class _AddAccountPageState extends State<AddAccountPage> {
               ..._buildDynamicFields(),
               _colorPicker(),
               const SizedBox(height: 16),
-          BlocListener<AccountBloc, AccountState>(
-            listener: (context, state) {
-              if (state is AddAccountState || state is UpdateAccountState) {
-                context.read<HomeBloc>().add(const LoadHomeData());
-                context.read<AccountBloc>().add(GetAccountsEvent());
-                Navigator.of(context).pop();
-              }
-            },
-            child: BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, authState) {
-                if (authState is Authenticated) {
-                  return BlocBuilder<AccountBloc, AccountState>(
-                    builder: (context, state) {
-                      return ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _selectedColor,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
-                            final accountMap = {
-                              'id':
-                              account?.id  ??
-                                  DateTime.now().millisecondsSinceEpoch.toString(),
-                              'name': _controllers['name']!.text,
-                              'type': _accountType,
-                              'balance':
-                              double.tryParse(_controllers['balance']!.text) ??
-                                  0,
-                              'currency': _controllers['currency']!.text,
-                              'color': _selectedColor,
-                              'archived': account?.archived ?? false,
-                            };
+              BlocListener<AccountBloc, AccountState>(
+                listener: (context, state) {
+                  if (state is AddAccountState || state is UpdateAccountState) {
+                    context.read<HomeBloc>().add(const LoadHomeData());
+                    context.read<AccountBloc>().add(GetAccountsEvent());
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, authState) {
+                    if (authState is Authenticated) {
+                      return BlocBuilder<AccountBloc, AccountState>(
+                        builder: (context, state) {
+                          return ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _selectedColor,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              if (_formKey.currentState!.validate()) {
+                                Account accountRequest = Account(
+                                  id:
+                                      account?.id ??
+                                      DateTime.now().millisecondsSinceEpoch
+                                          .toString(),
+                                  user_id: authState.user.id,
+                                  name: _controllers['name']!.text,
+                                  type: _accountType,
+                                  balance:
+                                      double.tryParse(
+                                        _controllers['balance']!.text,
+                                      ) ??
+                                      0,
+                                  currency: _controllers['currency']!.text,
+                                  color: _selectedColor.toARGB32(),
+                                  archived: account?.archived ?? false,
+                                  pinned: true,
+                                  transactionCount: 0,
+                                );
 
-                            Account accountRequest = Account(
-                                id:
-                                account?.id ??
-                                    DateTime.now().millisecondsSinceEpoch.toString(),
-                                user_id:
-                                authState.user.id,
-                                name: _controllers['name']!.text,
-                                type: _accountType,
-                                balance:
-                                double.tryParse(_controllers['balance']!.text) ??
-                                    0,
-                                currency: _controllers['currency']!.text,
-                                color: _selectedColor.value,
-                                archived: account?.archived ?? false,
-                                pinned: true,
-                                transactionCount: 0
-                            );
-
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Account saved successfully!'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                              context.read<AccountBloc>().add(
-                                widget.isEdit == false ?  AddAccountEvent(
-                                  account: accountRequest,
-                                ) : UpdateAccountEvent(
-                                  account: accountRequest,
-                                ),
-                              );
-
-                            }
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill all required fields'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Account saved successfully!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                  context.read<AccountBloc>().add(
+                                    widget.isEdit == false
+                                        ? AddAccountEvent(
+                                          account: accountRequest,
+                                        )
+                                        : UpdateAccountEvent(
+                                          account: accountRequest,
+                                        ),
+                                  );
+                                }
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Please fill all required fields',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                            child: Text(
+                              widget.isEdit ? 'Save Changes' : 'Add Account',
+                            ),
+                          );
                         },
-                        child: Text(widget.isEdit ? 'Save Changes' : 'Add Account'),
                       );
-                    },
-                  );
-                }
-                return const Center(child: CircularProgressIndicator());
-              },
-            )
-          ),
-
+                    }
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                ),
+              ),
             ],
           ),
         ),

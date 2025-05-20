@@ -50,13 +50,16 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
           decoration: BoxDecoration(
             color: isDarkMode ? AppColors.cardDark : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: !isDarkMode ? [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              )
-            ] : null,
+            boxShadow:
+                !isDarkMode
+                    ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                    : null,
           ),
           height: 400,
           child: PageView(
@@ -95,9 +98,9 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
                 color:
                     _pieChartPageIndex == 0
                         ? AppColors.primary
-                        : (isDarkMode 
+                        : (isDarkMode
                             ? AppColors.textSecondary.withValues(alpha: 0.3)
-                            : Colors.grey.withOpacity(0.3)),
+                            : Colors.grey.withValues(alpha: 0.3)),
               ),
             ),
             const SizedBox(width: 8),
@@ -109,9 +112,9 @@ class _PieChartSectionWidgetState extends State<PieChartSectionWidget> {
                 color:
                     _pieChartPageIndex == 1
                         ? AppColors.primary
-                        : (isDarkMode 
+                        : (isDarkMode
                             ? AppColors.textSecondary.withValues(alpha: 0.3)
-                            : Colors.grey.withOpacity(0.3)),
+                            : Colors.grey.withValues(alpha: 0.3)),
               ),
             ),
           ],

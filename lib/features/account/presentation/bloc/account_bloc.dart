@@ -3,10 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 import 'package:monie/features/home/domain/usecases/add_account_usecase.dart';
-import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
-import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
-
 import 'package:monie/features/home/domain/usecases/delete_account_usecase.dart';
+import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
 import 'package:monie/features/home/domain/usecases/update_account_usecase.dart';
 
 // Events
@@ -18,34 +16,33 @@ abstract class AccountEvent extends Equatable {
 }
 
 class AddAccountEvent extends AccountEvent {
-  Account account;
+  final Account account;
 
-  AddAccountEvent({required this.account});
+  const AddAccountEvent({required this.account});
 
   @override
   List<Object?> get props => [account];
 }
 
 class GetAccountsEvent extends AccountEvent {
-
-  GetAccountsEvent();
+  const GetAccountsEvent();
   @override
   List<Object?> get props => [];
 }
 
 class UpdateAccountEvent extends AccountEvent {
-  Account account;
+  final Account account;
 
-  UpdateAccountEvent({required this.account});
+  const UpdateAccountEvent({required this.account});
 
   @override
   List<Object?> get props => [account];
 }
 
 class DeleteAccountEvent extends AccountEvent {
-  Account account;
+  final Account account;
 
-  DeleteAccountEvent({required this.account});
+  const DeleteAccountEvent({required this.account});
 
   @override
   List<Object?> get props => [account];
@@ -62,36 +59,36 @@ abstract class AccountState extends Equatable {
 class AccountInitial extends AccountState {}
 
 class AddAccountState extends AccountState {
-  Account account;
+  final Account account;
 
-  AddAccountState({required this.account});
+  const AddAccountState({required this.account});
 
   @override
   List<Object?> get props => [account];
 }
 
 class UpdateAccountState extends AccountState {
-  List<Account> accounts;
+  final List<Account> accounts;
 
-  UpdateAccountState({required this.accounts,});
+  const UpdateAccountState({required this.accounts});
 
   @override
   List<Object?> get props => [accounts];
 }
 
 class GetAccountsState extends AccountState {
-  List<Account> accounts;
+  final List<Account> accounts;
 
-  GetAccountsState({required this.accounts,});
+  const GetAccountsState({required this.accounts});
 
   @override
   List<Object?> get props => [accounts];
 }
 
 class DeleteAccountState extends AccountState {
-  List<Account> accounts;
+  final List<Account> accounts;
 
-  DeleteAccountState({required this.accounts});
+  const DeleteAccountState({required this.accounts});
 
   @override
   List<Object?> get props => [accounts];
@@ -118,8 +115,12 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
   final UpdateAccountUseCase updateAccountUseCase;
   final DeleteAccountUseCase deleteAccountUseCase;
 
-  AccountBloc({required this.getAccountsUseCase, required this.addAccountUseCase, required this.updateAccountUseCase,required this.deleteAccountUseCase,})
-    : super(AccountInitial()) {
+  AccountBloc({
+    required this.getAccountsUseCase,
+    required this.addAccountUseCase,
+    required this.updateAccountUseCase,
+    required this.deleteAccountUseCase,
+  }) : super(AccountInitial()) {
     on<GetAccountsEvent>(_getAccounts);
     on<AddAccountEvent>(_addAccount);
     on<UpdateAccountEvent>(_updateAccount);
@@ -127,9 +128,9 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
   }
 
   Future<void> _getAccounts(
-      GetAccountsEvent event,
-      Emitter<AccountState> emit,
-      ) async {
+    GetAccountsEvent event,
+    Emitter<AccountState> emit,
+  ) async {
     emit(const Loading());
     try {
       final accounts = await getAccountsUseCase();
@@ -154,9 +155,9 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
   }
 
   Future<void> _updateAccount(
-      UpdateAccountEvent event,
-      Emitter<AccountState> emit,
-      ) async {
+    UpdateAccountEvent event,
+    Emitter<AccountState> emit,
+  ) async {
     emit(const Loading());
     try {
       // Add to repository
@@ -169,9 +170,9 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
   }
 
   Future<void> _deleteAccount(
-      DeleteAccountEvent event,
-      Emitter<AccountState> emit,
-      ) async {
+    DeleteAccountEvent event,
+    Emitter<AccountState> emit,
+  ) async {
     emit(const Loading());
     try {
       // Add to repository
