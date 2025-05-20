@@ -1,6 +1,6 @@
 {
   "app_name": "Monie",
-  
+
   "auth_login": "Đăng nhập",
   "auth_register": "Đăng ký",
   "auth_email": "Email",
@@ -12,7 +12,7 @@
   "auth_continue": "Tiếp tục",
   "auth_logout": "Đăng xuất",
   "auth_logout_confirm": "Bạn có chắc chắn muốn đăng xuất không?",
-  
+
   "home_title": "Trang chủ",
   "home_welcome": "Chào mừng trở lại",
   "home_balance": "Số dư",
@@ -30,7 +30,15 @@
   "home_category_analysis": "Phân tích danh mục",
   "home_cash_flow_activity": "Hoạt động dòng tiền",
   "home_last_180_days": "180 ngày gần đây",
-  
+  "home_transaction_error": "Lỗi khi tải giao dịch",
+  "home_no_transactions": "Không tìm thấy giao dịch nào",
+  "home_no_transactions_to_show": "Không có giao dịch để hiển thị",
+  "home_accounts": "Tài khoản",
+  "home_no_accounts": "Không tìm thấy tài khoản nào",
+  "home_budgets": "Ngân sách",
+  "home_balance_trend": "Xu hướng số dư",
+  "home_last_30_days_activity": "Hoạt động 30 ngày qua",
+
   "transactions_title": "Giao dịch",
   "transactions_all": "Tất cả giao dịch",
   "transactions_income": "Thu nhập",
@@ -44,8 +52,9 @@
   "transactions_delete": "Xóa giao dịch",
   "transactions_delete_confirm": "Bạn có chắc chắn muốn xóa giao dịch này không?",
   "transactions_net": "Tổng",
-  "transactions_no_transactions": "Không tìm thấy giao dịch nào",
-  
+
+  "retry": "Thử lại",
+
   "budgets_title": "Ngân sách",
   "budgets_add_new": "Thêm ngân sách mới",
   "budgets_amount": "Số tiền",
@@ -90,7 +99,7 @@
   "budget_upcoming": "Sắp tới",
   "budget_ended": "Đã kết thúc",
   "field_required": "Trường này là bắt buộc",
-  
+
   "groups_title": "Chia sẻ chi phí",
   "groups_total_shared_expenses": "Tổng chi phí chia sẻ",
   "groups_active": "Đang hoạt động",
@@ -102,7 +111,7 @@
   "groups_view_details": "Xem chi tiết",
   "groups_add_expense": "Thêm chi phí",
   "groups_create_new": "Tạo nhóm mới",
-  
+
   "settings_title": "Cài đặt",
   "settings_app_settings": "Cài đặt ứng dụng",
   "settings_notifications": "Thông báo",
@@ -133,7 +142,7 @@
   "settings_passwords_not_match": "Mật khẩu không khớp",
   "settings_loading_profile": "Đang tải hồ sơ...",
   "settings_profile_unavailable": "Không thể tải hồ sơ",
-  
+
   "common_loading": "Đang tải",
   "common_error": "Lỗi",
   "common_success": "Thành công",
@@ -145,4 +154,4 @@
   "common_add": "Thêm",
   "common_user": "Người dùng",
   "common_today": "Hôm nay"
-} 
+}

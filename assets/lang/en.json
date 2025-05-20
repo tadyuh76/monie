@@ -1,6 +1,6 @@
 {
   "app_name": "Monie",
-  
+
   "auth_login": "Login",
   "auth_register": "Register",
   "auth_email": "Email",
@@ -12,7 +12,7 @@
   "auth_continue": "Continue",
   "auth_logout": "Logout",
   "auth_logout_confirm": "Are you sure you want to log out?",
-  
+
   "home_title": "Home",
   "home_welcome": "Welcome back",
   "home_balance": "Balance",
@@ -30,7 +30,15 @@
   "home_category_analysis": "Category Analysis",
   "home_cash_flow_activity": "Cash Flow Activity",
   "home_last_180_days": "Last 180 days",
-  
+  "home_transaction_error": "Error loading transactions",
+  "home_no_transactions": "No transactions found",
+  "home_no_transactions_to_show": "No transactions to display",
+  "home_accounts": "Accounts",
+  "home_no_accounts": "No accounts found",
+  "home_budgets": "Budgets",
+  "home_balance_trend": "Balance Trend",
+  "home_last_30_days_activity": "Last 30 Days Activity",
+
   "transactions_title": "Transactions",
   "transactions_all": "All Transactions",
   "transactions_income": "Income",
@@ -45,7 +53,9 @@
   "transactions_delete_confirm": "Are you sure you want to delete this transaction?",
   "transactions_net": "Net",
   "transactions_no_transactions": "No transactions found",
-  
+
+  "retry": "Retry",
+
   "budgets_title": "Budgets",
   "budgets_add_new": "Add New Budget",
   "budgets_amount": "Amount",
@@ -90,7 +100,7 @@
   "budget_upcoming": "Upcoming",
   "budget_ended": "Ended",
   "field_required": "This field is required",
-  
+
   "groups_title": "Shared Expenses",
   "groups_total_shared_expenses": "Total Shared Expenses",
   "groups_active": "Active",
@@ -102,7 +112,7 @@
   "groups_view_details": "View Details",
   "groups_add_expense": "Add Expense",
   "groups_create_new": "Create New Group",
-  
+
   "settings_title": "Settings",
   "settings_app_settings": "App Settings",
   "settings_notifications": "Notifications",
@@ -133,7 +143,7 @@
   "settings_passwords_not_match": "Passwords do not match",
   "settings_loading_profile": "Loading profile...",
   "settings_profile_unavailable": "Profile unavailable",
-  
+
   "common_loading": "Loading",
   "common_error": "Error",
   "common_success": "Success",
@@ -145,4 +155,4 @@
   "common_add": "Add",
   "common_user": "User",
   "common_today": "Today"
-} 
+}

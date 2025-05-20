@@ -7,8 +7,12 @@ import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/budgets/presentation/pages/budgets_page.dart';
 import 'package:monie/features/groups/presentation/pages/groups_page.dart';
+import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 import 'package:monie/features/home/presentation/pages/home_page.dart';
+import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
@@ -78,36 +82,43 @@ class _MainScreenState extends State<MainScreen> {
         ),
         BlocListener<TransactionsBloc, TransactionsState>(
           listenWhen: (previous, current) {
-            // Add logging to understand state transitions
             return true; // Listen to all state changes
           },
           listener: (context, state) {
-            if (state is TransactionLoading) {
+            if (state is TransactionActionInProgress) {
               // Do nothing, transaction is in progress
-            } else if (state is TransactionLoaded) {
-              // Show success message globally
-              // _showGlobalSnackBar(state.message, backgroundColor: Colors.green);
-
-              // Ensure transactions are reloaded after successful action
-              if (_currentIndex == 1) {
-                // If on transactions page, refresh with current month
+            } else if (state is TransactionActionSuccess) {
+              // Transaction action successful, reload data
+              final authState = context.read<AuthBloc>().state;
+              if (authState is Authenticated) {
+                // Reload all transactions first
                 context.read<TransactionsBloc>().add(
-                  FilterTransactionsByMonth(DateTime.now()),
+                  LoadTransactions(userId: authState.user.id),
                 );
-              } else {
-                // Otherwise just reload all transactions
-                final authState = context.read<AuthBloc>().state;
-                if (authState is Authenticated) {
-                  context.read<TransactionsBloc>().add(
-                    LoadTransactions(userId: authState.user.id),
-                  );
-                }
+
+                // Also reload the home page data
+                context.read<HomeBloc>().add(LoadHomeData(authState.user.id));
+
+                // And reload the TransactionBloc data to keep both synced
+                context.read<TransactionBloc>().add(
+                  LoadTransactionsEvent(authState.user.id),
+                );
               }
             } else if (state is TransactionsError) {
               // Show error globally
               _showGlobalSnackBar(state.message, backgroundColor: Colors.red);
-            } else if (state is TransactionLoaded) {
-              // Do nothing, transactions loaded successfully
+            }
+          },
+        ),
+        // Add listener for TransactionBloc
+        BlocListener<TransactionBloc, TransactionState>(
+          listener: (context, state) {
+            if (state is TransactionCreated || state is TransactionUpdated) {
+              // Transaction created or updated - reload home data
+              final authState = context.read<AuthBloc>().state;
+              if (authState is Authenticated) {
+                context.read<HomeBloc>().add(LoadHomeData(authState.user.id));
+              }
             }
           },
         ),
@@ -167,6 +178,7 @@ class _MainScreenState extends State<MainScreen> {
   void _showAddTransactionModal(BuildContext context) {
     // Get blocs from parent context before opening modal
     final transactionsBloc = BlocProvider.of<TransactionsBloc>(context);
+    final transactionBloc = BlocProvider.of<TransactionBloc>(context);
     final authBloc = BlocProvider.of<AuthBloc>(context);
     final categoriesBloc = BlocProvider.of<CategoriesBloc>(context);
 
@@ -186,6 +198,7 @@ class _MainScreenState extends State<MainScreen> {
         return MultiBlocProvider(
           providers: [
             BlocProvider.value(value: transactionsBloc),
+            BlocProvider.value(value: transactionBloc),
             BlocProvider.value(value: categoriesBloc),
           ],
           child: AddTransactionForm(
@@ -193,8 +206,21 @@ class _MainScreenState extends State<MainScreen> {
               // Use a try-catch block to handle any errors gracefully
               try {
                 if (authState is Authenticated) {
+                  // Create transaction object
+                  final newTransaction = Transaction(
+                    userId: authState.user.id,
+                    title: transaction['title'],
+                    description: transaction['description'] ?? '',
+                    amount: transaction['amount'],
+                    date: DateTime.parse(transaction['date']),
+                    categoryName: transaction['category_name'],
+                    color: transaction['category_color'],
+                    accountId: transaction['account_id'],
+                    budgetId: transaction['budget_id'],
+                  );
+
                   // Create AddNewTransaction event
-                  final addTransactionEvent = AddNewTransaction(
+                  final addNewTransactionEvent = AddNewTransaction(
                     amount: transaction['amount'],
                     description: transaction['description'] ?? '',
                     title: transaction['title'],
@@ -207,26 +233,21 @@ class _MainScreenState extends State<MainScreen> {
                     isIncome: transaction['amount'] >= 0,
                   );
 
-                  // Add the event to the bloc
-                  transactionsBloc.add(addTransactionEvent);
+                  // Create CreateTransactionEvent
+                  final createTransactionEvent = CreateTransactionEvent(
+                    newTransaction,
+                  );
 
-                  // Force refresh transactions view
-                  Future.delayed(Duration(milliseconds: 500), () {
-                    if (_currentIndex == 1) {
-                      transactionsBloc.add(
-                        FilterTransactionsByMonth(DateTime.now()),
-                      );
-                    } else {
-                      if (!context.mounted) return;
+                  // Add the event to both blocs
+                  transactionsBloc.add(addNewTransactionEvent);
+                  transactionBloc.add(createTransactionEvent);
 
-                      final authState = context.read<AuthBloc>().state;
-                      if (authState is Authenticated) {
-                        transactionsBloc.add(
-                          LoadTransactions(userId: authState.user.id),
-                        );
-                      }
-                    }
-                  });
+                  // Reload home data immediately
+                  if (context.mounted) {
+                    context.read<HomeBloc>().add(
+                      LoadHomeData(authState.user.id),
+                    );
+                  }
                 } else {
                   showLoadingError('You must be logged in to add transactions');
                 }

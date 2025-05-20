@@ -270,7 +270,6 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
     AddNewTransaction event,
     Emitter<TransactionsState> emit,
   ) async {
-    // Immediately emit loading state so UI shows progress
     emit(const TransactionActionInProgress());
 
     try {
@@ -279,7 +278,10 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
 
       final transaction = Transaction(
         transactionId: transactionId,
-        amount: event.amount,
+        amount:
+            event.isIncome
+                ? event.amount
+                : -event.amount, // Convert to negative for expenses
         date: event.date,
         description: event.description,
         title: event.title,
@@ -294,35 +296,11 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
       // Add to repository
       await addTransactionUseCase(transaction);
 
-      // Reload transactions to get fresh data from database
-      if (_selectedMonth != null) {
-        // Create date range for the selected month
-        final startDate = DateTime(
-          _selectedMonth!.year,
-          _selectedMonth!.month,
-          1,
-        );
-        final endDate = DateTime(
-          _selectedMonth!.year,
-          _selectedMonth!.month + 1,
-          0, // Last day of month
-          23,
-          59,
-          59,
-        );
-
-        _allTransactions = await getTransactionsByDateRangeUseCase(
-          startDate: startDate,
-          endDate: endDate,
-        );
-      } else {
-        _allTransactions = await getTransactionsUseCase(event.userId);
-      }
-
-      // Emit success state
+      // Emit success state immediately
       emit(const TransactionActionSuccess('Transaction added successfully'));
 
-      // Emit updated state with fresh data
+      // Then reload transactions with fresh data from database
+      _allTransactions = await getTransactionsUseCase(event.userId);
       _emitLoadedState(emit);
     } catch (e) {
       emit(TransactionsError('Failed to add transaction: ${e.toString()}'));

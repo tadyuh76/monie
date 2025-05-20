@@ -64,7 +64,27 @@ class _HomePageState extends State<HomePage> {
                       authState.user.displayName!.isNotEmpty
                   ? authState.user.displayName!
                   : authState.user.email.split('@')[0];
-          return _buildDashboard(context, userId, displayName);
+          return MultiBlocListener(
+            listeners: [
+              BlocListener<TransactionBloc, TransactionState>(
+                listenWhen: (previous, current) {
+                  // Listen for transaction states that should trigger data reload
+                  return current is TransactionCreated ||
+                      current is TransactionUpdated ||
+                      current is TransactionDeleted;
+                },
+                listener: (context, state) {
+                  // Reload the home page data when transactions change
+                  if (state is TransactionCreated ||
+                      state is TransactionUpdated ||
+                      state is TransactionDeleted) {
+                    _loadData();
+                  }
+                },
+              ),
+            ],
+            child: _buildDashboard(context, userId, displayName),
+          );
         }
         return const Center(child: CircularProgressIndicator());
       },
@@ -80,6 +100,21 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.background : Colors.grey[100],
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.settings,
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async => _loadData(),
         child: SafeArea(
@@ -142,7 +177,39 @@ class _HomePageState extends State<HomePage> {
                 // Recent transactions section
                 BlocBuilder<TransactionBloc, TransactionState>(
                   builder: (context, state) {
-                    if (state is TransactionsLoaded) {
+                    if (state is TransactionLoading) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    } else if (state is TransactionError) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            children: [
+                              Text(
+                                context.tr('home_transaction_error'),
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () => _loadData(),
+                                child: Text(context.tr('retry')),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    } else if (state is TransactionsLoaded) {
                       return state.transactions.isEmpty
                           ? Center(
                             child: Padding(
@@ -167,7 +234,10 @@ class _HomePageState extends State<HomePage> {
                                 MaterialPageRoute(
                                   builder: (context) => TransactionsPage(),
                                 ),
-                              );
+                              ).then((_) {
+                                // Reload data when returning from transactions page
+                                _loadData();
+                              });
                             },
                           );
                     }
