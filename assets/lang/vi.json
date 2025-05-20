@@ -68,6 +68,7 @@
   "budget_new": "Tạo ngân sách mới",
   "budget_edit": "Chỉnh sửa ngân sách",
   "budget_name": "Tên ngân sách",
+  "budget_name_hint": "Ví dụ: Chi tiêu hàng tháng, Du lịch, v.v.",
   "budget_name_required": "Vui lòng nhập tên ngân sách",
   "budget_amount": "Số tiền ngân sách",
   "budget_amount_required": "Vui lòng nhập số tiền",
@@ -88,6 +89,7 @@
   "budget_delete_confirmation": "Bạn có chắc chắn muốn xóa ngân sách '{name}' không?",
   "budget_upcoming": "Sắp tới",
   "budget_ended": "Đã kết thúc",
+  "field_required": "Trường này là bắt buộc",
   
   "groups_title": "Chia sẻ chi phí",
   "groups_total_shared_expenses": "Tổng chi phí chia sẻ",

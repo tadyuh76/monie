@@ -214,8 +214,10 @@ class _BudgetFormState extends State<BudgetForm> {
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: _trDisplay('budget_name'),
+                  labelText: "${_trDisplay('budget_name')} *",
+                  hintText: _trDisplay('budget_name_hint') ?? "Nhập tên ngân sách",
                   border: const OutlineInputBorder(),
+                  helperText: context.tr('field_required'),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -230,7 +232,7 @@ class _BudgetFormState extends State<BudgetForm> {
               TextFormField(
                 controller: _amountController,
                 decoration: InputDecoration(
-                  labelText: _trDisplay('budget_amount'),
+                  labelText: "${_trDisplay('budget_amount')} *",
                   border: const OutlineInputBorder(),
                   prefixText: '\$ ',
                 ),
