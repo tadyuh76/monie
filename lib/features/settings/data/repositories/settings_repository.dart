@@ -59,27 +59,46 @@ class SettingsRepository {
       final userMetadata = user.userMetadata;
       final String nameFromAuth = userMetadata?['name'] ?? '';
       
-      // First try to get profile from database
+      // First try to get profile from database using our SQL function
       try {
         final response = await _supabaseClient.client
-            .from('profiles')
-            .select()
-            .eq('id', user.id)
-            .maybeSingle();
+            .rpc('get_user_profile');
 
         // Database profile has priority for some fields
         if (response != null) {
+          print('SettingsRepository: Profile retrieved from SQL function: $response');
           return UserProfile(
             id: user.id,
             // Use display_name from database or name from auth metadata or email
             displayName: response['display_name'] ?? (nameFromAuth.isNotEmpty ? nameFromAuth : user.email?.split('@')[0] ?? 'User'),
             email: user.email ?? '',
-            avatarUrl: response['avatar_url'] ?? userMetadata?['avatar_url'],
-            phoneNumber: response['phone_number'] ?? user.phone,
+            avatarUrl: response['profile_image_url'] ?? userMetadata?['profile_image_url'],
+            phoneNumber: user.phone,
           );
         }
       } catch (e) {
-        print('Error fetching profile from database: $e');
+        print('Error fetching profile from SQL function: $e');
+        
+        // Fallback to direct table access
+        try {
+          final response = await _supabaseClient.client
+              .from('users')
+              .select()
+              .eq('user_id', user.id)
+              .maybeSingle();
+              
+          if (response != null) {
+            return UserProfile(
+              id: user.id,
+              displayName: response['display_name'] ?? (nameFromAuth.isNotEmpty ? nameFromAuth : user.email?.split('@')[0] ?? 'User'),
+              email: user.email ?? '',
+              avatarUrl: response['profile_image_url'] ?? userMetadata?['profile_image_url'],
+              phoneNumber: response['phone_number'] ?? user.phone,
+            );
+          }
+        } catch (tableError) {
+          print('Error fetching profile from table: $tableError');
+        }
       }
       
       // If not found in database or error occurred, create from auth data
@@ -87,7 +106,7 @@ class SettingsRepository {
         id: user.id,
         displayName: nameFromAuth.isNotEmpty ? nameFromAuth : user.email?.split('@')[0] ?? 'User',
         email: user.email ?? '',
-        avatarUrl: userMetadata?['avatar_url'],
+        avatarUrl: userMetadata?['profile_image_url'],
         phoneNumber: user.phone,
       );
     } catch (e) {
@@ -120,7 +139,7 @@ class SettingsRepository {
           UserAttributes(
             data: {
               'name': profile.displayName,
-              'avatar_url': profile.avatarUrl,
+              'profile_image_url': profile.avatarUrl,
             },
           ),
         );
@@ -135,13 +154,11 @@ class SettingsRepository {
       try {
         print('SettingsRepo: Updating profile in database');
         final response = await _supabaseClient.client
-            .from('profiles')
+            .from('users')
             .upsert({
-              'id': profile.id,
+              'user_id': profile.id,
               'display_name': profile.displayName,
-              'avatar_url': profile.avatarUrl,
-              'phone_number': profile.phoneNumber,
-              'updated_at': DateTime.now().toIso8601String(),
+              'profile_image_url': profile.avatarUrl,
               'email': profile.email,
             });
 
@@ -259,31 +276,12 @@ class SettingsRepository {
         // Vẫn tiếp tục và thử upload, trong trường hợp lỗi chỉ là quyền kiểm tra bucket
       }
 
-      // Thay thế bằng cách sử dụng path local để lưu trong profile
-      try {
-        // Update avatar URL in user profile directly
-        // Đây là giải pháp tạm thời nếu không thể upload lên Supabase
-        print('SettingsRepository: Updating profile with local file path');
-        await updateUserProfile(
-          UserProfile(
-            id: user.id,
-            displayName: user.userMetadata?['name'] ?? '',
-            email: user.email ?? '',
-            avatarUrl: filePath,
-            phoneNumber: user.phone,
-          ),
-        );
-        
-        // Chúng ta sẽ trả về đường dẫn cục bộ như một phương án dự phòng
-        // TOTO: Cần thay đổi để sử dụng đường dẫn tạm thời cho mục đích demo
-        return filePath;
-      } catch (localPathError) {
-        print('SettingsRepository: ERROR updating profile with local path: $localPathError');
-      }
+      // Không cập nhật ngay mà ưu tiên tải lên Supabase trước
+      print('SettingsRepository: Prioritizing Supabase upload over local file path');
 
-      // Vẫn thử upload lên Supabase nếu cập nhật local path thành công
+      // Upload ảnh lên Supabase Storage
       try {
-        print('SettingsRepository: Uploading file to storage bucket');
+        print('SettingsRepository: Uploading file to Supabase storage bucket');
         final response = await _supabaseClient.client.storage
             .from('avatars')
             .upload(fileName, file, fileOptions: const FileOptions(
@@ -305,23 +303,73 @@ class SettingsRepository {
           await _supabaseClient.client.auth.updateUser(
             UserAttributes(
               data: {
-                'avatar_url': publicUrl,
+                'profile_image_url': publicUrl,
               },
             ),
           );
           
           print('SettingsRepository: User metadata updated with new avatar URL');
           
+          // Call the settings_update_avatar SQL function
+          try {
+            final result = await _supabaseClient.client
+                .rpc('settings_update_avatar', params: {
+                  'avatar_url_param': publicUrl,
+                });
+            print('SettingsRepository: Avatar updated via settings_update_avatar function, result: $result');
+            
+            if (result != null && result['success'] == true) {
+              print('SettingsRepository: Avatar update succeeded via SQL function');
+            } else {
+              print('SettingsRepository: Avatar update failed via SQL function');
+            }
+          } catch (dbError) {
+            print('SettingsRepository: ERROR calling settings_update_avatar function: $dbError');
+            // Continue since we already updated auth metadata
+          }
+          
           return publicUrl;
         }
       } catch (uploadError) {
         print('SettingsRepository: ERROR uploading to Supabase: $uploadError');
-        // Đã cập nhật local path ở trên, vẫn trả về đường dẫn local
+        // Fallback to local path if upload fails
         return filePath;
       }
 
-      // Nếu có lỗi nhưng đã cập nhật đường dẫn local, vẫn trả về đường dẫn local
-      return filePath;
+      // If all attempts fail, create a local fallback solution
+      try {
+        print('SettingsRepository: All upload attempts failed, using local fallback');
+        
+        // Update auth metadata with the local path
+        await _supabaseClient.client.auth.updateUser(
+          UserAttributes(
+            data: {
+              'profile_image_url': filePath,
+            },
+          ),
+        );
+
+        // Also update the users table using our settings_update_avatar SQL function
+        try {
+          final result = await _supabaseClient.client
+              .rpc('settings_update_avatar', params: {
+                'avatar_url_param': filePath,
+              });
+          print('SettingsRepository: Fallback - Avatar updated via settings_update_avatar function, result: $result');
+          
+          if (result != null && result['success'] == true) {
+            print('SettingsRepository: Fallback - Avatar update succeeded via SQL function');
+          } else {
+            print('SettingsRepository: Fallback - Avatar update failed via SQL function');
+          }
+        } catch (fnError) {
+          print('SettingsRepository: Fallback - ERROR calling settings_update_avatar function: $fnError');
+        }
+        return filePath;
+      } catch (e) {
+        print('SettingsRepository: ERROR in fallback update: $e');
+        return null;
+      }
     } catch (e) {
       print('SettingsRepository: ERROR in uploadAvatar: $e');
       return null;

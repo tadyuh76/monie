@@ -574,7 +574,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _showQuickNameEditDialog(context, displayName);
                 },
                 child: Icon(
-                  Icons.edit,
+                  Icons.border_color,
                   size: 20,
                   color: AppColors.primary,
                 ),
