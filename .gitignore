@@ -47,3 +47,4 @@ app.*.map.json
 
 # env
 .env
+push-notify/push-notify-key.json

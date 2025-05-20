@@ -1,0 +1,3 @@
+android {
+    ndkVersion "25.1.8937393"
+} 
