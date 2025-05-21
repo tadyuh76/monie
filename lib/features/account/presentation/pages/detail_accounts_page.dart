@@ -5,18 +5,17 @@ import 'package:intl/intl.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
+import 'package:monie/features/account/presentation/pages/account_form_modal.dart';
+import 'package:monie/features/home/domain/entities/account.dart';
 import 'package:monie/features/transactions/domain/entities/account.dart'
     as transaction_account;
+import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_state.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
-import 'package:monie/features/transactions/presentation/widgets/account_form_bottom_sheet.dart';
-
-import '../../../home/domain/entities/account.dart';
-import '../../../transactions/domain/entities/transaction.dart';
 
 class DetailAccountsPage extends StatefulWidget {
   final Account account;
@@ -54,13 +53,21 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
 
     // If account ID is available, load the latest transactions for this account
     if (account.accountId != null) {
-      // Get the latest transactions for this account
-      final transactionBloc = context.read<TransactionBloc>();
-      transactionBloc.add(LoadTransactionsByAccountEvent(account.accountId!));
+      try {
+        // Get the latest transactions for this account
+        final transactionBloc = context.read<TransactionBloc>();
+        transactionBloc.add(LoadTransactionsByAccountEvent(account.accountId!));
+      } catch (e) {
+        // Bloc might be closed, ignore the error
+      }
 
-      // Also recalculate the account balance to ensure it's correct
-      final accountBloc = context.read<AccountBloc>();
-      accountBloc.add(RecalculateAccountBalanceEvent(account.accountId!));
+      try {
+        // Also recalculate the account balance to ensure it's correct
+        final accountBloc = context.read<AccountBloc>();
+        accountBloc.add(RecalculateAccountBalanceEvent(account.accountId!));
+      } catch (e) {
+        // Bloc might be closed, ignore the error
+      }
     }
   }
 
@@ -196,6 +203,33 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                   // Refresh the filtered transactions
                   _applyFilters();
                 });
+              }
+            } else if (state is AccountUpdated) {
+              // Handle account updates (name, type, etc.)
+              if (state.account.accountId == account.accountId) {
+                // Convert the transaction account to home account
+                final homeAccount = Account(
+                  accountId: state.account.accountId,
+                  userId: state.account.userId,
+                  name: state.account.name,
+                  type: state.account.type,
+                  balance: state.account.balance,
+                  currency: state.account.currency,
+                  color: state.account.color,
+                  pinned: state.account.pinned,
+                  archived: state.account.archived,
+                );
+
+                // Update the local state
+                setState(() {
+                  _updatedAccount = homeAccount;
+                });
+
+                // Refresh transactions to include any new adjustment transactions
+                final transactionBloc = context.read<TransactionBloc>();
+                transactionBloc.add(
+                  LoadTransactionsByAccountEvent(state.account.accountId),
+                );
               }
             }
           },
@@ -769,16 +803,35 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
   }
 
   void _showEditAccountModal(BuildContext context) {
-    final transactionAccount = _convertHomeAccountToTransactionAccount(account);
+    final homeAccount = account;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return AccountFormBottomSheet(account: transactionAccount);
-      },
-    );
+    // Use AccountFormModal instead of AccountFormBottomSheet
+    AccountFormModal.show(context, account: homeAccount, isEdit: true).then((
+      _,
+    ) {
+      // When the modal is closed, ensure we have the latest data
+      if (account.accountId != null) {
+        if (!context.mounted) return;
+
+        try {
+          // Reload the account data
+          final accountBloc = context.read<AccountBloc>();
+          accountBloc.add(LoadAccountByIdEvent(account.accountId!));
+        } catch (e) {
+          // Bloc might be closed, ignore the error
+        }
+
+        try {
+          // Reload transactions for this account
+          final transactionBloc = context.read<TransactionBloc>();
+          transactionBloc.add(
+            LoadTransactionsByAccountEvent(account.accountId!),
+          );
+        } catch (e) {
+          // Bloc might be closed, ignore the error
+        }
+      }
+    });
   }
 
   void _showDeleteAccountConfirmation(BuildContext context) {
@@ -803,8 +856,12 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
             ),
             TextButton(
               onPressed: () {
-                final accountBloc = context.read<AccountBloc>();
-                accountBloc.add(DeleteAccountEvent(account.accountId!));
+                try {
+                  final accountBloc = context.read<AccountBloc>();
+                  accountBloc.add(DeleteAccountEvent(account.accountId!));
+                } catch (e) {
+                  // Bloc might be closed, ignore the error
+                }
 
                 // Close the dialog
                 Navigator.pop(context);
@@ -826,19 +883,32 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
       final transactionAccount = _convertHomeAccountToTransactionAccount(
         account,
       );
-      final accountBloc = context.read<AccountBloc>();
 
-      accountBloc.add(
-        RecalculateAccountBalanceEvent(transactionAccount.accountId),
-      );
+      try {
+        final accountBloc = context.read<AccountBloc>();
+        accountBloc.add(
+          RecalculateAccountBalanceEvent(transactionAccount.accountId),
+        );
 
-      // Show a snackbar to indicate the operation is in progress
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Recalculating account balance...'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+        // Show a snackbar to indicate the operation is in progress
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Recalculating account balance...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      } catch (e) {
+        // Bloc might be closed, ignore the error
+
+        // Show an error snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to recalculate account balance.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 

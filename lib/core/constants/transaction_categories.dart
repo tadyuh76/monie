@@ -6,6 +6,7 @@ import 'package:monie/core/utils/string_utils.dart';
 class TransactionCategories {
   // ==================== INCOME CATEGORIES ====================
   static final List<Map<String, dynamic>> incomeCategories = [
+    {'name': 'Account Adjustment', 'svgName': 'account_adjustment'},
     {'name': 'Salary', 'svgName': 'salary'},
     {'name': 'Scholarship', 'svgName': 'scholarship'},
     {'name': 'Insurance Payout', 'svgName': 'insurance_payout'},
@@ -17,6 +18,7 @@ class TransactionCategories {
 
   // ==================== EXPENSE CATEGORIES ====================
   static final List<Map<String, dynamic>> expenseCategories = [
+    {'name': 'Account Adjustment', 'svgName': 'account_adjustment'},
     {'name': 'Bills', 'svgName': 'bills'},
     {'name': 'Debt', 'svgName': 'debt'},
     {'name': 'Dining', 'svgName': 'dining'},
@@ -54,6 +56,7 @@ class TransactionCategories {
       final svgName = category['svgName'] as String;
       final colorHex = CategoryColorHelper.getHexColorForCategory(
         svgName.toLowerCase(),
+        isIncome: true,
       );
       allCategories.add({...category, 'color': colorHex, 'isIncome': true});
     }
@@ -63,6 +66,7 @@ class TransactionCategories {
       final svgName = category['svgName'] as String;
       final colorHex = CategoryColorHelper.getHexColorForCategory(
         svgName.toLowerCase(),
+        isIncome: false,
       );
       allCategories.add({...category, 'color': colorHex, 'isIncome': false});
     }
@@ -133,11 +137,7 @@ class TransactionCategories {
 
   // Get the icon path from CategoryIcons based on category name
   static String getCategoryIconPath(String name) {
-    final category = getCategoryByName(name);
-    if (category != null && category['svgName'] != null) {
-      return CategoryIcons.getIconPath(category['svgName']);
-    }
-    return CategoryIcons.getIconPath('shopping'); // Default
+    return CategoryIcons.getIconPath(name);
   }
 
   // Get display name from svgName

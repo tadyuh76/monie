@@ -34,7 +34,6 @@ class AccountModel extends Account {
   /// Converts this [AccountModel] instance to a JSON map.
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> json = {
-      'account_id': accountId,
       'user_id': userId,
       'name': name,
       'type': type,
@@ -43,6 +42,11 @@ class AccountModel extends Account {
       'archived': archived,
       'pinned': pinned,
     };
+
+    // Only include account_id if it's not null
+    if (accountId != null) {
+      json['account_id'] = accountId;
+    }
 
     if (color != null) {
       json['color'] = color!;

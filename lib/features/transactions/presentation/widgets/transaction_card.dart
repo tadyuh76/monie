@@ -151,7 +151,7 @@ class TransactionCard extends StatelessWidget {
   // Get formatted category name for display
   String _getFormattedCategoryName() {
     // Get the raw category name
-    String categoryName = transaction.categoryName?.toLowerCase().trim() ?? '';
+    String categoryName = transaction.categoryName ?? '';
 
     // Use our utility to format the category name
     return CategoryUtils.formatCategoryName(categoryName);
@@ -159,7 +159,7 @@ class TransactionCard extends StatelessWidget {
 
   Widget _buildCategoryIcon() {
     // Get the category name
-    String categoryName = transaction.categoryName?.toLowerCase().trim() ?? '';
+    String categoryName = transaction.categoryName ?? '';
 
     // Get the icon path for the category
     String iconPath = CategoryIcons.getIconPath(categoryName);

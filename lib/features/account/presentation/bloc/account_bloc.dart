@@ -148,9 +148,9 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
   ) async {
     emit(const Loading());
     try {
-      // Add to repository
-      await addAccountUseCase(event.account);
-      emit(AddAccountState(account: event.account));
+      // Add to repository and get the created account with the generated ID
+      final createdAccount = await addAccountUseCase(event.account);
+      emit(AddAccountState(account: createdAccount));
     } catch (e) {
       emit(Error(e.toString()));
     }

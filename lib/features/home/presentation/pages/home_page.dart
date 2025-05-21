@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/features/account/presentation/pages/account_form_modal.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/home/domain/entities/account.dart'
@@ -25,7 +26,6 @@ import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.d
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
-import 'package:monie/features/transactions/presentation/widgets/account_form_bottom_sheet.dart';
 import 'package:monie/features/transactions/presentation/widgets/budget_form_bottom_sheet.dart';
 
 class HomePage extends StatefulWidget {
@@ -46,18 +46,32 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _loadData() {
+    if (!mounted) return;
+
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
       final userId = authState.user.id;
 
-      // Load transactions
-      context.read<TransactionBloc>().add(LoadTransactionsEvent(userId));
+      try {
+        // Load transactions
+        context.read<TransactionBloc>().add(LoadTransactionsEvent(userId));
+      } catch (e) {
+        // Bloc might be closed, ignore the error
+      }
 
-      // Load accounts
-      context.read<AccountBloc>().add(LoadAccountsEvent(userId));
+      try {
+        // Load accounts
+        context.read<AccountBloc>().add(LoadAccountsEvent(userId));
+      } catch (e) {
+        // Bloc might be closed, ignore the error
+      }
 
-      // Load budgets
-      context.read<BudgetBloc>().add(LoadBudgetsEvent(userId));
+      try {
+        // Load budgets
+        context.read<BudgetBloc>().add(LoadBudgetsEvent(userId));
+      } catch (e) {
+        // Bloc might be closed, ignore the error
+      }
     }
   }
 
@@ -84,7 +98,9 @@ class _HomePageState extends State<HomePage> {
                   if (state is TransactionCreated ||
                       state is TransactionUpdated ||
                       state is TransactionDeleted) {
-                    _loadData();
+                    if (mounted) {
+                      _loadData();
+                    }
                   }
                 },
               ),
@@ -99,7 +115,9 @@ class _HomePageState extends State<HomePage> {
                   if (state is AccountCreated ||
                       state is AccountDeleted ||
                       state is AccountBalanceUpdated) {
-                    _loadData();
+                    if (mounted) {
+                      _loadData();
+                    }
                   }
                   // No need to reload data for simple pin updates
                 },
@@ -114,7 +132,9 @@ class _HomePageState extends State<HomePage> {
                   if (state is BudgetCreated ||
                       state is BudgetUpdated ||
                       state is BudgetDeleted) {
-                    _loadData();
+                    if (mounted) {
+                      _loadData();
+                    }
                   }
                 },
               ),
@@ -152,7 +172,12 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async => _loadData(),
+        onRefresh: () async {
+          if (mounted) {
+            _loadData();
+          }
+          return;
+        },
         child: SafeArea(
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -407,84 +432,110 @@ class _HomePageState extends State<HomePage> {
     // Debug print to verify method is called
 
     // Skip if already pinned (shouldn't happen with our UI flow)
-    if (account.pinned) return;
-
-    // Get the AccountBloc
-    final accountBloc = context.read<AccountBloc>();
-
-    // Find all pinned accounts
-    List<home_account.Account> pinnedAccounts =
-        _cachedAccounts.where((acc) => acc.pinned).toList();
-
-    // Update cached accounts immediately (to avoid UI flicker)
-    setState(() {
-      for (int i = 0; i < _cachedAccounts.length; i++) {
-        // For consistent behavior, we'll ensure only one account is pinned
-        if (_cachedAccounts[i].accountId == account.accountId) {
-          // Pin the clicked account
-          _cachedAccounts[i] = home_account.Account(
-            accountId: _cachedAccounts[i].accountId,
-            userId: _cachedAccounts[i].userId,
-            name: _cachedAccounts[i].name,
-            type: _cachedAccounts[i].type,
-            balance: _cachedAccounts[i].balance,
-            currency: _cachedAccounts[i].currency,
-            color: _cachedAccounts[i].color,
-            pinned: true,
-            archived: _cachedAccounts[i].archived,
-          );
-        } else if (_cachedAccounts[i].pinned) {
-          // Unpin any other accounts
-          _cachedAccounts[i] = home_account.Account(
-            accountId: _cachedAccounts[i].accountId,
-            userId: _cachedAccounts[i].userId,
-            name: _cachedAccounts[i].name,
-            type: _cachedAccounts[i].type,
-            balance: _cachedAccounts[i].balance,
-            currency: _cachedAccounts[i].currency,
-            color: _cachedAccounts[i].color,
-            pinned: false,
-            archived: _cachedAccounts[i].archived,
-          );
-        }
-      }
-    });
-
-    // Update the database
-    // Unpin any currently pinned accounts
-    for (final acc in pinnedAccounts) {
-      final unpinnedAccount = transaction_account.Account(
-        accountId: acc.accountId!,
-        userId: acc.userId,
-        name: acc.name,
-        type: acc.type,
-        balance: acc.balance,
-        currency: acc.currency,
-        color: acc.color,
-        pinned: false,
-      );
-
-      accountBloc.add(UpdateAccountEvent(unpinnedAccount));
+    if (account.pinned) {
+      return;
     }
 
-    // Then pin the selected account
-    final accountToPin = transaction_account.Account(
-      accountId: account.accountId!,
-      userId: account.userId,
-      name: account.name,
-      type: account.type,
-      balance: account.balance,
-      currency: account.currency,
-      color: account.color,
-      pinned: true,
-    );
+    // Use a try-catch block to handle potential closed Bloc errors
+    try {
+      // Get the AccountBloc
+      final accountBloc = context.read<AccountBloc>();
 
-    accountBloc.add(UpdateAccountEvent(accountToPin));
+      // Find all pinned accounts
+      List<home_account.Account> pinnedAccounts =
+          _cachedAccounts.where((acc) => acc.pinned).toList();
 
-    // Reload accounts after a short delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      accountBloc.add(LoadAccountsEvent(account.userId));
-    });
+      // First, update the database to ensure persistence
+      // Unpin any currently pinned accounts
+      for (final acc in pinnedAccounts) {
+        final unpinnedAccount = transaction_account.Account(
+          accountId: acc.accountId!,
+          userId: acc.userId,
+          name: acc.name,
+          type: acc.type,
+          balance: acc.balance,
+          currency: acc.currency,
+          color: acc.color,
+          pinned: false,
+          archived: acc.archived,
+        );
+
+        accountBloc.add(UpdateAccountEvent(unpinnedAccount));
+      }
+
+      // Then pin the selected account
+      final accountToPin = transaction_account.Account(
+        accountId: account.accountId!,
+        userId: account.userId,
+        name: account.name,
+        type: account.type,
+        balance: account.balance,
+        currency: account.currency,
+        color: account.color,
+        pinned: true,
+        archived: account.archived,
+      );
+
+      accountBloc.add(UpdateAccountEvent(accountToPin));
+
+      // Now update the cached accounts after a short delay to ensure DB updates have been processed
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          setState(() {
+            for (int i = 0; i < _cachedAccounts.length; i++) {
+              // For consistent behavior, we'll ensure only one account is pinned
+              if (_cachedAccounts[i].accountId == account.accountId) {
+                // Pin the clicked account
+                _cachedAccounts[i] = home_account.Account(
+                  accountId: _cachedAccounts[i].accountId,
+                  userId: _cachedAccounts[i].userId,
+                  name: _cachedAccounts[i].name,
+                  type: _cachedAccounts[i].type,
+                  balance: _cachedAccounts[i].balance,
+                  currency: _cachedAccounts[i].currency,
+                  color: _cachedAccounts[i].color,
+                  pinned: true,
+                  archived: _cachedAccounts[i].archived,
+                );
+              } else if (_cachedAccounts[i].pinned) {
+                // Unpin any other accounts
+                _cachedAccounts[i] = home_account.Account(
+                  accountId: _cachedAccounts[i].accountId,
+                  userId: _cachedAccounts[i].userId,
+                  name: _cachedAccounts[i].name,
+                  type: _cachedAccounts[i].type,
+                  balance: _cachedAccounts[i].balance,
+                  currency: _cachedAccounts[i].currency,
+                  color: _cachedAccounts[i].color,
+                  pinned: false,
+                  archived: _cachedAccounts[i].archived,
+                );
+              }
+            }
+          });
+        }
+      });
+
+      // Reload accounts after a longer delay to ensure all updates are complete
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          try {
+            // Get a fresh reference to the bloc in case it was recreated
+            final freshBloc = context.read<AccountBloc>();
+            freshBloc.add(LoadAccountsEvent(account.userId));
+          } catch (e) {
+            // If there's an error, try to reload all data
+            _loadData();
+          }
+        }
+      });
+    } catch (e) {
+      // If the bloc is closed, we need to reload the page to get a fresh bloc
+      if (mounted) {
+        // Force refresh the UI to get fresh blocs
+        _loadData();
+      }
+    }
   }
 
   Widget _buildEmptyAccountsView(BuildContext context) {
@@ -569,15 +620,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showAddAccountModal(BuildContext context) {
-    // Implement account creation modal
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return const AccountFormBottomSheet();
-      },
-    );
+    // Use the new AccountFormModal instead of the bottom sheet
+    AccountFormModal.show(context);
   }
 
   Widget _buildBudgetsSection(BuildContext context, String userId) {

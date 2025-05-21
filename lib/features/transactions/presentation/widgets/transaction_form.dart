@@ -468,8 +468,7 @@ class _TransactionFormState extends State<TransactionForm> {
       items:
           categories.map((category) {
             final String categoryName = category['name'] as String;
-            final String svgName = category['svgName'] as String;
-            final String iconPath = CategoryIcons.getIconPath(svgName);
+            final String iconPath = CategoryIcons.getIconPath(categoryName);
 
             // Get category color from helper class
             Color backgroundColor = Colors.white.withValues(alpha: 0.1);

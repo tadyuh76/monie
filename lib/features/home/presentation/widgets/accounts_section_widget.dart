@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:monie/features/account/presentation/pages/add_account_page.dart';
+import 'package:monie/features/account/presentation/pages/account_form_modal.dart';
 import 'package:monie/features/home/domain/entities/account.dart'
     as home_account;
 import 'package:monie/features/transactions/domain/entities/account.dart'
@@ -34,46 +34,53 @@ class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
       return;
     }
 
-    final accountBloc = context.read<AccountBloc>();
+    if (!mounted) return;
 
-    // If we're toggling the pin state of an account
-    if (!account.pinned) {
-      // First, unpin any currently pinned accounts
-      for (final acc in widget.accounts) {
-        if (acc.pinned) {
-          // Convert home account to transaction account
-          final transactionAccount = transaction_account.Account(
-            accountId: acc.accountId!,
-            userId: acc.userId,
-            name: acc.name,
-            type: acc.type,
-            balance: acc.balance,
-            currency: acc.currency,
-            color: acc.color,
-            pinned: false, // unpin
-            archived: acc.archived,
-          );
+    try {
+      final accountBloc = context.read<AccountBloc>();
 
-          accountBloc.add(UpdateAccountEvent(transactionAccount));
+      // If we're toggling the pin state of an account
+      if (!account.pinned) {
+        // First, unpin any currently pinned accounts
+        for (final acc in widget.accounts) {
+          if (acc.pinned) {
+            // Convert home account to transaction account
+            final transactionAccount = transaction_account.Account(
+              accountId: acc.accountId!,
+              userId: acc.userId,
+              name: acc.name,
+              type: acc.type,
+              balance: acc.balance,
+              currency: acc.currency,
+              color: acc.color,
+              pinned: false, // unpin
+              archived: acc.archived,
+            );
+
+            accountBloc.add(UpdateAccountEvent(transactionAccount));
+          }
         }
+
+        // Then pin the selected account
+        final transactionAccount = transaction_account.Account(
+          accountId: account.accountId!,
+          userId: account.userId,
+          name: account.name,
+          type: account.type,
+          balance: account.balance,
+          currency: account.currency,
+          color: account.color,
+          pinned: true, // pin this account
+          archived: account.archived,
+        );
+
+        accountBloc.add(UpdateAccountEvent(transactionAccount));
       }
-
-      // Then pin the selected account
-      final transactionAccount = transaction_account.Account(
-        accountId: account.accountId!,
-        userId: account.userId,
-        name: account.name,
-        type: account.type,
-        balance: account.balance,
-        currency: account.currency,
-        color: account.color,
-        pinned: true, // pin this account
-        archived: account.archived,
-      );
-
-      accountBloc.add(UpdateAccountEvent(transactionAccount));
+      // If account is already pinned, we don't unpin it since we need one account pinned
+    } catch (e) {
+      // Bloc might be closed, ignore the error
+      // Consider showing a snackbar or toast message if needed
     }
-    // If account is already pinned, we don't unpin it since we need one account pinned
   }
 
   @override
@@ -112,12 +119,7 @@ class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
               child: Card(
                 child: InkWell(
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddAccountPage(),
-                      ),
-                    );
+                    AccountFormModal.show(context);
                   },
                   child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
