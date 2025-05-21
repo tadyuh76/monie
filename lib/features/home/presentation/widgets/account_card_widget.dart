@@ -3,57 +3,132 @@ import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/home/domain/entities/account.dart';
 
-class AccountCardWidget extends StatelessWidget {
+class AccountCardWidget extends StatefulWidget {
   final Account account;
 
   const AccountCardWidget({super.key, required this.account});
+
+  @override
+  State<AccountCardWidget> createState() => _AccountCardWidgetState();
+}
+
+class _AccountCardWidgetState extends State<AccountCardWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  static const double _pinnedBorderWidth = 2.0;
+  // Effectively no border
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    if (widget.account.pinned) {
+      _controller.value = 1.0; // Start fully pinned if initially pinned
+    }
+  }
+
+  @override
+  void didUpdateWidget(AccountCardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.account.pinned != oldWidget.account.pinned) {
+      if (widget.account.pinned) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+    // Update the Tween's begin and end values if the pinned state changes
+    // This ensures the animation always animates to/from the correct state
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Determine card color based on account type
-    Color accountColor = AppColors.bank;
-    if (account.type == 'cash') {
-      accountColor = AppColors.cash;
+    Color accountTypeColor = AppColors.bank;
+    if (widget.account.type == 'cash') {
+      accountTypeColor = AppColors.cash;
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      width: 160,
-      decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow:
-            !isDarkMode
-                ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ]
-                : null,
-      ),
+    final Color borderColor = _getAccountColorFromString(widget.account.color);
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          width: 160,
+          // Outer container for consistent size due to border
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              // Always have a border, make it transparent when not pinned
+              color:
+                  widget.account.pinned
+                      ? borderColor.withValues(
+                        alpha: _controller.value,
+                      ) // Animate opacity with controller value
+                      : Colors.transparent,
+              width: _pinnedBorderWidth, // Always use the pinned border width
+            ),
+            boxShadow:
+                !isDarkMode
+                    ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                    : null,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            // Inner container for content and visible border
+            decoration: BoxDecoration(
+              color: isDarkMode ? AppColors.cardDark : Colors.white,
+              borderRadius: BorderRadius.circular(
+                14,
+              ), // Slightly smaller to appear inside outer border
+            ),
+            child: child,
+          ),
+        );
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                account.name,
-                softWrap: true,
-                style: textTheme.titleLarge?.copyWith(
-                  color: isDarkMode ? Colors.white : Colors.black87,
+              Expanded(
+                // Added Expanded to prevent overflow
+                child: Text(
+                  widget.account.name,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis, // Prevent overflow
+                  style: textTheme.titleLarge?.copyWith(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8), // Add some space
               Container(
                 width: 16,
                 height: 16,
                 decoration: BoxDecoration(
-                  color: accountColor,
+                  color: accountTypeColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -61,7 +136,7 @@ class AccountCardWidget extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            Formatters.formatCurrency(account.balance),
+            Formatters.formatCurrency(widget.account.balance),
             style: textTheme.headlineMedium?.copyWith(
               color: isDarkMode ? Colors.white : Colors.black87,
               fontWeight: FontWeight.bold,
@@ -69,7 +144,7 @@ class AccountCardWidget extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${account.transactionCount} ${account.transactionCount == 1 ? 'transaction' : 'transactions'}',
+            '${widget.account.transactionCount} ${widget.account.transactionCount == 1 ? 'transaction' : 'transactions'}',
             style: textTheme.bodyMedium?.copyWith(
               color: isDarkMode ? AppColors.textSecondary : Colors.black54,
               height: 1.5,
@@ -78,5 +153,51 @@ class AccountCardWidget extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// Helper function to convert color string to Color object
+Color _getAccountColorFromString(String? colorName) {
+  switch (colorName?.toLowerCase()) {
+    case 'red':
+      return Colors.red;
+    case 'pink':
+      return Colors.pink;
+    case 'purple':
+      return Colors.purple;
+    case 'deepPurple':
+      return Colors.deepPurple;
+    case 'indigo':
+      return Colors.indigo;
+    case 'blue':
+      return Colors.blue;
+    case 'lightBlue':
+      return Colors.lightBlue;
+    case 'cyan':
+      return Colors.cyan;
+    case 'teal':
+      return Colors.teal;
+    case 'green':
+      return Colors.green;
+    case 'lightGreen':
+      return Colors.lightGreen;
+    case 'lime':
+      return Colors.lime;
+    case 'yellow':
+      return Colors.yellow;
+    case 'amber':
+      return Colors.amber;
+    case 'orange':
+      return Colors.orange;
+    case 'deepOrange':
+      return Colors.deepOrange;
+    case 'brown':
+      return Colors.brown;
+    case 'grey':
+      return Colors.grey;
+    case 'blueGrey':
+      return Colors.blueGrey;
+    default:
+      return AppColors.primary; // Default color if string doesn't match
   }
 }
