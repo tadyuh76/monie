@@ -29,10 +29,6 @@ class AccountsSectionWidget extends StatefulWidget {
 
 class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
   void _togglePin(home_account.Account account) {
-    print(
-      "AccountsSectionWidget._togglePin called for: ${account.name}, pinned: ${account.pinned}",
-    );
-
     if (widget.onAccountPinToggle != null) {
       widget.onAccountPinToggle!(account);
       return;
@@ -45,7 +41,6 @@ class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
       // First, unpin any currently pinned accounts
       for (final acc in widget.accounts) {
         if (acc.pinned) {
-          print("Unpinning account: ${acc.name}");
           // Convert home account to transaction account
           final transactionAccount = transaction_account.Account(
             accountId: acc.accountId!,
@@ -63,7 +58,6 @@ class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
         }
       }
 
-      print("Pinning account: ${account.name}");
       // Then pin the selected account
       final transactionAccount = transaction_account.Account(
         accountId: account.accountId!,

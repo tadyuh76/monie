@@ -1,8 +1,15 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
+import 'package:monie/features/transactions/domain/entities/account.dart'
+    as transaction_account;
+import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
+import 'package:monie/features/transactions/presentation/widgets/account_form_bottom_sheet.dart';
 
 import '../../../home/domain/entities/account.dart';
 import '../../../transactions/domain/entities/transaction.dart';
@@ -162,6 +169,20 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
           icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit, color: textColor),
+            onPressed: () {
+              _showEditAccountModal(context);
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.delete, color: textColor),
+            onPressed: () {
+              _showDeleteAccountConfirmation(context);
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -223,7 +244,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                     !isDarkMode
                         ? [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -274,7 +295,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                     !isDarkMode
                         ? [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -330,7 +351,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                     !isDarkMode
                         ? [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -453,7 +474,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                     !isDarkMode
                         ? [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -602,7 +623,9 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                               !isDarkMode
                                   ? [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.05,
+                                      ),
                                       blurRadius: 10,
                                       offset: const Offset(0, 5),
                                     ),
@@ -620,8 +643,10 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                             decoration: BoxDecoration(
                               color:
                                   transaction.amount > 0
-                                      ? AppColors.income.withOpacity(0.2)
-                                      : AppColors.expense.withOpacity(0.2),
+                                      ? AppColors.income.withValues(alpha: 0.2)
+                                      : AppColors.expense.withValues(
+                                        alpha: 0.2,
+                                      ),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -671,6 +696,75 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showEditAccountModal(BuildContext context) {
+    final transactionAccount = _convertHomeAccountToTransactionAccount(account);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return AccountFormBottomSheet(account: transactionAccount);
+      },
+    );
+  }
+
+  void _showDeleteAccountConfirmation(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final String accountName = account.name;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: isDarkMode ? AppColors.cardDark : Colors.white,
+          title: Text(context.tr('accounts_delete_title')),
+          content: Text(
+            context
+                .tr('accounts_delete_confirmation')
+                .replaceAll('{name}', accountName),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(context.tr('common_cancel')),
+            ),
+            TextButton(
+              onPressed: () {
+                final accountBloc = context.read<AccountBloc>();
+                accountBloc.add(DeleteAccountEvent(account.accountId!));
+
+                // Close the dialog
+                Navigator.pop(context);
+
+                // Return to the previous screen
+                Navigator.pop(context);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text(context.tr('common_delete')),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  transaction_account.Account _convertHomeAccountToTransactionAccount(
+    Account account,
+  ) {
+    return transaction_account.Account(
+      accountId: account.accountId!,
+      userId: account.userId,
+      name: account.name,
+      type: account.type,
+      balance: account.balance,
+      currency: account.currency,
+      color: account.color,
+      pinned: account.pinned,
+      archived: account.archived,
     );
   }
 }

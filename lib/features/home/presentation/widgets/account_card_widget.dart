@@ -65,11 +65,6 @@ class _AccountCardWidgetState extends State<AccountCardWidget>
     final textTheme = Theme.of(context).textTheme;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    Color accountTypeColor = AppColors.bank;
-    if (widget.account.type == 'cash') {
-      accountTypeColor = AppColors.cash;
-    }
-
     final Color borderColor = _getAccountColorFromString(widget.account.color);
 
     return AnimatedBuilder(
@@ -104,7 +99,7 @@ class _AccountCardWidgetState extends State<AccountCardWidget>
                 // Always have a border, make it transparent when not pinned
                 color:
                     widget.account.pinned
-                        ? borderColor.withOpacity(_controller.value)
+                        ? borderColor.withValues(alpha: _controller.value)
                         : Colors.transparent,
                 width: _pinnedBorderWidth, // Always use the pinned border width
               ),
@@ -112,7 +107,7 @@ class _AccountCardWidgetState extends State<AccountCardWidget>
                   !isDarkMode
                       ? [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
@@ -7,7 +6,7 @@ import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/home/domain/entities/account.dart'
     as home_account;
-import 'package:monie/features/home/presentation/widgets/account_card_widget.dart';
+import 'package:monie/features/home/presentation/widgets/accounts_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/balance_chart_widget.dart';
 import 'package:monie/features/home/presentation/widgets/greeting_widget.dart';
 import 'package:monie/features/home/presentation/widgets/heat_map_section_widget.dart';
@@ -28,7 +27,6 @@ import 'package:monie/features/transactions/presentation/bloc/transaction_state.
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:monie/features/transactions/presentation/widgets/account_form_bottom_sheet.dart';
 import 'package:monie/features/transactions/presentation/widgets/budget_form_bottom_sheet.dart';
-import 'package:monie/features/home/presentation/widgets/accounts_section_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -405,69 +403,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildAccountCard(BuildContext context, home_account.Account account) {
-    return SizedBox(
-      width: 160,
-      child: AccountCardWidget(
-        account: account,
-        transactions: [],
-        onPinToggle: () => _toggleAccountPin(account),
-        onEdit: () => _showEditAccountOptions(context, account),
-      ),
-    );
-  }
-
-  Widget _buildAddAccountCard(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardBackgroundColor =
-        isDarkMode ? AppColors.cardDark : Colors.grey[200];
-
-    return SizedBox(
-      width: 160,
-      child: InkWell(
-        onTap: () {
-          _showAddAccountModal(context);
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          height: 150,
-          decoration: BoxDecoration(
-            color: cardBackgroundColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDarkMode ? Colors.white30 : Colors.black26,
-              width: 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.add_circle_outline,
-                size: 32,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                context.tr('accounts_add_new'),
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _toggleAccountPin(home_account.Account account) {
     // Debug print to verify method is called
-    print(
-      "Toggling pin for account: ${account.name}, currently pinned: ${account.pinned}",
-    );
 
     // Skip if already pinned (shouldn't happen with our UI flow)
     if (account.pinned) return;
@@ -478,7 +415,6 @@ class _HomePageState extends State<HomePage> {
     // Find all pinned accounts
     List<home_account.Account> pinnedAccounts =
         _cachedAccounts.where((acc) => acc.pinned).toList();
-    print("Found ${pinnedAccounts.length} pinned accounts before update");
 
     // Update cached accounts immediately (to avoid UI flicker)
     setState(() {
@@ -528,7 +464,6 @@ class _HomePageState extends State<HomePage> {
         pinned: false,
       );
 
-      print("Unpinning account in DB: ${acc.name}");
       accountBloc.add(UpdateAccountEvent(unpinnedAccount));
     }
 
@@ -544,7 +479,6 @@ class _HomePageState extends State<HomePage> {
       pinned: true,
     );
 
-    print("Pinning account in DB: ${account.name}");
     accountBloc.add(UpdateAccountEvent(accountToPin));
 
     // Reload accounts after a short delay
@@ -642,133 +576,6 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return const AccountFormBottomSheet();
-      },
-    );
-  }
-
-  void _showEditAccountOptions(
-    BuildContext context,
-    home_account.Account account,
-  ) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    // Provide haptic feedback to indicate the long-press was recognized
-    HapticFeedback.mediumImpact();
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          decoration: BoxDecoration(
-            color: isDarkMode ? AppColors.cardDark : Colors.white,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Text(
-                  account.name,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.edit, color: AppColors.primary),
-                title: Text(context.tr('common_edit')),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showEditAccountModal(context, account);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: Text(context.tr('common_delete')),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showDeleteAccountConfirmation(context, account);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  transaction_account.Account _convertHomeAccountToTransactionAccount(
-    home_account.Account account,
-  ) {
-    return transaction_account.Account(
-      accountId: account.accountId!,
-      userId: account.userId,
-      name: account.name,
-      type: account.type,
-      balance: account.balance,
-      currency: account.currency,
-      // The color parameter is nullable in the Transaction Account class
-    );
-  }
-
-  void _showEditAccountModal(
-    BuildContext context,
-    home_account.Account account,
-  ) {
-    final transactionAccount = _convertHomeAccountToTransactionAccount(account);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return AccountFormBottomSheet(account: transactionAccount);
-      },
-    );
-  }
-
-  void _showDeleteAccountConfirmation(
-    BuildContext context,
-    home_account.Account account,
-  ) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final String accountName = account.name;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: isDarkMode ? AppColors.cardDark : Colors.white,
-          title: Text(context.tr('accounts_delete_title')),
-          content: Text(
-            context
-                .tr('accounts_delete_confirmation')
-                .replaceAll('{name}', accountName),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(context.tr('common_cancel')),
-            ),
-            TextButton(
-              onPressed: () {
-                final accountBloc = context.read<AccountBloc>();
-                accountBloc.add(DeleteAccountEvent(account.accountId!));
-                Navigator.pop(context);
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: Text(context.tr('common_delete')),
-            ),
-          ],
-        );
       },
     );
   }
