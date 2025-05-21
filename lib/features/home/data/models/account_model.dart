@@ -5,7 +5,7 @@ import 'package:monie/features/home/domain/entities/account.dart';
 class AccountModel extends Account {
   /// Creates a new [AccountModel] instance.
   const AccountModel({
-    super.accountId,
+    required super.accountId,
     required super.userId,
     required super.name,
     required super.type,
@@ -19,7 +19,7 @@ class AccountModel extends Account {
   /// Creates an [AccountModel] instance from a JSON map.
   factory AccountModel.fromJson(Map<String, dynamic> json) {
     return AccountModel(
-      accountId: json['account_id'] as String?,
+      accountId: json['account_id'] as String,
       userId: json['user_id'] as String,
       name: json['name'] as String,
       type: json['type'] as String,
@@ -34,6 +34,7 @@ class AccountModel extends Account {
   /// Converts this [AccountModel] instance to a JSON map.
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> json = {
+      'account_id': accountId,
       'user_id': userId,
       'name': name,
       'type': type,
@@ -42,10 +43,6 @@ class AccountModel extends Account {
       'archived': archived,
       'pinned': pinned,
     };
-
-    if (accountId != null) {
-      json['account_id'] = accountId!;
-    }
 
     if (color != null) {
       json['color'] = color!;

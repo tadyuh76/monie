@@ -66,15 +66,12 @@ class AccountRepositoryImpl implements AccountRepository {
   Future<Account> updateAccount(Account account) async {
     try {
       final accountId = account.accountId;
-      if (accountId == null) {
-        throw ArgumentError('Account ID cannot be null when updating');
-      }
 
       final response =
           await _supabaseClient.client
               .from(_tableName)
               .update(AccountModel.fromEntity(account).toJson())
-              .eq('account_id', accountId)
+              .eq('account_id', accountId!)
               .select()
               .single();
 

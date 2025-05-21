@@ -334,6 +334,7 @@ class _AccountFormBottomSheetState extends State<AccountFormBottomSheet> {
       } else {
         // Create new account
         final newAccount = Account(
+          accountId: '',
           userId: userId,
           name: name,
           type: _selectedType,

@@ -33,7 +33,7 @@ class Account extends Equatable {
 
   /// Creates a new [Account] instance.
   const Account({
-    this.accountId,
+    required this.accountId,
     required this.userId,
     required this.name,
     required this.type,
@@ -55,6 +55,7 @@ class Account extends Equatable {
     String? color,
     bool? archived,
     bool? pinned,
+    int? transactionCount,
   }) {
     return Account(
       accountId: accountId ?? this.accountId,

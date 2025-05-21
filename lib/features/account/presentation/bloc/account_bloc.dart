@@ -178,7 +178,7 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     emit(const Loading());
     try {
       // Add to repository
-      await deleteAccountUseCase(event.account.accountId ?? '');
+      await deleteAccountUseCase(event.account.accountId!);
       final accounts = await getAccountsUseCase(event.account.userId);
       emit(DeleteAccountState(accounts: accounts));
     } catch (e) {

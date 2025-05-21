@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/account/presentation/pages/add_account_page.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/home/domain/entities/account.dart'
+    as home_account;
+import 'package:monie/features/transactions/domain/entities/account.dart'
+    as transaction_account;
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
 
-import 'home_account_card.dart';
+import 'account_card_widget.dart';
 
 class AccountsSectionWidget extends StatefulWidget {
-  final List<Account> accounts;
+  final List<home_account.Account> accounts;
   final List<Transaction> transactions;
+  final Function(home_account.Account)? onAccountPinToggle;
 
   const AccountsSectionWidget({
     super.key,
     required this.accounts,
     required this.transactions,
+    this.onAccountPinToggle,
   });
 
   @override
@@ -22,47 +28,93 @@ class AccountsSectionWidget extends StatefulWidget {
 }
 
 class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
-  void _togglePin(Account account) {
-    if (account.accountId != null) {
-      context.read<AccountBloc>().add(
-        UpdateAccountEvent(account: account.copyWith(pinned: !account.pinned)),
-      );
+  void _togglePin(home_account.Account account) {
+    print(
+      "AccountsSectionWidget._togglePin called for: ${account.name}, pinned: ${account.pinned}",
+    );
+
+    if (widget.onAccountPinToggle != null) {
+      widget.onAccountPinToggle!(account);
+      return;
     }
+
+    final accountBloc = context.read<AccountBloc>();
+
+    // If we're toggling the pin state of an account
+    if (!account.pinned) {
+      // First, unpin any currently pinned accounts
+      for (final acc in widget.accounts) {
+        if (acc.pinned) {
+          print("Unpinning account: ${acc.name}");
+          // Convert home account to transaction account
+          final transactionAccount = transaction_account.Account(
+            accountId: acc.accountId!,
+            userId: acc.userId,
+            name: acc.name,
+            type: acc.type,
+            balance: acc.balance,
+            currency: acc.currency,
+            color: acc.color,
+            pinned: false, // unpin
+            archived: acc.archived,
+          );
+
+          accountBloc.add(UpdateAccountEvent(transactionAccount));
+        }
+      }
+
+      print("Pinning account: ${account.name}");
+      // Then pin the selected account
+      final transactionAccount = transaction_account.Account(
+        accountId: account.accountId!,
+        userId: account.userId,
+        name: account.name,
+        type: account.type,
+        balance: account.balance,
+        currency: account.currency,
+        color: account.color,
+        pinned: true, // pin this account
+        archived: account.archived,
+      );
+
+      accountBloc.add(UpdateAccountEvent(transactionAccount));
+    }
+    // If account is already pinned, we don't unpin it since we need one account pinned
   }
 
   @override
   Widget build(BuildContext context) {
-    // Only show pinned accounts on Home
-    List<Account> pinnedAccounts =
-        widget.accounts.where((acc) => acc.pinned == true).toList();
+    // Sort accounts alphabetically by name
+    final sortedAccounts = List<home_account.Account>.from(widget.accounts);
+    sortedAccounts.sort((a, b) => a.name.compareTo(b.name));
+
     return SizedBox(
       height: 150,
       child: ListView.separated(
         shrinkWrap: true,
         scrollDirection: Axis.horizontal,
-        itemCount: pinnedAccounts.length + 1,
+        itemCount: sortedAccounts.length + 1, // +1 for add account button
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
-          if (index < pinnedAccounts.length) {
-            final acc = pinnedAccounts[index];
+          if (index < sortedAccounts.length) {
+            final acc = sortedAccounts[index];
             final transactionsOfAcc =
                 widget.transactions
                     .where((tran) => tran.accountId == acc.accountId)
                     .toList();
+
             return SizedBox(
-              width: 180,
-              child: GestureDetector(
-                onTap: () => _togglePin(acc),
-                child: HomeAccountCard(
-                  account: acc,
-                  transactions: transactionsOfAcc,
-                ),
+              width: 160,
+              child: AccountCardWidget(
+                account: acc,
+                transactions: transactionsOfAcc,
+                onPinToggle: () => _togglePin(acc),
               ),
             );
           } else {
             // Add account button
             return SizedBox(
-              width: 180,
+              width: 160,
               child: Card(
                 child: InkWell(
                   onTap: () {

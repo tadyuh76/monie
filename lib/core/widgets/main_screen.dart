@@ -206,10 +206,11 @@ class _MainScreenState extends State<MainScreen> {
                 if (authState is Authenticated) {
                   // Create transaction object
                   final newTransaction = Transaction(
+                    transactionId: transaction['id'],
                     userId: authState.user.id,
                     title: transaction['title'],
-                    description: transaction['description'] ?? '',
                     amount: transaction['amount'],
+                    description: transaction['description'] ?? '',
                     date: DateTime.parse(transaction['date']),
                     categoryName: transaction['category_name'],
                     color: transaction['category_color'],

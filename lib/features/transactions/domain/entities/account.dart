@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:uuid/uuid.dart';
 
 class Account extends Equatable {
   final String accountId;
@@ -12,8 +11,8 @@ class Account extends Equatable {
   final bool archived;
   final bool pinned;
 
-  Account({
-    String? accountId,
+  const Account({
+    required this.accountId,
     required this.userId,
     required this.name,
     required this.type,
@@ -22,8 +21,7 @@ class Account extends Equatable {
     this.color,
     bool? archived,
     bool? pinned,
-  }) : accountId = accountId ?? const Uuid().v4(),
-       balance = balance ?? 0.0,
+  }) : balance = balance ?? 0.0,
        currency = currency ?? 'USD',
        archived = archived ?? false,
        pinned = pinned ?? false;

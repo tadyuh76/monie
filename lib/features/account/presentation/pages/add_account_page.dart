@@ -271,7 +271,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
                             onPressed: () async {
                               if (_formKey.currentState!.validate()) {
                                 Account accountRequest = Account(
-                                  accountId: account?.accountId,
+                                  accountId: account!.accountId,
                                   userId: authState.user.id,
                                   name: _controllers['name']!.text,
                                   type: _accountType,

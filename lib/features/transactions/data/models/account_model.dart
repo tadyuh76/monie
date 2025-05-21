@@ -1,8 +1,8 @@
 import 'package:monie/features/transactions/domain/entities/account.dart';
 
 class AccountModel extends Account {
-  AccountModel({
-    super.accountId,
+  const AccountModel({
+    required super.accountId,
     required super.userId,
     required super.name,
     required super.type,
@@ -15,9 +15,9 @@ class AccountModel extends Account {
 
   factory AccountModel.fromJson(Map<String, dynamic> json) {
     return AccountModel(
-      accountId: json['account_id'],
-      userId: json['user_id'],
-      name: json['name'],
+      accountId: json['account_id'] as String,
+      userId: json['user_id'] as String,
+      name: json['name'] as String,
       type: json['type'],
       balance: (json['balance'] as num).toDouble(),
       currency: json['currency'],

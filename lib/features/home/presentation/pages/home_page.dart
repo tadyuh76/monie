@@ -28,6 +28,7 @@ import 'package:monie/features/transactions/presentation/bloc/transaction_state.
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:monie/features/transactions/presentation/widgets/account_form_bottom_sheet.dart';
 import 'package:monie/features/transactions/presentation/widgets/budget_form_bottom_sheet.dart';
+import 'package:monie/features/home/presentation/widgets/accounts_section_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -369,31 +370,10 @@ class _HomePageState extends State<HomePage> {
               return const SizedBox.shrink();
             }
 
-            // Ensure only one account is pinned (in case of inconsistency in data)
-            bool foundPinned = false;
-            for (int i = 0; i < accountsToDisplay.length; i++) {
-              if (accountsToDisplay[i].pinned) {
-                if (foundPinned) {
-                  // If we already found a pinned account, unpin this one
-                  accountsToDisplay[i] = home_account.Account(
-                    accountId: accountsToDisplay[i].accountId,
-                    userId: accountsToDisplay[i].userId,
-                    name: accountsToDisplay[i].name,
-                    type: accountsToDisplay[i].type,
-                    balance: accountsToDisplay[i].balance,
-                    currency: accountsToDisplay[i].currency,
-                    color: accountsToDisplay[i].color,
-                    pinned: false,
-                    archived: accountsToDisplay[i].archived,
-                  );
-                } else {
-                  foundPinned = true;
-                }
-              }
-            }
-
-            // Sort accounts by name only, ignoring pinned status to maintain original order
-            accountsToDisplay.sort((a, b) => a.name.compareTo(b.name));
+            // Sort accounts
+            accountsToDisplay.sort((a, b) {
+              return a.name.compareTo(b.name);
+            });
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,24 +389,13 @@ class _HomePageState extends State<HomePage> {
                 if (accountsToDisplay.isEmpty)
                   _buildEmptyAccountsView(context)
                 else
-                  SizedBox(
-                    height: 132,
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      scrollDirection: Axis.horizontal,
-                      itemCount:
-                          accountsToDisplay.length + 1, // +1 for add card
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
-                      itemBuilder: (context, index) {
-                        // Add card at the end
-                        if (index == accountsToDisplay.length) {
-                          return _buildAddAccountCard(context);
-                        }
-
-                        final account = accountsToDisplay[index];
-                        return _buildAccountCard(context, account);
-                      },
-                    ),
+                  AccountsSectionWidget(
+                    accounts: accountsToDisplay,
+                    transactions:
+                        transactionState is TransactionsLoaded
+                            ? transactionState.transactions
+                            : [],
+                    onAccountPinToggle: _toggleAccountPin,
                   ),
               ],
             );
@@ -437,16 +406,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildAccountCard(BuildContext context, home_account.Account account) {
-    return GestureDetector(
-      onTap: () {
-        // Toggle pinned status when tapped
-        _toggleAccountPin(account);
-      },
-      onLongPress: () {
-        // Show edit/delete options when long-pressed
-        _showEditAccountOptions(context, account);
-      },
-      child: AccountCardWidget(account: account),
+    return SizedBox(
+      width: 160,
+      child: AccountCardWidget(
+        account: account,
+        transactions: [],
+        onPinToggle: () => _toggleAccountPin(account),
+        onEdit: () => _showEditAccountOptions(context, account),
+      ),
     );
   }
 
@@ -497,11 +464,21 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _toggleAccountPin(home_account.Account account) {
+    // Debug print to verify method is called
+    print(
+      "Toggling pin for account: ${account.name}, currently pinned: ${account.pinned}",
+    );
+
+    // Skip if already pinned (shouldn't happen with our UI flow)
+    if (account.pinned) return;
+
     // Get the AccountBloc
     final accountBloc = context.read<AccountBloc>();
 
-    // If this account is already pinned and user clicks it, do nothing
-    if (account.pinned) return;
+    // Find all pinned accounts
+    List<home_account.Account> pinnedAccounts =
+        _cachedAccounts.where((acc) => acc.pinned).toList();
+    print("Found ${pinnedAccounts.length} pinned accounts before update");
 
     // Update cached accounts immediately (to avoid UI flicker)
     setState(() {
@@ -535,45 +512,45 @@ class _HomePageState extends State<HomePage> {
           );
         }
       }
-
-      // Sort by name to maintain original order
-      _cachedAccounts.sort((a, b) => a.name.compareTo(b.name));
     });
 
-    // Get current state to access all accounts
-    final state = accountBloc.state;
-    if (state is AccountsLoaded) {
-      // First, unpin any currently pinned accounts
-      for (final acc in state.accounts) {
-        if (acc.pinned) {
-          final unpinnedAccount = transaction_account.Account(
-            accountId: acc.accountId,
-            userId: acc.userId,
-            name: acc.name,
-            type: acc.type,
-            balance: acc.balance,
-            currency: acc.currency,
-            color: acc.color,
-            pinned: false,
-          );
-          accountBloc.add(UpdateAccountEvent(unpinnedAccount));
-        }
-      }
-
-      // Then pin the selected account
-      final transactionAccount = transaction_account.Account(
-        accountId: account.accountId,
-        userId: account.userId,
-        name: account.name,
-        type: account.type,
-        balance: account.balance,
-        currency: account.currency,
-        color: account.color,
-        pinned: true,
+    // Update the database
+    // Unpin any currently pinned accounts
+    for (final acc in pinnedAccounts) {
+      final unpinnedAccount = transaction_account.Account(
+        accountId: acc.accountId!,
+        userId: acc.userId,
+        name: acc.name,
+        type: acc.type,
+        balance: acc.balance,
+        currency: acc.currency,
+        color: acc.color,
+        pinned: false,
       );
 
-      accountBloc.add(UpdateAccountEvent(transactionAccount));
+      print("Unpinning account in DB: ${acc.name}");
+      accountBloc.add(UpdateAccountEvent(unpinnedAccount));
     }
+
+    // Then pin the selected account
+    final accountToPin = transaction_account.Account(
+      accountId: account.accountId!,
+      userId: account.userId,
+      name: account.name,
+      type: account.type,
+      balance: account.balance,
+      currency: account.currency,
+      color: account.color,
+      pinned: true,
+    );
+
+    print("Pinning account in DB: ${account.name}");
+    accountBloc.add(UpdateAccountEvent(accountToPin));
+
+    // Reload accounts after a short delay
+    Future.delayed(const Duration(milliseconds: 500), () {
+      accountBloc.add(LoadAccountsEvent(account.userId));
+    });
   }
 
   Widget _buildEmptyAccountsView(BuildContext context) {
@@ -732,7 +709,7 @@ class _HomePageState extends State<HomePage> {
     home_account.Account account,
   ) {
     return transaction_account.Account(
-      accountId: account.accountId,
+      accountId: account.accountId!,
       userId: account.userId,
       name: account.name,
       type: account.type,
@@ -784,7 +761,7 @@ class _HomePageState extends State<HomePage> {
             TextButton(
               onPressed: () {
                 final accountBloc = context.read<AccountBloc>();
-                accountBloc.add(DeleteAccountEvent(account.accountId ?? ''));
+                accountBloc.add(DeleteAccountEvent(account.accountId!));
                 Navigator.pop(context);
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
