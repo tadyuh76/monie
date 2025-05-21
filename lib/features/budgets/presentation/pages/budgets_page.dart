@@ -210,6 +210,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddBudgetForm,
         backgroundColor: AppColors.primary,
+        heroTag: 'budgetAddFab',
         child: const Icon(Icons.add),
       ),
     );

@@ -426,7 +426,15 @@ class _BudgetFormState extends State<BudgetForm> {
   }
 
   Widget _colorOption(String colorHex) {
-    final color = Color(int.parse('0x$colorHex'));
+    // Safe color parsing
+    Color color;
+    try {
+      color = Color(int.parse('0x$colorHex'));
+    } catch (e) {
+      // Fallback to a default color if parsing fails
+      color = AppColors.primary;
+    }
+
     final isSelected = _color == colorHex;
 
     return GestureDetector(

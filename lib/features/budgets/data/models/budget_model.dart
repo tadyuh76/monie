@@ -26,24 +26,31 @@ class BudgetModel extends Budget {
   // Create a new BudgetModel from Supabase data
   factory BudgetModel.fromSupabaseJson(Map<String, dynamic> json) {
     // Calculate derived values
-    final totalAmount = json['amount'] != null ? (json['amount'] as num).toDouble() : 0.0;
+    final totalAmount =
+        json['amount'] != null ? (json['amount'] as num).toDouble() : 0.0;
     final startDate = DateTime.parse(json['start_date']);
-    final endDate = json['end_date'] != null ? DateTime.parse(json['end_date']) : startDate.add(const Duration(days: 30));
-    
+    final endDate =
+        json['end_date'] != null
+            ? DateTime.parse(json['end_date'])
+            : startDate.add(const Duration(days: 30));
+
     // Calculate days remaining from now until end date
     final now = DateTime.now();
-    final daysRemaining = endDate.difference(now).inDays < 0 ? 0 : endDate.difference(now).inDays;
-    
+    final daysRemaining =
+        endDate.difference(now).inDays < 0 ? 0 : endDate.difference(now).inDays;
+
     // Default to 0 for spent amount if not provided
     final spentAmount = 0.0; // This will be calculated from transactions
     final remainingAmount = totalAmount - spentAmount;
-    
+
     // Calculate progress percentage (spent / totalAmount)
-    final progressPercentage = totalAmount > 0 ? (spentAmount / totalAmount * 100) : 0.0;
-    
+    final progressPercentage =
+        totalAmount > 0 ? (spentAmount / totalAmount * 100) : 0.0;
+
     // Calculate daily saving target
-    final dailySavingTarget = daysRemaining > 0 ? remainingAmount / daysRemaining : remainingAmount;
-    
+    final dailySavingTarget =
+        daysRemaining > 0 ? remainingAmount / daysRemaining : remainingAmount;
+
     return BudgetModel(
       id: json['budget_id'],
       userId: json['user_id'],
@@ -72,25 +79,26 @@ class BudgetModel extends Budget {
       'user_id': userId,
       'name': name,
       'amount': totalAmount,
-      'start_date': startDate.toIso8601String().split('T')[0], // Format as YYYY-MM-DD
+      'start_date':
+          startDate.toIso8601String().split('T')[0], // Format as YYYY-MM-DD
       'end_date': endDate.toIso8601String().split('T')[0],
       'is_recurring': isRecurring,
       'is_saving': isSaving,
       'frequency': frequency,
     };
-    
+
     // Đảm bảo color không null khi lưu vào database
     if (color != null && color!.isNotEmpty) {
       json['color'] = color;
     } else {
       json['color'] = 'FF4CAF50'; // Default to green if no color
     }
-    
+
     // Only include categoryId if it's not null
     if (categoryId != null) {
       json['category_id'] = categoryId;
     }
-    
+
     return json;
   }
 
@@ -162,7 +170,7 @@ class BudgetModel extends Budget {
       color: entity.color,
     );
   }
-  
+
   // Create a new budget with default values
   factory BudgetModel.create({
     required String name,
@@ -178,8 +186,9 @@ class BudgetModel extends Budget {
   }) {
     final id = const Uuid().v4();
     final now = DateTime.now();
-    final daysRemaining = endDate.difference(now).inDays < 0 ? 0 : endDate.difference(now).inDays;
-    
+    final daysRemaining =
+        endDate.difference(now).inDays < 0 ? 0 : endDate.difference(now).inDays;
+
     return BudgetModel(
       id: id,
       name: name,

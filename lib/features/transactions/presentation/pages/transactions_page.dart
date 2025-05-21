@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
+import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
@@ -77,39 +78,43 @@ class _TransactionsPageState extends State<TransactionsPage> {
         context: context,
         isScrollControlled: true,
         builder:
-            (context) => AddTransactionForm(
-              onSubmit: (transactionData) {
-                // Create the transaction
-                final transactionBloc = context.read<TransactionBloc>();
-                final accountBloc = context.read<AccountBloc>();
-                final amount = transactionData['amount'] as double;
-                final accountId = transactionData['account_id'] as String?;
+            (context) => BlocProvider.value(
+              value: BlocProvider.of<BudgetsBloc>(context),
+              child: AddTransactionForm(
+                onSubmit: (transactionData) {
+                  // Create the transaction
+                  final transactionBloc = context.read<TransactionBloc>();
+                  final accountBloc = context.read<AccountBloc>();
+                  final amount = transactionData['amount'] as double;
+                  final accountId = transactionData['account_id'] as String?;
+                  final budgetId = transactionData['budget_id'] as String?;
 
-                // First create the transaction
-                transactionBloc.add(
-                  CreateTransactionEvent(
-                    Transaction(
-                      userId: authState.user.id,
-                      amount: amount,
-                      title: transactionData['title'],
-                      date: DateTime.parse(transactionData['date']),
-                      description: transactionData['description'],
-                      categoryName: transactionData['category_name'],
-                      color: transactionData['category_color'],
-                      accountId: accountId,
-                      budgetId: transactionData['budget_id'],
+                  // First create the transaction
+                  transactionBloc.add(
+                    CreateTransactionEvent(
+                      Transaction(
+                        userId: authState.user.id,
+                        amount: amount,
+                        title: transactionData['title'],
+                        date: DateTime.parse(transactionData['date']),
+                        description: transactionData['description'],
+                        categoryName: transactionData['category_name'],
+                        color: transactionData['category_color'],
+                        accountId: accountId,
+                        budgetId: budgetId,
+                      ),
                     ),
-                  ),
-                );
+                  );
 
-                // Recalculate the account balance if an account is selected
-                if (accountId != null) {
-                  accountBloc.add(RecalculateAccountBalanceEvent(accountId));
-                }
+                  // Recalculate the account balance if an account is selected
+                  if (accountId != null) {
+                    accountBloc.add(RecalculateAccountBalanceEvent(accountId));
+                  }
 
-                Navigator.pop(context);
-                _loadTransactions();
-              },
+                  Navigator.pop(context);
+                  _loadTransactions();
+                },
+              ),
             ),
       );
     }
@@ -122,51 +127,59 @@ class _TransactionsPageState extends State<TransactionsPage> {
         context: context,
         isScrollControlled: true,
         builder:
-            (context) => AddTransactionForm(
-              transaction: transaction,
-              onSubmit: (transactionData) {
-                // Keep track of old and new values
-                final transactionBloc = context.read<TransactionBloc>();
-                final accountBloc = context.read<AccountBloc>();
+            (context) => BlocProvider.value(
+              value: BlocProvider.of<BudgetsBloc>(context),
+              child: AddTransactionForm(
+                transaction: transaction,
+                onSubmit: (transactionData) {
+                  // Keep track of old and new values
+                  final transactionBloc = context.read<TransactionBloc>();
+                  final accountBloc = context.read<AccountBloc>();
 
-                final oldAccountId = transaction.accountId ?? '';
-                final newAccountId = transactionData['account_id'] as String;
+                  final oldAccountId = transaction.accountId ?? '';
+                  final newAccountId = transactionData['account_id'] as String;
+                  final budgetId = transactionData['budget_id'] as String?;
 
-                // First update the transaction
-                transactionBloc.add(
-                  UpdateTransactionEvent(
-                    transaction.copyWith(
-                      amount: transactionData['amount'] as double,
-                      title: transactionData['title'],
-                      date: DateTime.parse(transactionData['date']),
-                      description: transactionData['description'],
-                      categoryName: transactionData['category_name'],
-                      color: transactionData['category_color'],
-                      accountId: newAccountId,
-                      budgetId: transactionData['budget_id'],
+                  // First update the transaction
+                  transactionBloc.add(
+                    UpdateTransactionEvent(
+                      transaction.copyWith(
+                        amount: transactionData['amount'] as double,
+                        title: transactionData['title'],
+                        date: DateTime.parse(transactionData['date']),
+                        description: transactionData['description'],
+                        categoryName: transactionData['category_name'],
+                        color: transactionData['category_color'],
+                        accountId: newAccountId,
+                        budgetId: budgetId,
+                      ),
                     ),
-                  ),
-                );
+                  );
 
-                // If account changed, recalculate both accounts
-                if (oldAccountId != newAccountId) {
-                  // Recalculate old account
-                  if (oldAccountId.isNotEmpty) {
+                  // If account changed, recalculate both accounts
+                  if (oldAccountId != newAccountId) {
+                    // Recalculate old account
+                    if (oldAccountId.isNotEmpty) {
+                      accountBloc.add(
+                        RecalculateAccountBalanceEvent(oldAccountId),
+                      );
+                    }
+
+                    // Recalculate new account
                     accountBloc.add(
-                      RecalculateAccountBalanceEvent(oldAccountId),
+                      RecalculateAccountBalanceEvent(newAccountId),
+                    );
+                  } else {
+                    // Just recalculate the same account
+                    accountBloc.add(
+                      RecalculateAccountBalanceEvent(newAccountId),
                     );
                   }
 
-                  // Recalculate new account
-                  accountBloc.add(RecalculateAccountBalanceEvent(newAccountId));
-                } else {
-                  // Just recalculate the same account
-                  accountBloc.add(RecalculateAccountBalanceEvent(newAccountId));
-                }
-
-                Navigator.pop(context);
-                _loadTransactions();
-              },
+                  Navigator.pop(context);
+                  _loadTransactions();
+                },
+              ),
             ),
       );
     }
@@ -357,6 +370,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: _showAddTransactionForm,
+            heroTag: 'transactionAddFab',
             child: const Icon(Icons.add),
           ),
         );

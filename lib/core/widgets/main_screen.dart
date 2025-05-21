@@ -18,6 +18,7 @@ import 'package:monie/features/transactions/presentation/widgets/add_transaction
 import 'package:monie/main.dart'; // Import for rootScaffoldMessengerKey
 import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
+import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -182,6 +183,7 @@ class _MainScreenState extends State<MainScreen> {
     final authBloc = BlocProvider.of<AuthBloc>(context);
     final categoriesBloc = BlocProvider.of<CategoriesBloc>(context);
     final accountBloc = BlocProvider.of<AccountBloc>(context);
+    final budgetsBloc = BlocProvider.of<BudgetsBloc>(context);
 
     // Get auth state
     final authState = authBloc.state;
@@ -202,6 +204,7 @@ class _MainScreenState extends State<MainScreen> {
             BlocProvider.value(value: transactionBloc),
             BlocProvider.value(value: categoriesBloc),
             BlocProvider.value(value: accountBloc),
+            BlocProvider.value(value: budgetsBloc),
           ],
           child: AddTransactionForm(
             onSubmit: (Map<String, dynamic> transaction) async {

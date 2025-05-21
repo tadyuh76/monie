@@ -8,6 +8,7 @@ import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/constants/transaction_categories.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
+import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_state.dart';
@@ -60,6 +61,22 @@ class AddTransactionFormState extends State<AddTransactionForm> {
     return Icons.category;
   }
 
+  // Helper method to safely parse color from hex string
+  Color _parseColor(String? colorHex, Color defaultColor) {
+    if (colorHex == null || colorHex.isEmpty) {
+      return defaultColor;
+    }
+
+    try {
+      // Remove # prefix if present
+      final cleanHex =
+          colorHex.startsWith('#') ? colorHex.substring(1) : colorHex;
+      return Color(int.parse('0xFF$cleanHex'));
+    } catch (e) {
+      return defaultColor;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -85,6 +102,9 @@ class AddTransactionFormState extends State<AddTransactionForm> {
 
     // Load user accounts when the form is initialized
     _loadUserAccounts();
+
+    // Load budgets when the form is initialized
+    _loadBudgets();
   }
 
   void _loadUserAccounts() {
@@ -96,6 +116,12 @@ class AddTransactionFormState extends State<AddTransactionForm> {
       // We'll use a placeholder user ID for now since we don't have the user context here
       accountBloc.add(const LoadAccountsEvent('current_user'));
     }
+  }
+
+  void _loadBudgets() {
+    final budgetsBloc = context.read<BudgetsBloc>();
+    // Load active budgets
+    budgetsBloc.add(const LoadActiveBudgets());
   }
 
   @override
@@ -1101,42 +1127,126 @@ class AddTransactionFormState extends State<AddTransactionForm> {
             color: isDarkMode ? AppColors.cardDark : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedBudgetId,
-              hint: Text(
-                'Select Budget',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.white70 : Colors.black54,
-                ),
-              ),
-              isExpanded: true,
-              dropdownColor: isDarkMode ? AppColors.surface : Colors.white,
-              style: TextStyle(
-                color: isDarkMode ? Colors.white : Colors.black87,
-              ),
-              icon: Icon(
-                Icons.arrow_drop_down,
-                color: isDarkMode ? Colors.white : Colors.black87,
-              ),
-              items: [
-                DropdownMenuItem(
-                  value: '1',
-                  child: Row(
-                    children: [
-                      Icon(Icons.card_travel, color: AppColors.primary),
-                      SizedBox(width: 8),
-                      Text('Trip'),
-                    ],
+          child: BlocBuilder<BudgetsBloc, BudgetsState>(
+            builder: (context, state) {
+              if (state is BudgetsLoading) {
+                return const Center(
+                  child: SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedBudgetId = value;
-                });
-              },
-            ),
+                );
+              } else if (state is BudgetsLoaded) {
+                final budgets = state.budgets;
+
+                if (budgets.isEmpty) {
+                  return Text(
+                    'No active budgets available',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  );
+                }
+
+                return DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedBudgetId,
+                    hint: Text(
+                      'Select Budget',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                    isExpanded: true,
+                    dropdownColor:
+                        isDarkMode ? AppColors.surface : Colors.white,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                    icon: Icon(
+                      Icons.arrow_drop_down,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                    items: [
+                      // Add a "None" option
+                      DropdownMenuItem<String>(
+                        value: null,
+                        child: Text(
+                          'None',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                      ),
+                      // Add all active budgets
+                      ...budgets.map((budget) {
+                        // Parse color from hex string or use default
+                        Color budgetColor;
+                        try {
+                          if (budget.color != null) {
+                            budgetColor = _parseColor(
+                              budget.color,
+                              AppColors.primary,
+                            );
+                          } else {
+                            budgetColor = AppColors.primary;
+                          }
+                        } catch (e) {
+                          budgetColor = AppColors.primary;
+                        }
+
+                        return DropdownMenuItem(
+                          value: budget.id,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: budgetColor,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  budget.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                '\$${budget.remainingAmount.toStringAsFixed(0)} left',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white60
+                                          : Colors.black54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedBudgetId = value;
+                      });
+                    },
+                  ),
+                );
+              } else {
+                // If there's an error or no budgets loaded, show a message
+                return Text(
+                  'No budgets available',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                );
+              }
+            },
           ),
         ),
       ],

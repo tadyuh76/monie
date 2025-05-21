@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 
 class BudgetCard extends StatelessWidget {
   final Budget budget;
@@ -44,6 +48,22 @@ class BudgetCard extends StatelessWidget {
     return translated;
   }
 
+  // Helper method to safely parse color from hex string
+  Color _parseColor(String? colorHex, Color defaultColor) {
+    if (colorHex == null || colorHex.isEmpty) {
+      return defaultColor;
+    }
+
+    try {
+      // Remove # prefix if present
+      final cleanHex =
+          colorHex.startsWith('#') ? colorHex.substring(1) : colorHex;
+      return Color(int.parse('0xFF$cleanHex'));
+    } catch (e) {
+      return defaultColor;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -53,7 +73,10 @@ class BudgetCard extends StatelessWidget {
     Color cardColor;
     try {
       if (budget.color != null) {
-        cardColor = Color(int.parse('0x${budget.color}'));
+        cardColor = _parseColor(
+          budget.color,
+          isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50),
+        );
       } else {
         cardColor =
             isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
@@ -237,10 +260,41 @@ class BudgetCard extends StatelessWidget {
                     ),
                   ),
                 ),
+
+              // View transactions button
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: TextButton.icon(
+                  onPressed: () {
+                    // Show transactions modal
+                    _showBudgetTransactions(context);
+                  },
+                  icon: const Icon(Icons.receipt_long, color: Colors.white),
+                  label: Text(
+                    _trDisplay(context, 'budget_view_transactions'),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  void _showBudgetTransactions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _BudgetTransactionsModal(budget: budget),
     );
   }
 
@@ -289,5 +343,240 @@ class BudgetCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _BudgetTransactionsModal extends StatefulWidget {
+  final Budget budget;
+
+  const _BudgetTransactionsModal({required this.budget});
+
+  @override
+  State<_BudgetTransactionsModal> createState() =>
+      _BudgetTransactionsModalState();
+}
+
+class _BudgetTransactionsModalState extends State<_BudgetTransactionsModal> {
+  @override
+  void initState() {
+    super.initState();
+    // Load transactions for this budget
+    context.read<TransactionBloc>().add(
+      LoadTransactionsByBudgetEvent(widget.budget.id),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppColors.background : Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${widget.budget.name} Transactions',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+
+            // Budget summary
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _parseColor(widget.budget.color, AppColors.primary),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Spent',
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                      Text(
+                        '\$${widget.budget.spentAmount.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Remaining',
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                      Text(
+                        '\$${widget.budget.remainingAmount.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: widget.budget.progressPercentage / 100,
+                backgroundColor: Colors.grey.shade300,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  _parseColor(widget.budget.color, AppColors.primary),
+                ),
+                minHeight: 8,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Transactions list
+            Expanded(
+              child: BlocBuilder<TransactionBloc, TransactionState>(
+                builder: (context, state) {
+                  if (state is TransactionLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (state is TransactionsLoaded) {
+                    final transactions =
+                        state.transactions
+                            .where((t) => t.budgetId == widget.budget.id)
+                            .toList();
+
+                    if (transactions.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.receipt_long,
+                              size: 64,
+                              color:
+                                  isDarkMode
+                                      ? Colors.white30
+                                      : Colors.grey.shade300,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No transactions for this budget yet',
+                              style: TextStyle(
+                                color:
+                                    isDarkMode
+                                        ? Colors.white70
+                                        : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: transactions.length,
+                      itemBuilder: (context, index) {
+                        final transaction = transactions[index];
+                        final isExpense = transaction.amount < 0;
+
+                        return ListTile(
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: _parseColor(
+                                transaction.color,
+                                const Color(0xFF9E9E9E),
+                              ).withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isExpense
+                                  ? Icons.arrow_downward
+                                  : Icons.arrow_upward,
+                              color: _parseColor(
+                                transaction.color,
+                                const Color(0xFF9E9E9E),
+                              ),
+                            ),
+                          ),
+                          title: Text(transaction.title),
+                          subtitle: Text(
+                            DateFormat('MMM d, yyyy').format(transaction.date),
+                          ),
+                          trailing: Text(
+                            '\$${transaction.amount.abs().toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: isExpense ? Colors.red : Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  } else if (state is TransactionError) {
+                    return Center(child: Text(state.message));
+                  }
+
+                  return const SizedBox();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper method to safely parse color from hex string
+  Color _parseColor(String? colorHex, Color defaultColor) {
+    if (colorHex == null || colorHex.isEmpty) {
+      return defaultColor;
+    }
+
+    try {
+      // Remove # prefix if present
+      final cleanHex =
+          colorHex.startsWith('#') ? colorHex.substring(1) : colorHex;
+      return Color(int.parse('0xFF$cleanHex'));
+    } catch (e) {
+      return defaultColor;
+    }
   }
 }
