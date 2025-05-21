@@ -64,8 +64,21 @@ class _AccountFormModalState extends State<AccountFormModal> {
     if (account != null) {
       _controllers['name']!.text = account?.name ?? '';
       _controllers['balance']!.text = account?.balance.toString() ?? '';
-      _controllers['currency']!.text = account?.currency ?? 'USD';
-      _accountType = account?.type ?? 'cash';
+
+      // Normalize currency value to match dropdown options
+      String currency = account?.currency ?? 'USD';
+      if (currency == '\$') {
+        currency = '\$'; // Keep it as is, we've added it to the dropdown
+      }
+      _controllers['currency']!.text = currency;
+
+      // Normalize account type to match dropdown options
+      String accountType = account?.type ?? 'cash';
+      if (accountType == 'Credit Card') {
+        accountType = 'credit';
+      }
+      _accountType = accountType;
+
       _selectedColorName = account?.color ?? 'blue';
     }
   }
@@ -301,7 +314,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
                           ),
                           DropdownMenuItem(
                             value: 'credit',
-                            child: Text('Credit'),
+                            child: Text('Credit Card'),
                           ),
                           DropdownMenuItem(
                             value: 'debit',
@@ -439,8 +452,20 @@ class _AccountFormModalState extends State<AccountFormModal> {
                             } catch (e) {
                               // If the bloc is not available in this context, that's okay
                             }
+
+                            // Wait a very short moment to ensure state updates are processed
+                            // before closing the modal to make sure UI gets refreshed
+                            Future.delayed(
+                              const Duration(milliseconds: 100),
+                              () {
+                                if (mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                            );
+                          } else {
+                            Navigator.of(context).pop();
                           }
-                          Navigator.of(context).pop();
                         } else if (state is Error) {
                           setState(() {
                             _isSubmitting = false;
@@ -629,6 +654,9 @@ class _AccountFormModalState extends State<AccountFormModal> {
   }
 
   Widget _currencyDropdown() {
+    // Define a variable for dollar sign to avoid raw string in const context
+    const String dollarSign = '\$';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(
@@ -641,6 +669,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
           DropdownMenuItem(value: 'VND', child: Text('VND')),
           DropdownMenuItem(value: 'USD', child: Text('USD')),
           DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+          DropdownMenuItem(value: dollarSign, child: Text('USD (\$)')),
         ],
         onChanged: (val) {
           setState(() {

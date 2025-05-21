@@ -226,6 +226,15 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                   _updatedAccount = homeAccount;
                 });
 
+                // Show a confirmation that the update was applied
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Account updated successfully'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+
                 // Refresh transactions to include any new adjustment transactions
                 final transactionBloc = context.read<TransactionBloc>();
                 transactionBloc.add(

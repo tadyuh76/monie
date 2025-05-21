@@ -78,13 +78,10 @@ class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
                     .where((tran) => tran.accountId == acc.accountId)
                     .toList();
 
-            return SizedBox(
-              width: 160,
-              child: AccountCardWidget(
-                account: acc,
-                transactions: transactionsOfAcc,
-                onPinToggle: () => _togglePin(acc),
-              ),
+            return AccountCardWidget(
+              account: acc,
+              transactions: transactionsOfAcc,
+              onPinToggle: () => _togglePin(acc),
             );
           } else {
             // Add account button

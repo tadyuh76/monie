@@ -91,7 +91,7 @@ class _AccountCardWidgetState extends State<AccountCardWidget>
           onLongPress: widget.onEdit,
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            width: 160,
+            width: 200,
             // Outer container for consistent size due to border
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
