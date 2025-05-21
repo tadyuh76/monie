@@ -115,7 +115,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
               phoneNumber: response['phone_number'] ?? user.phone,
             );
           }
-        } catch (tableError) {}
+        } catch (tableError) {
+          debugPrint('Error accessing users table: $tableError');
+        }
       }
 
       // If not found in database or error occurred, create from auth data
@@ -322,7 +324,9 @@ class SettingsRepositoryImpl implements SettingsRepository {
 
           if (result != null && result['success'] == true) {
           } else {}
-        } catch (fnError) {}
+        } catch (fnError) {
+          debugPrint('Error calling settings_update_avatar: $fnError');
+        }
         return filePath;
       } catch (e) {
         return null;

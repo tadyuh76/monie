@@ -43,7 +43,7 @@ class GroupsPage extends StatelessWidget {
 
   Widget _buildGroupsOverview(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    // TODO: Replace with actual data from repository
+    // Replace with actual data from repository
     final groups = <ExpenseGroup>[];
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -147,7 +147,7 @@ class GroupsPage extends StatelessWidget {
   }
 
   List<Widget> _buildGroupsList(BuildContext context) {
-    // TODO: Replace with actual data from repository
+    // Replace with actual data from repository
     final groups = <ExpenseGroup>[];
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 

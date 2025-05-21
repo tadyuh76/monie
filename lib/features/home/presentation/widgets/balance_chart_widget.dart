@@ -138,7 +138,7 @@ class BalanceChartWidget extends StatelessWidget {
                   !isDarkMode
                       ? [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -334,13 +334,19 @@ class BalanceChartWidget extends StatelessWidget {
                                   dotData: const FlDotData(show: false),
                                   belowBarData: BarAreaData(
                                     show: true,
-                                    color: AppColors.primary.withOpacity(0.2),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.2,
+                                    ),
                                     cutOffY: 0,
                                     applyCutOffY: true,
                                     gradient: LinearGradient(
                                       colors: [
-                                        AppColors.primary.withOpacity(0.2),
-                                        AppColors.primary.withOpacity(0.05),
+                                        AppColors.primary.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        AppColors.primary.withValues(
+                                          alpha: 0.05,
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -377,7 +383,7 @@ class BalanceChartWidget extends StatelessWidget {
                   !isDarkMode
                       ? [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),

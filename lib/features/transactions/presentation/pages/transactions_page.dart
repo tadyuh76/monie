@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
@@ -298,112 +297,112 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 }
 
-class TransactionListItem extends StatelessWidget {
-  final Transaction transaction;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+// class TransactionListItem extends StatelessWidget {
+//   final Transaction transaction;
+//   final VoidCallback onEdit;
+//   final VoidCallback onDelete;
 
-  const TransactionListItem({
-    super.key,
-    required this.transaction,
-    required this.onEdit,
-    required this.onDelete,
-  });
+//   const TransactionListItem({
+//     super.key,
+//     required this.transaction,
+//     required this.onEdit,
+//     required this.onDelete,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    final isExpense = transaction.amount < 0;
-    final formattedAmount = NumberFormat.currency(
-      symbol: '\$',
-      decimalDigits: 2,
-    ).format(transaction.amount.abs());
+//   @override
+//   Widget build(BuildContext context) {
+//     final isExpense = transaction.amount < 0;
+//     final formattedAmount = NumberFormat.currency(
+//       symbol: '\$',
+//       decimalDigits: 2,
+//     ).format(transaction.amount.abs());
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        title: Text(
-          transaction.title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (transaction.description != null &&
-                transaction.description!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(transaction.description!),
-              ),
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 16),
-                  const SizedBox(width: 4),
-                  Text(DateFormat('MMM d, yyyy').format(transaction.date)),
-                  if (transaction.accountId != null) ...[
-                    const SizedBox(width: 16),
-                    const Icon(Icons.account_balance_wallet, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Account ID: ${transaction.accountId!.substring(0, 8)}...',
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              formattedAmount,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isExpense ? Colors.red : Colors.green,
-                fontSize: 18,
-              ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'edit') {
-                  onEdit();
-                } else if (value == 'delete') {
-                  onDelete();
-                }
-              },
-              itemBuilder:
-                  (context) => [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.edit),
-                          const SizedBox(width: 8),
-                          Text(context.tr('edit')),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.delete, color: Colors.red),
-                          const SizedBox(width: 8),
-                          Text(
-                            context.tr('delete'),
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//     return Card(
+//       margin: const EdgeInsets.symmetric(vertical: 8),
+//       child: ListTile(
+//         contentPadding: const EdgeInsets.all(16),
+//         title: Text(
+//           transaction.title,
+//           style: const TextStyle(fontWeight: FontWeight.bold),
+//         ),
+//         subtitle: Column(
+//           crossAxisAlignment: CrossAxisAlignment.start,
+//           children: [
+//             if (transaction.description != null &&
+//                 transaction.description!.isNotEmpty)
+//               Padding(
+//                 padding: const EdgeInsets.only(top: 4),
+//                 child: Text(transaction.description!),
+//               ),
+//             Padding(
+//               padding: const EdgeInsets.only(top: 8),
+//               child: Row(
+//                 children: [
+//                   const Icon(Icons.calendar_today, size: 16),
+//                   const SizedBox(width: 4),
+//                   Text(DateFormat('MMM d, yyyy').format(transaction.date)),
+//                   if (transaction.accountId != null) ...[
+//                     const SizedBox(width: 16),
+//                     const Icon(Icons.account_balance_wallet, size: 16),
+//                     const SizedBox(width: 4),
+//                     Text(
+//                       'Account ID: ${transaction.accountId!.substring(0, 8)}...',
+//                     ),
+//                   ],
+//                 ],
+//               ),
+//             ),
+//           ],
+//         ),
+//         trailing: Row(
+//           mainAxisSize: MainAxisSize.min,
+//           children: [
+//             Text(
+//               formattedAmount,
+//               style: TextStyle(
+//                 fontWeight: FontWeight.bold,
+//                 color: isExpense ? Colors.red : Colors.green,
+//                 fontSize: 18,
+//               ),
+//             ),
+//             PopupMenuButton<String>(
+//               onSelected: (value) {
+//                 if (value == 'edit') {
+//                   onEdit();
+//                 } else if (value == 'delete') {
+//                   onDelete();
+//                 }
+//               },
+//               itemBuilder:
+//                   (context) => [
+//                     PopupMenuItem(
+//                       value: 'edit',
+//                       child: Row(
+//                         children: [
+//                           const Icon(Icons.edit),
+//                           const SizedBox(width: 8),
+//                           Text(context.tr('edit')),
+//                         ],
+//                       ),
+//                     ),
+//                     PopupMenuItem(
+//                       value: 'delete',
+//                       child: Row(
+//                         children: [
+//                           const Icon(Icons.delete, color: Colors.red),
+//                           const SizedBox(width: 8),
+//                           Text(
+//                             context.tr('delete'),
+//                             style: const TextStyle(color: Colors.red),
+//                           ),
+//                         ],
+//                       ),
+//                     ),
+//                   ],
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

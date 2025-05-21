@@ -288,7 +288,7 @@ class _AccountFormBottomSheetState extends State<AccountFormBottomSheet> {
                   : null,
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.5),
+              color: color.withValues(alpha: 0.5),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),

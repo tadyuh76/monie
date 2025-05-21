@@ -428,14 +428,17 @@ class _HomePageState extends State<HomePage> {
         color: isDarkMode ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05),
+          color:
+              isDarkMode
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
         boxShadow:
             !isDarkMode
                 ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -703,7 +706,9 @@ class _HomePageState extends State<HomePage> {
                                 !isDarkMode
                                     ? [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.05),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.05,
+                                        ),
                                         blurRadius: 10,
                                         offset: const Offset(0, 5),
                                       ),
@@ -777,7 +782,7 @@ class _HomePageState extends State<HomePage> {
                                 color:
                                     (isDarkMode
                                         ? Colors.white10
-                                        : Colors.black.withOpacity(0.05)),
+                                        : Colors.black.withValues(alpha: 0.05)),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -853,7 +858,7 @@ class _HomePageState extends State<HomePage> {
             !isDarkMode
                 ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),

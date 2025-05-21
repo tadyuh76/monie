@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
@@ -80,7 +81,9 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
                 settings: _currentSettings,
               ),
             );
-          } catch (e) {}
+          } catch (e) {
+            debugPrint('Error updating profile: $e');
+          }
         }
       } else {
         emit(const SettingsError('No user profile found'));
