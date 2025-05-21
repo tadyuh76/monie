@@ -4,6 +4,7 @@ import 'package:monie/features/transactions/domain/usecases/create_account_useca
 import 'package:monie/features/transactions/domain/usecases/delete_account_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_account_by_id_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_accounts_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/recalculate_account_balance_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/update_account_balance_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/update_account_usecase.dart';
 import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
@@ -17,6 +18,7 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
   final UpdateAccountUseCase updateAccount;
   final DeleteAccountUseCase deleteAccount;
   final UpdateAccountBalanceUseCase updateAccountBalance;
+  final RecalculateAccountBalanceUseCase recalculateAccountBalance;
 
   AccountBloc({
     required this.getAccounts,
@@ -25,6 +27,7 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     required this.updateAccount,
     required this.deleteAccount,
     required this.updateAccountBalance,
+    required this.recalculateAccountBalance,
   }) : super(AccountInitial()) {
     on<LoadAccountsEvent>(_onLoadAccounts);
     on<LoadAccountByIdEvent>(_onLoadAccountById);
@@ -32,6 +35,7 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
     on<UpdateAccountEvent>(_onUpdateAccount);
     on<DeleteAccountEvent>(_onDeleteAccount);
     on<UpdateAccountBalanceEvent>(_onUpdateAccountBalance);
+    on<RecalculateAccountBalanceEvent>(_onRecalculateAccountBalance);
   }
 
   Future<void> _onLoadAccounts(
@@ -123,6 +127,29 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
         );
       } else {
         emit(const AccountError('Failed to update account balance'));
+      }
+    } catch (e) {
+      emit(AccountError(e.toString()));
+    }
+  }
+
+  Future<void> _onRecalculateAccountBalance(
+    RecalculateAccountBalanceEvent event,
+    Emitter<AccountState> emit,
+  ) async {
+    emit(AccountLoading());
+    try {
+      final success = await recalculateAccountBalance(event.accountId);
+      if (success) {
+        // After recalculating, fetch the updated account
+        final account = await getAccountById(event.accountId);
+        if (account != null) {
+          emit(AccountBalanceRecalculated(account));
+        } else {
+          emit(const AccountError('Account not found after recalculation'));
+        }
+      } else {
+        emit(const AccountError('Failed to recalculate account balance'));
       }
     } catch (e) {
       emit(AccountError(e.toString()));

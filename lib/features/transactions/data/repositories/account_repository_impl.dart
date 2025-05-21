@@ -66,4 +66,13 @@ class AccountRepositoryImpl implements AccountRepository {
       throw Exception('Failed to update account balance: ${e.message}');
     }
   }
+
+  @override
+  Future<bool> recalculateAccountBalance(String accountId) async {
+    try {
+      return await remoteDataSource.recalculateAccountBalance(accountId);
+    } on ServerException catch (e) {
+      throw Exception('Failed to recalculate account balance: ${e.message}');
+    }
+  }
 }

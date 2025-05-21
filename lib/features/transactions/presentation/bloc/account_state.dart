@@ -70,6 +70,15 @@ class AccountBalanceUpdated extends AccountState {
   List<Object?> get props => [accountId, newBalance];
 }
 
+class AccountBalanceRecalculated extends AccountState {
+  final Account account;
+
+  const AccountBalanceRecalculated(this.account);
+
+  @override
+  List<Object?> get props => [account];
+}
+
 class AccountError extends AccountState {
   final String message;
 

@@ -65,3 +65,12 @@ class UpdateAccountBalanceEvent extends AccountEvent {
   @override
   List<Object?> get props => [accountId, amount];
 }
+
+class RecalculateAccountBalanceEvent extends AccountEvent {
+  final String accountId;
+
+  const RecalculateAccountBalanceEvent(this.accountId);
+
+  @override
+  List<Object?> get props => [accountId];
+}

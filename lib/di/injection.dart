@@ -63,6 +63,7 @@ import 'package:monie/features/transactions/domain/usecases/get_transactions_by_
 import 'package:monie/features/transactions/domain/usecases/get_transactions_by_date_range_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transactions_by_type_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/recalculate_account_balance_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/update_account_balance_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/update_account_usecase.dart'
     as transactions_update_account;
@@ -219,6 +220,12 @@ Future<void> configureDependencies() async {
   );
 
   sl.registerLazySingleton(
+    () => RecalculateAccountBalanceUseCase(
+      sl<transactions_account_repo.AccountRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton(
     () => transactions_budgets.GetBudgetsUseCase(
       sl<transactions_budget_repo.BudgetRepository>(),
     ),
@@ -304,6 +311,7 @@ Future<void> configureDependencies() async {
       updateAccount: sl<transactions_update_account.UpdateAccountUseCase>(),
       deleteAccount: sl<transactions_delete_account.DeleteAccountUseCase>(),
       updateAccountBalance: sl<UpdateAccountBalanceUseCase>(),
+      recalculateAccountBalance: sl<RecalculateAccountBalanceUseCase>(),
     ),
   );
 

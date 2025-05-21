@@ -16,6 +16,8 @@ import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 import 'package:monie/main.dart'; // Import for rootScaffoldMessengerKey
+import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -179,6 +181,7 @@ class _MainScreenState extends State<MainScreen> {
     final transactionBloc = BlocProvider.of<TransactionBloc>(context);
     final authBloc = BlocProvider.of<AuthBloc>(context);
     final categoriesBloc = BlocProvider.of<CategoriesBloc>(context);
+    final accountBloc = BlocProvider.of<AccountBloc>(context);
 
     // Get auth state
     final authState = authBloc.state;
@@ -198,6 +201,7 @@ class _MainScreenState extends State<MainScreen> {
             BlocProvider.value(value: transactionsBloc),
             BlocProvider.value(value: transactionBloc),
             BlocProvider.value(value: categoriesBloc),
+            BlocProvider.value(value: accountBloc),
           ],
           child: AddTransactionForm(
             onSubmit: (Map<String, dynamic> transaction) async {
@@ -218,28 +222,20 @@ class _MainScreenState extends State<MainScreen> {
                     budgetId: transaction['budget_id'],
                   );
 
-                  // Create AddNewTransaction event
-                  final addNewTransactionEvent = AddNewTransaction(
-                    amount: transaction['amount'],
-                    description: transaction['description'] ?? '',
-                    title: transaction['title'],
-                    date: DateTime.parse(transaction['date']),
-                    userId: authState.user.id,
-                    categoryName: transaction['category_name'],
-                    categoryColor: transaction['category_color'],
-                    accountId: null,
-                    budgetId: null,
-                    isIncome: transaction['amount'] >= 0,
-                  );
-
-                  // Create CreateTransactionEvent
+                  // Create and add CreateTransactionEvent to the TransactionBloc only
+                  // This will create a single transaction
                   final createTransactionEvent = CreateTransactionEvent(
                     newTransaction,
                   );
-
-                  // Add the event to both blocs
-                  transactionsBloc.add(addNewTransactionEvent);
                   transactionBloc.add(createTransactionEvent);
+
+                  // Recalculate account balance if accountId is provided
+                  if (transaction['account_id'] != null) {
+                    final accountBloc = context.read<AccountBloc>();
+                    accountBloc.add(
+                      RecalculateAccountBalanceEvent(transaction['account_id']),
+                    );
+                  }
 
                   // Reload home data immediately
                   if (context.mounted) {

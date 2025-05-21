@@ -10,6 +10,7 @@ abstract class AccountRemoteDataSource {
   Future<AccountModel> updateAccount(AccountModel account);
   Future<bool> deleteAccount(String accountId);
   Future<bool> updateAccountBalance(String accountId, double amount);
+  Future<bool> recalculateAccountBalance(String accountId);
 }
 
 @Injectable(as: AccountRemoteDataSource)
@@ -126,6 +127,42 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
       return true;
     } catch (e) {
       throw ServerException(message: 'Failed to update account balance: $e');
+    }
+  }
+
+  @override
+  Future<bool> recalculateAccountBalance(String accountId) async {
+    try {
+      // First get the current account
+      final account = await getAccountById(accountId);
+      if (account == null) {
+        throw ServerException(message: 'Account not found');
+      }
+
+      // Get all transactions for this account
+      final response = await _supabaseClientManager.client
+          .from('transactions')
+          .select()
+          .eq('account_id', accountId);
+
+      // Calculate total balance from transactions
+      double totalBalance = 0;
+      for (final transaction in response as List) {
+        final amount = transaction['amount'] as double;
+        totalBalance += amount;
+      }
+
+      // Update the account with the recalculated balance
+      await _supabaseClientManager.client
+          .from('accounts')
+          .update({'balance': totalBalance})
+          .eq('account_id', accountId);
+
+      return true;
+    } catch (e) {
+      throw ServerException(
+        message: 'Failed to recalculate account balance: $e',
+      );
     }
   }
 }

@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
@@ -77,21 +79,34 @@ class _TransactionsPageState extends State<TransactionsPage> {
         builder:
             (context) => AddTransactionForm(
               onSubmit: (transactionData) {
-                context.read<TransactionBloc>().add(
+                // Create the transaction
+                final transactionBloc = context.read<TransactionBloc>();
+                final accountBloc = context.read<AccountBloc>();
+                final amount = transactionData['amount'] as double;
+                final accountId = transactionData['account_id'] as String?;
+
+                // First create the transaction
+                transactionBloc.add(
                   CreateTransactionEvent(
                     Transaction(
                       userId: authState.user.id,
-                      amount: transactionData['amount'],
+                      amount: amount,
                       title: transactionData['title'],
                       date: DateTime.parse(transactionData['date']),
                       description: transactionData['description'],
                       categoryName: transactionData['category_name'],
                       color: transactionData['category_color'],
-                      accountId: transactionData['account_id'],
+                      accountId: accountId,
                       budgetId: transactionData['budget_id'],
                     ),
                   ),
                 );
+
+                // Recalculate the account balance if an account is selected
+                if (accountId != null) {
+                  accountBloc.add(RecalculateAccountBalanceEvent(accountId));
+                }
+
                 Navigator.pop(context);
                 _loadTransactions();
               },
@@ -110,20 +125,45 @@ class _TransactionsPageState extends State<TransactionsPage> {
             (context) => AddTransactionForm(
               transaction: transaction,
               onSubmit: (transactionData) {
-                context.read<TransactionBloc>().add(
+                // Keep track of old and new values
+                final transactionBloc = context.read<TransactionBloc>();
+                final accountBloc = context.read<AccountBloc>();
+
+                final oldAccountId = transaction.accountId ?? '';
+                final newAccountId = transactionData['account_id'] as String;
+
+                // First update the transaction
+                transactionBloc.add(
                   UpdateTransactionEvent(
                     transaction.copyWith(
-                      amount: transactionData['amount'],
+                      amount: transactionData['amount'] as double,
                       title: transactionData['title'],
                       date: DateTime.parse(transactionData['date']),
                       description: transactionData['description'],
                       categoryName: transactionData['category_name'],
                       color: transactionData['category_color'],
-                      accountId: transactionData['account_id'],
+                      accountId: newAccountId,
                       budgetId: transactionData['budget_id'],
                     ),
                   ),
                 );
+
+                // If account changed, recalculate both accounts
+                if (oldAccountId != newAccountId) {
+                  // Recalculate old account
+                  if (oldAccountId.isNotEmpty) {
+                    accountBloc.add(
+                      RecalculateAccountBalanceEvent(oldAccountId),
+                    );
+                  }
+
+                  // Recalculate new account
+                  accountBloc.add(RecalculateAccountBalanceEvent(newAccountId));
+                } else {
+                  // Just recalculate the same account
+                  accountBloc.add(RecalculateAccountBalanceEvent(newAccountId));
+                }
+
                 Navigator.pop(context);
                 _loadTransactions();
               },
@@ -133,6 +173,25 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   void _confirmDeleteTransaction(String transactionId) {
+    // First get the transaction to be deleted
+    final transactionState = context.read<TransactionBloc>().state;
+    Transaction? transactionToDelete;
+
+    if (transactionState is TransactionsLoaded) {
+      transactionToDelete = transactionState.transactions.firstWhere(
+        (t) => t.transactionId == transactionId,
+        orElse: () => throw Exception('Transaction not found'),
+      );
+    }
+
+    // If we can't find the transaction, don't continue
+    if (transactionToDelete == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Transaction not found')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder:
@@ -148,9 +207,18 @@ class _TransactionsPageState extends State<TransactionsPage> {
               ),
               TextButton(
                 onPressed: () {
-                  context.read<TransactionBloc>().add(
-                    DeleteTransactionEvent(transactionId),
-                  );
+                  final transactionBloc = context.read<TransactionBloc>();
+                  final accountBloc = context.read<AccountBloc>();
+                  final accountId = transactionToDelete?.accountId;
+
+                  // First delete the transaction
+                  transactionBloc.add(DeleteTransactionEvent(transactionId));
+
+                  // Recalculate the account balance
+                  if (accountId != null) {
+                    accountBloc.add(RecalculateAccountBalanceEvent(accountId));
+                  }
+
                   Navigator.pop(context);
                   _loadTransactions();
                 },

@@ -1,12 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/constants/transaction_categories.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
+import 'package:monie/features/transactions/presentation/bloc/account_state.dart';
 
 class AddTransactionForm extends StatefulWidget {
   final Function(Map<String, dynamic>)? onSubmit;
@@ -60,7 +64,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
   void initState() {
     super.initState();
     _amountController.text = '0';
-    _selectedAccountId = '1'; // Default to first account
+    _selectedAccountId = null; // Initialize as null instead of '1'
 
     // If editing, prefill fields
     if (widget.transaction != null) {
@@ -77,6 +81,20 @@ class AddTransactionFormState extends State<AddTransactionForm> {
       _selectedAccountId = t.accountId;
       _selectedBudgetId = t.budgetId;
       _isRecurring = t.isRecurring ?? false;
+    }
+
+    // Load user accounts when the form is initialized
+    _loadUserAccounts();
+  }
+
+  void _loadUserAccounts() {
+    final accountBloc = context.read<AccountBloc>();
+    // Check if accounts are already loaded
+    final state = accountBloc.state;
+    if (state is! AccountsLoaded) {
+      // Load accounts for the current user
+      // We'll use a placeholder user ID for now since we don't have the user context here
+      accountBloc.add(const LoadAccountsEvent('current_user'));
     }
   }
 
@@ -965,52 +983,104 @@ class AddTransactionFormState extends State<AddTransactionForm> {
             color: isDarkMode ? AppColors.cardDark : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedAccountId,
-              hint: Text(
-                'Select Account',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.white70 : Colors.black54,
-                ),
-              ),
-              isExpanded: true,
-              dropdownColor: isDarkMode ? AppColors.surface : Colors.white,
-              style: TextStyle(
-                color: isDarkMode ? Colors.white : Colors.black87,
-              ),
-              icon: Icon(
-                Icons.arrow_drop_down,
-                color: isDarkMode ? Colors.white : Colors.black87,
-              ),
-              items: [
-                DropdownMenuItem(
-                  value: '1',
-                  child: Row(
-                    children: [
-                      Icon(Icons.account_balance, color: AppColors.bank),
-                      SizedBox(width: 8),
-                      Text('Bank'),
-                    ],
+          child: BlocBuilder<AccountBloc, AccountState>(
+            builder: (context, state) {
+              if (state is AccountLoading) {
+                return const Center(
+                  child: SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                ),
-                DropdownMenuItem(
-                  value: '2',
-                  child: Row(
-                    children: [
-                      Icon(Icons.money, color: AppColors.cash),
-                      SizedBox(width: 8),
-                      Text('Cash'),
-                    ],
+                );
+              } else if (state is AccountsLoaded) {
+                final accounts = state.accounts;
+
+                // If no account is selected and we have accounts, select the first one
+                if (_selectedAccountId == null && accounts.isNotEmpty) {
+                  // Select the first account by default
+                  _selectedAccountId = accounts.first.accountId;
+                }
+
+                return DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedAccountId,
+                    hint: Text(
+                      'Select Account',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                    isExpanded: true,
+                    dropdownColor:
+                        isDarkMode ? AppColors.surface : Colors.white,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                    icon: Icon(
+                      Icons.arrow_drop_down,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                    items:
+                        accounts.map((account) {
+                          // Use a color based on account type
+                          Color accountColor;
+                          switch (account.type.toLowerCase()) {
+                            case 'cash':
+                              accountColor = AppColors.cash;
+                              break;
+                            case 'bank':
+                              accountColor = AppColors.bank;
+                              break;
+                            case 'credit card':
+                            case 'credit':
+                              accountColor = AppColors.credit;
+                              break;
+                            case 'investment':
+                              accountColor = AppColors.investment;
+                              break;
+                            case 'savings':
+                              accountColor = AppColors.savings;
+                              break;
+                            default:
+                              accountColor = AppColors.primary;
+                          }
+
+                          return DropdownMenuItem(
+                            value: account.accountId,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: accountColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text(account.name),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedAccountId = value;
+                      });
+                    },
                   ),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedAccountId = value;
-                });
-              },
-            ),
+                );
+              } else {
+                // If there's an error or no accounts loaded, show a message
+                return Text(
+                  'No accounts available',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                );
+              }
+            },
           ),
         ),
 
