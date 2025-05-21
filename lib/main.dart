@@ -14,9 +14,9 @@ import 'package:monie/features/authentication/presentation/bloc/auth_event.dart'
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/authentication/presentation/pages/auth_wrapper.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
-import 'package:monie/features/budgets/presentation/pages/budgets_page.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 import 'package:monie/features/home/presentation/pages/home_page.dart';
+import 'package:monie/core/widgets/main_screen.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
@@ -25,7 +25,6 @@ import 'package:monie/features/settings/presentation/pages/settings_page.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
-import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -136,17 +135,10 @@ class MyApp extends StatelessWidget {
             scaffoldMessengerKey: rootScaffoldMessengerKey,
             home: const AuthWrapper(),
             routes: {
-              '/home': (context) => const HomePage(),
-              '/transactions': (context) {
-                // Get the authenticated user's ID
-                final authState = context.read<AuthBloc>().state;
-                if (authState is Authenticated) {
-                  return TransactionsPage();
-                }
-                return const HomePage(); // Fallback if not authenticated
-              },
-              '/budgets': (context) => const BudgetsPage(),
+              '/home': (context) => MainScreen(),
               '/settings': (context) => const SettingsPage(),
+              // For transactions and budgets, we'll use the tab navigation
+              // from within the MainScreen rather than these routes
             },
             debugShowCheckedModeBanner: false,
 

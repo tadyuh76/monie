@@ -20,8 +20,22 @@ import 'package:monie/features/transactions/presentation/widgets/add_transaction
 import 'package:monie/main.dart'; // Import for rootScaffoldMessengerKey
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 
+// Global key for accessing MainScreen state from anywhere
+// Using a global key without exposing the private type
+final GlobalKey<State<MainScreen>> mainScreenKey =
+    GlobalKey<State<MainScreen>>();
+
+// Navigate to a specific tab in the MainScreen
+void navigateToTab(int tabIndex) {
+  final state = mainScreenKey.currentState;
+  if (state != null && state is _MainScreenState) {
+    state.switchTab(tabIndex);
+  }
+}
+
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  // Cannot use const constructor with a global key
+  MainScreen({Key? key}) : super(key: mainScreenKey);
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -30,14 +44,17 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // Create a method that can be used by child widgets to switch tabs
-  void _switchTab(int index) {
+  // Public method that can be used via mainScreenKey to switch tabs
+  void switchTab(int index) {
     if (index >= 0 && index < _screens.length) {
       setState(() {
         _currentIndex = index;
       });
     }
   }
+
+  // Private method for internal use
+  void _switchTab(int index) => switchTab(index);
 
   // Use a getter for screens to rebuild them each time they're accessed
   List<Widget> get _screens => [

@@ -159,13 +159,13 @@ class _BudgetFormBottomSheetState extends State<BudgetFormBottomSheet> {
               const SizedBox(height: 16),
 
               // Date range selection
-              Text(
-                context.tr('budget_date_range'),
-                style: textTheme.titleMedium?.copyWith(
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
+              // Text(
+              //   context.tr('budget_date_range'),
+              //   style: textTheme.titleMedium?.copyWith(
+              //     color: isDarkMode ? Colors.white : Colors.black87,
+              //   ),
+              // ),
+              // const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(

@@ -20,9 +20,11 @@ import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
-import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 import 'package:monie/features/transactions/presentation/widgets/budget_form_bottom_sheet.dart';
+import 'package:monie/features/budgets/presentation/widgets/budget_card.dart';
+import 'package:monie/features/budgets/presentation/widgets/budget_form.dart';
+import 'package:monie/core/widgets/main_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -339,13 +341,8 @@ class _HomePageState extends State<HomePage> {
               : RecentTransactionsSectionWidget(
                 transactions: state.transactions,
                 onViewAllPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => TransactionsPage()),
-                  ).then((_) {
-                    // Reload data when returning from transactions page
-                    _loadData();
-                  });
+                  // Switch to transactions tab (index 1)
+                  navigateToTab(1);
                 },
                 onTransactionTap: (transaction) {
                   // Navigate to transaction edit form
@@ -736,115 +733,11 @@ class _HomePageState extends State<HomePage> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final budget = activeBudgets[index];
-                    // Calculate progress (simplified for this example)
-                    final progress =
-                        0.7; // This should be calculated based on spent/total
-                    // We don't have spent amount available, so using a placeholder
-                    final spentAmount = budget.amount * progress;
-
-                    return Stack(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color:
-                                isDarkMode ? AppColors.cardDark : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow:
-                                !isDarkMode
-                                    ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ]
-                                    : null,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    budget.name,
-                                    style: textTheme.titleMedium?.copyWith(
-                                      color:
-                                          isDarkMode
-                                              ? Colors.white
-                                              : Colors.black87,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${spentAmount.toStringAsFixed(2)}/${budget.amount.toStringAsFixed(2)}',
-                                    style: textTheme.titleMedium?.copyWith(
-                                      color: _getBudgetColor(budget.color),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: LinearProgressIndicator(
-                                  value: progress,
-                                  backgroundColor:
-                                      isDarkMode
-                                          ? Colors.grey[800]
-                                          : Colors.grey[300],
-                                  minHeight: 10,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    _getBudgetColor(budget.color),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'All Categories', // Using placeholder since categoryName isn't available
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color:
-                                      isDarkMode
-                                          ? AppColors.textSecondary
-                                          : Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: InkWell(
-                            onTap: () {
-                              _showEditBudgetOptions(context, budget);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color:
-                                    (isDarkMode
-                                        ? Colors.white10
-                                        : Colors.black.withValues(alpha: 0.05)),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.more_vert,
-                                color:
-                                    isDarkMode
-                                        ? Colors.white70
-                                        : Colors.black54,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    return BudgetCard(
+                      budget: budget,
+                      onTap: () => _showEditBudgetOptions(context, budget),
+                      onEdit: () => _showEditBudgetForm(context, budget),
+                      onDelete: () => _confirmDeleteBudget(context, budget),
                     );
                   },
                 ),
@@ -857,7 +750,10 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/budgets'),
+                      onPressed: () {
+                        // Switch to budgets tab (index 2)
+                        navigateToTab(2);
+                      },
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
@@ -868,14 +764,15 @@ class _HomePageState extends State<HomePage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '${context.tr('home_see_all')} ${context.tr('home_budgets')}',
-                            style: textTheme.labelLarge?.copyWith(
+                            context.tr('home_see_all'),
+                            style: TextStyle(
                               color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Icon(
-                            Icons.arrow_forward_rounded,
+                          Icon(
+                            Icons.arrow_forward,
                             size: 16,
                             color: AppColors.primary,
                           ),
@@ -887,8 +784,7 @@ class _HomePageState extends State<HomePage> {
             ],
           );
         }
-        // Fallback for initial or other states
-        return const SizedBox.shrink();
+        return _buildEmptyBudgetsView(context);
       },
     );
   }
@@ -979,7 +875,7 @@ class _HomePageState extends State<HomePage> {
                 title: Text(context.tr('common_edit')),
                 onTap: () {
                   Navigator.pop(context);
-                  _showEditBudgetModal(context, budget);
+                  _showEditBudgetForm(context, budget);
                 },
               ),
               ListTile(
@@ -987,7 +883,7 @@ class _HomePageState extends State<HomePage> {
                 title: Text(context.tr('common_delete')),
                 onTap: () {
                   Navigator.pop(context);
-                  _showDeleteBudgetConfirmation(context, budget);
+                  _confirmDeleteBudget(context, budget);
                 },
               ),
             ],
@@ -997,68 +893,50 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showEditBudgetModal(BuildContext context, Budget budget) {
+  void _showEditBudgetForm(BuildContext context, Budget budget) {
+    // First navigate to the budget tab
+    navigateToTab(2);
+
+    // Then show the edit form as a modal
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return BudgetFormBottomSheet(budget: budget);
-      },
+      builder: (context) => BudgetForm(budget: budget),
     );
   }
 
-  void _showDeleteBudgetConfirmation(BuildContext context, Budget budget) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
+  void _confirmDeleteBudget(BuildContext context, Budget budget) {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: isDarkMode ? AppColors.cardDark : Colors.white,
-          title: Text(context.tr('budget_delete_title')),
-          content: Text(
-            context
-                .tr('budget_delete_confirmation')
-                .replaceAll('{name}', budget.name),
+      builder:
+          (context) => AlertDialog(
+            title: Text(context.tr('budget_delete_title')),
+            content: Text(
+              context
+                  .tr('budget_delete_confirmation')
+                  .replaceAll('{name}', budget.name),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(context.tr('common_cancel')),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.read<BudgetsBloc>().add(
+                    DeleteBudget(budget.budgetId),
+                  );
+                },
+                child: Text(
+                  context.tr('common_delete'),
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(context.tr('common_cancel')),
-            ),
-            TextButton(
-              onPressed: () {
-                final budgetBloc = context.read<BudgetsBloc>();
-                budgetBloc.add(DeleteBudget(budget.budgetId));
-                Navigator.pop(context);
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: Text(context.tr('common_delete')),
-            ),
-          ],
-        );
-      },
     );
-  }
-
-  Color _getBudgetColor(String? colorName) {
-    switch (colorName?.toLowerCase()) {
-      case 'blue':
-        return Colors.blue;
-      case 'green':
-        return Colors.green;
-      case 'red':
-        return Colors.red;
-      case 'orange':
-        return Colors.orange;
-      case 'purple':
-        return Colors.purple;
-      case 'teal':
-        return Colors.teal;
-      default:
-        return AppColors.primary;
-    }
   }
 
   void _showEditTransactionForm(BuildContext context, Transaction transaction) {

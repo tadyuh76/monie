@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -93,7 +92,7 @@ class _SettingsPageState extends State<SettingsPage> {
         final bloc = context.read<SettingsBloc>();
 
         // Show loading indicator
-        _showLoadingDialog('Đang tải ảnh lên...');
+        _showLoadingDialog(context.tr('common_loading'));
 
         try {
           // Lấy repository để thực hiện việc upload
@@ -108,30 +107,28 @@ class _SettingsPageState extends State<SettingsPage> {
             bloc.add(UpdateAvatarEvent(avatarUrl: avatarUrl));
 
             // Đóng dialog loading
-            if (mounted) Navigator.of(context).pop();
-            _showSuccessSnackBar('Ảnh đại diện đã được cập nhật!');
+            if (mounted) {
+              Navigator.of(context).pop();
+              _showSuccessSnackBar(context.tr('settings_profile_updated'));
+            }
           } else {
             // Nếu không có URL, hiển thị lỗi
             if (mounted) {
               Navigator.of(context).pop(); // Close loading dialog
-              _showErrorSnackBar('Không thể tải ảnh lên, vui lòng thử lại sau');
+              _showErrorSnackBar(context.tr('common_error'));
             }
           }
         } catch (uploadError) {
           if (mounted) {
             Navigator.of(context).pop(); // Close loading dialog
-            _showErrorSnackBar(
-              'Lỗi khi xử lý ảnh: ${uploadError.toString().substring(0, math.min(uploadError.toString().length, 50))}...',
-            );
+            _showErrorSnackBar(context.tr('common_error'));
           }
         }
       }
     } catch (e) {
       if (mounted) {
         if (Navigator.canPop(context)) Navigator.of(context).pop();
-        _showErrorSnackBar(
-          'Lỗi khi chọn ảnh: ${e.toString().substring(0, math.min(e.toString().length, 50))}...',
-        );
+        _showErrorSnackBar(context.tr('common_error'));
       }
     }
   }

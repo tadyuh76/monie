@@ -14,6 +14,7 @@ class BudgetModel extends Budget {
     super.isSaving,
     super.frequency,
     super.color,
+    super.spent,
   }) : super(
          budgetId: budgetId ?? '',
        ); // Pass empty string if null, entity expects non-null
@@ -28,6 +29,12 @@ class BudgetModel extends Budget {
             ? DateTime.parse(json['end_date'])
             : startDate.add(const Duration(days: 30));
 
+    // Parse spent amount if available
+    double? spent;
+    if (json['spent'] != null) {
+      spent = (json['spent'] as num).toDouble();
+    }
+
     return BudgetModel(
       budgetId: json['budget_id'],
       userId: json['user_id'],
@@ -39,6 +46,7 @@ class BudgetModel extends Budget {
       isSaving: json['is_saving'] ?? false,
       frequency: json['frequency'],
       color: json['color'],
+      spent: spent,
     );
   }
 
@@ -68,6 +76,11 @@ class BudgetModel extends Budget {
   }
 
   factory BudgetModel.fromJson(Map<String, dynamic> json) {
+    double? spent;
+    if (json['spent'] != null) {
+      spent = (json['spent'] as num).toDouble();
+    }
+
     return BudgetModel(
       budgetId: json['budget_id'],
       userId: json['user_id'],
@@ -80,6 +93,7 @@ class BudgetModel extends Budget {
       isSaving: json['is_saving'] ?? false,
       frequency: json['frequency'],
       color: json['color'],
+      spent: spent,
     );
   }
 
@@ -105,6 +119,7 @@ class BudgetModel extends Budget {
     if (color != null) {
       data['color'] = color;
     }
+    // spent is calculated from transactions, don't include in JSON for database
     return data;
   }
 
@@ -120,6 +135,7 @@ class BudgetModel extends Budget {
       isSaving: entity.isSaving,
       frequency: entity.frequency,
       color: entity.color,
+      spent: entity.spent,
     );
   }
 

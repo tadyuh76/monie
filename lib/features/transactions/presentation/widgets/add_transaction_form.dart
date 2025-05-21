@@ -13,6 +13,14 @@ import 'package:monie/features/account/presentation/bloc/account_event.dart';
 import 'package:monie/features/account/presentation/bloc/account_state.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 
+// Extension to add capitalize method to String
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return this[0].toUpperCase() + substring(1);
+  }
+}
+
 class AddTransactionForm extends StatefulWidget {
   final Function(Map<String, dynamic>)? onSubmit;
   final dynamic
@@ -1138,11 +1146,34 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                   ),
                 );
               } else if (state is BudgetsLoaded) {
-                final budgets = state.budgets;
+                final allBudgets = state.budgets;
 
-                if (budgets.isEmpty) {
+                // Filter budgets based on transaction type
+                final filteredBudgets =
+                    allBudgets.where((budget) {
+                      final isExpenseBudget = !budget.isSaving;
+                      final isIncomeBudget = budget.isSaving;
+
+                      if (_transactionType == 'expense') {
+                        return isExpenseBudget;
+                      } else {
+                        return isIncomeBudget;
+                      }
+                    }).toList();
+
+                // Check if selected budget is still valid after filtering
+                if (_selectedBudgetId != null) {
+                  final stillValid = filteredBudgets.any(
+                    (budget) => budget.budgetId == _selectedBudgetId,
+                  );
+                  if (!stillValid) {
+                    _selectedBudgetId = null;
+                  }
+                }
+
+                if (filteredBudgets.isEmpty) {
                   return Text(
-                    'No active budgets available',
+                    'No $_transactionType budgets available',
                     style: TextStyle(
                       color: isDarkMode ? Colors.white70 : Colors.black54,
                     ),
@@ -1153,7 +1184,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                   child: DropdownButton<String>(
                     value: _selectedBudgetId,
                     hint: Text(
-                      'Select Budget',
+                      'Select ${_transactionType.capitalize()} Budget',
                       style: TextStyle(
                         color: isDarkMode ? Colors.white70 : Colors.black54,
                       ),
@@ -1179,8 +1210,8 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                           ),
                         ),
                       ),
-                      // Add all active budgets
-                      ...budgets.map((budget) {
+                      // Add filtered budgets
+                      ...filteredBudgets.map((budget) {
                         // Parse color from hex string or use default
                         Color budgetColor;
                         try {
@@ -1216,7 +1247,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                                 ),
                               ),
                               Text(
-                                '\$${budget.amount.toStringAsFixed(0)} left',
+                                '\$${budget.remaining.toStringAsFixed(0)} left',
                                 style: TextStyle(
                                   color:
                                       isDarkMode

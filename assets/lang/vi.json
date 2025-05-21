@@ -52,6 +52,7 @@
   "transactions_delete": "Xóa giao dịch",
   "transactions_delete_confirm": "Bạn có chắc chắn muốn xóa giao dịch này không?",
   "transactions_net": "Tổng",
+  "transactions_category_required": "Vui lòng chọn một danh mục",
 
   "retry": "Thử lại",
 
@@ -84,12 +85,25 @@
   "budget_amount_positive": "Số tiền phải lớn hơn 0",
   "budget_amount_valid": "Vui lòng nhập số tiền hợp lệ",
   "budget_date_range": "Khoảng thời gian",
+  "budget_start_date": "Ngày bắt đầu",
+  "budget_end_date": "Ngày kết thúc",
   "budget_options": "Tùy chọn",
   "budget_saving": "Tiết kiệm",
   "budget_recurring": "Lặp lại",
+  "budget_spent": "Đã chi",
+  "budget_remaining": "Còn lại",
   "budget_saving_description": "Tiền để dành, không phải chi tiêu",
+  "budget_income_description": "Ngân sách để theo dõi nguồn thu nhập",
+  "budget_expense_description": "Ngân sách để theo dõi chi tiêu",
   "budget_recurring_description": "Tự động tạo lại khi kết thúc",
+  "budget_time_frame": "Khung thời gian",
+  "budget_custom_period": "Tùy chỉnh",
+  "budget_auto_end_date_info": "Ngày kết thúc được tự động đặt dựa trên khung thời gian đã chọn",
   "budget_frequency": "Tần suất",
+  "budget_frequency_daily": "Hàng ngày",
+  "budget_frequency_weekly": "Hàng tuần",
+  "budget_frequency_monthly": "Hàng tháng",
+  "budget_frequency_yearly": "Hàng năm",
   "budget_monthly": "Hàng tháng",
   "budget_weekly": "Hàng tuần",
   "budget_daily": "Hàng ngày",
@@ -142,6 +156,7 @@
   "settings_passwords_not_match": "Mật khẩu không khớp",
   "settings_loading_profile": "Đang tải hồ sơ...",
   "settings_profile_unavailable": "Không thể tải hồ sơ",
+  "settings_profile_updated": "Hồ sơ đã được cập nhật thành công",
 
   "common_loading": "Đang tải",
   "common_error": "Lỗi",
@@ -170,5 +185,15 @@
   "accounts_delete_confirmation": "Bạn có chắc chắn muốn xóa tài khoản '{name}'?",
   "accounts_auth_required": "Bạn phải đăng nhập để quản lý tài khoản",
 
-  "budget_auth_required": "Bạn phải đăng nhập để quản lý ngân sách"
+  "budget_auth_required": "Bạn phải đăng nhập để quản lý ngân sách",
+
+  "budget_date_from_to": "Từ {start} đến {end}",
+  "budget_date_range_display": "{start} - {end}",
+  "budget_days_remaining": "Còn {days} ngày",
+  "budget_progress": "Tiến độ",
+  "budget_period_ends_on": "Kỳ hạn kết thúc vào {date}",
+  "home_budget_error": "Lỗi khi tải ngân sách",
+  "home_no_accounts_desc": "Thêm tài khoản để bắt đầu theo dõi tài chính của bạn",
+  "home_account_error": "Lỗi khi tải tài khoản",
+  "home_refresh": "Làm mới"
 }

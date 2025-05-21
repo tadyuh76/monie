@@ -145,18 +145,20 @@ class _TransactionFormWidgetState extends State<TransactionFormWidget> {
                     ButtonSegment<bool>(
                       value: true,
                       label: Text(context.tr('transaction_expense')),
-                      icon: const Icon(Icons.arrow_upward),
+                      icon: const Icon(Icons.arrow_downward),
                     ),
                     ButtonSegment<bool>(
                       value: false,
                       label: Text(context.tr('transaction_income')),
-                      icon: const Icon(Icons.arrow_downward),
+                      icon: const Icon(Icons.arrow_upward),
                     ),
                   ],
                   selected: {_isExpense},
                   onSelectionChanged: (Set<bool> newSelection) {
                     setState(() {
                       _isExpense = newSelection.first;
+                      // Clear selected budget when transaction type changes
+                      _selectedBudgetId = null;
                     });
                   },
                 ),
@@ -254,37 +256,91 @@ class _TransactionFormWidgetState extends State<TransactionFormWidget> {
           ),
           const SizedBox(height: 16),
 
-          // Budget Dropdown
+          // Budget Dropdown - Filter based on transaction type
           BlocBuilder<BudgetsBloc, BudgetsState>(
             builder: (context, state) {
-              List<Budget> budgets = [];
+              List<Budget> allBudgets = [];
               if (state is BudgetsLoaded) {
-                budgets = state.budgets;
+                allBudgets = state.budgets;
               }
+
+              // Filter budgets based on transaction type
+              final matchingBudgets =
+                  allBudgets.where((budget) {
+                    if (_isExpense) {
+                      return !budget
+                          .isSaving; // Expense budgets (isSaving = false)
+                    } else {
+                      return budget
+                          .isSaving; // Income budgets (isSaving = true)
+                    }
+                  }).toList();
+
+              // Check if selected budget is still valid after filtering
+              if (_selectedBudgetId != null) {
+                final stillValid = matchingBudgets.any(
+                  (budget) => budget.budgetId == _selectedBudgetId,
+                );
+                if (!stillValid) {
+                  _selectedBudgetId = null;
+                }
+              }
+
+              final String budgetLabel =
+                  _isExpense
+                      ? context.tr('transaction_expense_budget')
+                      : context.tr('transaction_income_budget');
 
               return DropdownButtonFormField<String>(
                 decoration: InputDecoration(
-                  labelText: context.tr('transaction_budget'),
+                  labelText: budgetLabel,
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.pie_chart),
+                  helperText:
+                      matchingBudgets.isEmpty
+                          ? 'No ${_isExpense ? "expense" : "income"} budgets available'
+                          : null,
                 ),
                 value: _selectedBudgetId,
                 items:
-                    budgets.map((budget) {
-                      return DropdownMenuItem<String>(
-                        value: budget.budgetId,
-                        child: Text(budget.name),
-                      );
-                    }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedBudgetId = value;
-                  });
-                },
+                    matchingBudgets.isEmpty
+                        ? [
+                          DropdownMenuItem<String>(
+                            value: null,
+                            enabled: false,
+                            child: Text(
+                              'No ${_isExpense ? "expense" : "income"} budgets available',
+                            ),
+                          ),
+                        ]
+                        : matchingBudgets.map((budget) {
+                          return DropdownMenuItem<String>(
+                            value: budget.budgetId,
+                            child: Row(
+                              children: [
+                                Text(budget.name),
+                                const Spacer(),
+                                Text(
+                                  '\$${budget.remaining.toStringAsFixed(2)} left',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                onChanged:
+                    matchingBudgets.isEmpty
+                        ? null
+                        : (value) {
+                          setState(() {
+                            _selectedBudgetId = value;
+                          });
+                        },
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return context.tr('transaction_budget_required');
-                  }
+                  // Budget is optional, no validation needed
                   return null;
                 },
               );

@@ -70,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!context.mounted) return;
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const MainScreen()),
+              MaterialPageRoute(builder: (context) => MainScreen()),
               (route) => false,
             );
           });

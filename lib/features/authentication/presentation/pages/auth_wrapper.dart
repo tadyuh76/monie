@@ -42,7 +42,7 @@ class AuthWrapper extends StatelessWidget {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!context.mounted) return;
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const MainScreen()),
+              MaterialPageRoute(builder: (_) => MainScreen()),
               (route) => false,
             );
           });
@@ -56,7 +56,7 @@ class AuthWrapper extends StatelessWidget {
         } else if (state is AuthLoading) {
           return const LoadingScreen();
         } else if (state is Authenticated) {
-          return const MainScreen();
+          return MainScreen();
         } else {
           return const LoginPage();
         }

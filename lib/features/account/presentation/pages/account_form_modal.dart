@@ -458,7 +458,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
                             Future.delayed(
                               const Duration(milliseconds: 100),
                               () {
-                                if (mounted) {
+                                if (context.mounted) {
                                   Navigator.of(context).pop();
                                 }
                               },

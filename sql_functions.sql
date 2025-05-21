@@ -280,4 +280,44 @@ BEGIN
     avatar_url_param,
     user_id_var;
 END;
-$$; 
+$$;
+
+-- Update the trigger that recalculates account balance to account for budget changes
+CREATE OR REPLACE FUNCTION update_account_balance() RETURNS TRIGGER AS $$
+BEGIN
+  -- Update the balance of the account when a transaction is inserted, updated, or deleted
+  IF TG_OP = 'INSERT' THEN
+    UPDATE accounts 
+    SET balance = balance + NEW.amount
+    WHERE account_id = NEW.account_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    -- Only update if account_id or amount changed
+    IF NEW.account_id <> OLD.account_id OR NEW.amount <> OLD.amount THEN
+      -- Revert the old amount from the old account
+      IF OLD.account_id IS NOT NULL THEN
+        UPDATE accounts 
+        SET balance = balance - OLD.amount
+        WHERE account_id = OLD.account_id;
+      END IF;
+      
+      -- Add the new amount to the new account
+      IF NEW.account_id IS NOT NULL THEN
+        UPDATE accounts 
+        SET balance = balance + NEW.amount
+        WHERE account_id = NEW.account_id;
+      END IF;
+    END IF;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    -- Remove the amount from the account balance when a transaction is deleted
+    IF OLD.account_id IS NOT NULL THEN
+      UPDATE accounts 
+      SET balance = balance - OLD.amount
+      WHERE account_id = OLD.account_id;
+    END IF;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql; 

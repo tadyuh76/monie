@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
-import 'package:monie/features/budgets/data/models/budget_model.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/budgets/domain/usecases/add_budget_usecase.dart';
 import 'package:monie/features/budgets/domain/usecases/delete_budget_usecase.dart';

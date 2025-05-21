@@ -24,9 +24,13 @@ class BudgetRepositoryImpl implements BudgetRepository {
           .eq('user_id', userId)
           .order('start_date', ascending: false);
 
-      return response
-          .map<Budget>((json) => BudgetModel.fromSupabaseJson(json))
-          .toList();
+      final budgets =
+          response
+              .map<BudgetModel>((json) => BudgetModel.fromSupabaseJson(json))
+              .toList();
+
+      // Add spent amount to each budget
+      return await _addSpentAmountToBudgets(budgets);
     } catch (error) {
       throw Exception('Failed to get budgets: $error');
     }
@@ -48,7 +52,10 @@ class BudgetRepositoryImpl implements BudgetRepository {
               .eq('user_id', userId)
               .single();
 
-      return BudgetModel.fromSupabaseJson(response);
+      final budget = BudgetModel.fromSupabaseJson(response);
+      // Calculate spent amount for the budget
+      final spent = await _calculateBudgetSpentAmount(budget.budgetId);
+      return budget.copyWith(spent: spent);
     } catch (error) {
       throw Exception('Failed to get budget: $error');
     }
@@ -71,12 +78,79 @@ class BudgetRepositoryImpl implements BudgetRepository {
           .gte('end_date', today)
           .order('start_date', ascending: true);
 
-      return response
-          .map<Budget>((json) => BudgetModel.fromSupabaseJson(json))
-          .toList();
+      final budgets =
+          response
+              .map<BudgetModel>((json) => BudgetModel.fromSupabaseJson(json))
+              .toList();
+
+      // Add spent amount to each budget
+      return await _addSpentAmountToBudgets(budgets);
     } catch (error) {
       throw Exception('Failed to get active budgets: $error');
     }
+  }
+
+  // Helper method to calculate spent amount for a budget
+  Future<double> _calculateBudgetSpentAmount(String budgetId) async {
+    try {
+      // First, get the budget to check if it's an income or expense budget
+      final budgetResponse =
+          await _supabaseClient.client
+              .from('budgets')
+              .select('is_saving')
+              .eq('budget_id', budgetId)
+              .single();
+
+      final isSaving = budgetResponse['is_saving'] as bool? ?? false;
+
+      // Query transactions table for transactions related to this budget
+      final response = await _supabaseClient.client
+          .from('transactions')
+          .select('amount')
+          .eq('budget_id', budgetId);
+
+      // Sum up the transaction amounts based on budget type
+      double totalSpent = 0;
+      for (final transaction in response) {
+        // Get the transaction amount
+        final amount =
+            transaction['amount'] is int
+                ? transaction['amount'].toDouble()
+                : transaction['amount'] as double;
+
+        // For income budgets (is_saving=true), only count positive transactions
+        // For expense budgets (is_saving=false), only count negative transactions
+        if (isSaving) {
+          // Income budget: count only positive amounts toward the budget
+          if (amount > 0) {
+            totalSpent += amount;
+          }
+        } else {
+          // Expense budget: count only negative amounts (as positive values) toward the budget
+          if (amount < 0) {
+            totalSpent += amount.abs();
+          }
+        }
+      }
+
+      return totalSpent;
+    } catch (error) {
+      return 0.0; // Return 0 on error
+    }
+  }
+
+  // Helper method to add spent amount to a list of budgets
+  Future<List<Budget>> _addSpentAmountToBudgets(
+    List<BudgetModel> budgets,
+  ) async {
+    final result = <Budget>[];
+
+    for (final budget in budgets) {
+      final spent = await _calculateBudgetSpentAmount(budget.budgetId);
+      result.add(budget.copyWith(spent: spent));
+    }
+
+    return result;
   }
 
   @override
@@ -137,5 +211,10 @@ class BudgetRepositoryImpl implements BudgetRepository {
     } catch (error) {
       throw Exception('Failed to delete budget: $error');
     }
+  }
+
+  @override
+  Future<double> calculateBudgetSpentAmount(String budgetId) async {
+    return await _calculateBudgetSpentAmount(budgetId);
   }
 }

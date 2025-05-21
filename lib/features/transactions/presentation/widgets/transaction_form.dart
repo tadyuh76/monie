@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/constants/transaction_categories.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
@@ -87,8 +88,8 @@ class _TransactionFormState extends State<TransactionForm> {
       // Ensure a category is selected
       if (_selectedCategory == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select a category'),
+          SnackBar(
+            content: Text(context.tr('transactions_category_required')),
             backgroundColor: Colors.red,
           ),
         );
@@ -200,8 +201,8 @@ class _TransactionFormState extends State<TransactionForm> {
               children: [
                 Text(
                   widget.transaction == null
-                      ? 'Add Transaction'
-                      : 'Edit Transaction',
+                      ? context.tr('transactions_add_new')
+                      : context.tr('common_edit'),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -244,7 +245,7 @@ class _TransactionFormState extends State<TransactionForm> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Text(
-                      'Expense',
+                      context.tr('home_expense'),
                       style: TextStyle(
                         color: !_isIncome ? Colors.white : Colors.white70,
                         fontWeight:
@@ -278,7 +279,7 @@ class _TransactionFormState extends State<TransactionForm> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Text(
-                      'Income',
+                      context.tr('home_income'),
                       style: TextStyle(
                         color: _isIncome ? Colors.white : Colors.white70,
                         fontWeight:
@@ -296,7 +297,7 @@ class _TransactionFormState extends State<TransactionForm> {
               controller: _titleController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: 'Title',
+                labelText: context.tr('transactions_title'),
                 labelStyle: const TextStyle(color: Colors.white70),
                 prefixIcon: const Icon(Icons.title, color: Colors.white70),
                 enabledBorder: OutlineInputBorder(
@@ -310,7 +311,7 @@ class _TransactionFormState extends State<TransactionForm> {
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter a title';
+                  return context.tr('field_required');
                 }
                 return null;
               },
@@ -323,7 +324,7 @@ class _TransactionFormState extends State<TransactionForm> {
               keyboardType: TextInputType.number,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: 'Amount',
+                labelText: context.tr('transactions_amount'),
                 labelStyle: const TextStyle(color: Colors.white70),
                 prefixIcon: const Icon(
                   Icons.attach_money,
@@ -340,10 +341,10 @@ class _TransactionFormState extends State<TransactionForm> {
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter an amount';
+                  return context.tr('transactions_amount');
                 }
                 if (double.tryParse(value) == null) {
-                  return 'Please enter a valid amount';
+                  return context.tr('budget_amount_valid');
                 }
                 return null;
               },
@@ -356,9 +357,9 @@ class _TransactionFormState extends State<TransactionForm> {
             const SizedBox(height: 16),
 
             // Date Picker
-            const Text(
-              'Date',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+            Text(
+              context.tr('transactions_date'),
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
             const SizedBox(height: 8),
             InkWell(
@@ -392,7 +393,7 @@ class _TransactionFormState extends State<TransactionForm> {
               style: const TextStyle(color: Colors.white),
               maxLines: 3,
               decoration: InputDecoration(
-                labelText: 'Description',
+                labelText: context.tr('transactions_description'),
                 labelStyle: const TextStyle(color: Colors.white70),
                 alignLabelWithHint: true,
                 enabledBorder: OutlineInputBorder(
@@ -422,8 +423,8 @@ class _TransactionFormState extends State<TransactionForm> {
                 ),
                 child: Text(
                   widget.transaction == null
-                      ? 'Add Transaction'
-                      : 'Update Transaction',
+                      ? context.tr('transactions_add_new')
+                      : context.tr('common_save'),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -449,7 +450,7 @@ class _TransactionFormState extends State<TransactionForm> {
       isExpanded: true,
       icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
       decoration: InputDecoration(
-        labelText: 'Category',
+        labelText: context.tr('transactions_category'),
         labelStyle: const TextStyle(color: Colors.white70),
         prefixIcon: const Icon(Icons.category, color: Colors.white70),
         enabledBorder: OutlineInputBorder(
@@ -523,7 +524,7 @@ class _TransactionFormState extends State<TransactionForm> {
       },
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please select a category';
+          return context.tr('field_required');
         }
         return null;
       },

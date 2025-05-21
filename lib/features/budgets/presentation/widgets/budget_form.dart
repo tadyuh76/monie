@@ -28,6 +28,7 @@ class _BudgetFormState extends State<BudgetForm> {
   bool _isSaving = false;
   String? _frequency;
   String _color = 'FF4CAF50'; // Default green color
+  String _timeBoundType = 'monthly'; // Default to monthly
 
   @override
   void initState() {
@@ -46,7 +47,13 @@ class _BudgetFormState extends State<BudgetForm> {
       if (widget.budget!.color != null && widget.budget!.color!.isNotEmpty) {
         _color = widget.budget!.color!;
       }
-    } else {}
+
+      // Determine time bound type based on date range
+      _determineTimeBoundType();
+    } else {
+      // For new budget, set default end date based on monthly time bound
+      _setEndDateFromTimeFrame();
+    }
   }
 
   @override
@@ -57,29 +64,84 @@ class _BudgetFormState extends State<BudgetForm> {
   }
 
   // Helper method to format display text without underscores
-  String _formatDisplayText(String text) {
-    if (text.contains('_')) {
-      List<String> words = text.split('_');
-      return words
-          .map(
-            (word) =>
-                word.isNotEmpty
-                    ? '${word[0].toUpperCase()}${word.substring(1)}'
-                    : '',
-          )
-          .join(' ');
+
+  // Determine time bound type based on date difference
+  void _determineTimeBoundType() {
+    final difference = _endDate.difference(_startDate).inDays;
+
+    if (difference <= 7) {
+      _timeBoundType = 'weekly';
+    } else if (difference <= 31) {
+      _timeBoundType = 'monthly';
+    } else if (difference <= 366) {
+      _timeBoundType = 'yearly';
+    } else {
+      _timeBoundType = 'custom';
     }
-    return text;
   }
 
-  // Helper method to translate text and remove underscores for display
-  String _trDisplay(String key) {
-    String translated = context.tr(key);
-    // If translation failed (key is returned), format the key for display
-    if (translated == key) {
-      return _formatDisplayText(key);
+  // Set end date based on time bound type
+  void _setEndDateFromTimeFrame() {
+    switch (_timeBoundType) {
+      case 'weekly':
+        // Add 7 days
+        _endDate = DateTime(
+          _startDate.year,
+          _startDate.month,
+          _startDate.day + 7,
+        );
+        break;
+      case 'monthly':
+        // Use DateTime arithmetic to correctly move to next month
+        int year = _startDate.year;
+        int month = _startDate.month;
+        int day = _startDate.day;
+
+        // Move to next month
+        month += 1;
+        if (month > 12) {
+          month = 1;
+          year += 1;
+        }
+
+        // Handle day overflow (e.g., Jan 31 -> Feb 28)
+        final lastDayOfMonth = DateTime(year, month + 1, 0).day;
+        if (day > lastDayOfMonth) {
+          day = lastDayOfMonth;
+        }
+
+        _endDate = DateTime(year, month, day);
+        break;
+      case 'yearly':
+        // Add 1 year
+        _endDate = DateTime(
+          _startDate.year + 1,
+          _startDate.month,
+          _startDate.day,
+        );
+
+        // Handle February 29 for leap years
+        if (_startDate.month == 2 &&
+            _startDate.day == 29 &&
+            !_isLeapYear(_endDate.year)) {
+          _endDate = DateTime(_endDate.year, 2, 28);
+        }
+        break;
+      case 'custom':
+        // Keep existing end date for custom or ensure it's at least one day after start
+        if (_endDate.isBefore(_startDate) ||
+            _endDate.isAtSameMomentAs(_startDate)) {
+          _endDate = _startDate.add(
+            const Duration(days: 30),
+          ); // Default to 30 days
+        }
+        break;
     }
-    return translated;
+  }
+
+  // Helper to check if a year is a leap year
+  bool _isLeapYear(int year) {
+    return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
   }
 
   // Date picker methods
@@ -95,8 +157,11 @@ class _BudgetFormState extends State<BudgetForm> {
       setState(() {
         _startDate = picked;
 
-        // Ensure end date is after start date
-        if (_endDate.isBefore(_startDate)) {
+        // Update end date based on time frame if not custom
+        if (_timeBoundType != 'custom') {
+          _setEndDateFromTimeFrame();
+        } else if (_endDate.isBefore(_startDate)) {
+          // For custom time frame, ensure end date is after start date
           _endDate = _startDate.add(const Duration(days: 30));
         }
       });
@@ -104,6 +169,11 @@ class _BudgetFormState extends State<BudgetForm> {
   }
 
   Future<void> _selectEndDate() async {
+    // Only allow end date selection for custom time frame
+    if (_timeBoundType != 'custom') {
+      return;
+    }
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate:
@@ -176,8 +246,8 @@ class _BudgetFormState extends State<BudgetForm> {
         elevation: 0,
         title: Text(
           widget.budget == null
-              ? _trDisplay('budget_new')
-              : _trDisplay('budget_edit'),
+              ? context.tr('budget_new')
+              : context.tr('budget_edit'),
           style: TextStyle(color: isDarkMode ? Colors.white : Colors.black87),
         ),
         leading: IconButton(
@@ -211,8 +281,8 @@ class _BudgetFormState extends State<BudgetForm> {
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: "${_trDisplay('budget_name')} *",
-                  hintText: _trDisplay('budget_name_hint'),
+                  labelText: "${context.tr('budget_name')} *",
+                  hintText: context.tr('budget_name_hint'),
                   border: const OutlineInputBorder(),
                   helperText: context.tr('field_required'),
                 ),
@@ -223,13 +293,76 @@ class _BudgetFormState extends State<BudgetForm> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+
+              SwitchListTile(
+                title: Text(
+                  context.tr('budget_saving'),
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                subtitle: Text(
+                  context.tr('budget_saving_description'),
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+                secondary: Icon(
+                  _isSaving ? Icons.arrow_upward : Icons.arrow_downward,
+                  color: _isSaving ? AppColors.income : AppColors.expense,
+                ),
+                value: _isSaving,
+                onChanged: (value) {
+                  setState(() {
+                    _isSaving = value;
+                  });
+                },
+                activeColor: AppColors.income,
+                contentPadding: EdgeInsets.zero,
+              ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: (_isSaving ? AppColors.income : AppColors.expense)
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: (_isSaving ? AppColors.income : AppColors.expense)
+                        .withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: _isSaving ? AppColors.income : AppColors.expense,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        context.tr(
+                          _isSaving
+                              ? 'budget_income_description'
+                              : 'budget_expense_description',
+                        ),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDarkMode ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
 
               // Budget amount
               TextFormField(
                 controller: _amountController,
                 decoration: InputDecoration(
-                  labelText: "${_trDisplay('budget_amount')} *",
+                  labelText: "${context.tr('budget_amount')} *",
                   border: const OutlineInputBorder(),
                   prefixText: '\$ ',
                 ),
@@ -256,14 +389,41 @@ class _BudgetFormState extends State<BudgetForm> {
               ),
               const SizedBox(height: 24),
 
-              // Date range
+              // Time frame selector
               Text(
-                _trDisplay('budget_date_range'),
+                context.tr('budget_time_frame'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
               const SizedBox(height: 8),
+
+              // Time bound type options
+              Wrap(
+                spacing: 8,
+                children: [
+                  _buildTimeFrameChip(
+                    'weekly',
+                    context.tr('budget_frequency_weekly'),
+                  ),
+                  _buildTimeFrameChip(
+                    'monthly',
+                    context.tr('budget_frequency_monthly'),
+                  ),
+                  _buildTimeFrameChip(
+                    'yearly',
+                    context.tr('budget_frequency_yearly'),
+                  ),
+                  _buildTimeFrameChip(
+                    'custom',
+                    context.tr('budget_custom_period'),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Date selectors
               Row(
                 children: [
                   Expanded(
@@ -272,7 +432,7 @@ class _BudgetFormState extends State<BudgetForm> {
                       child: InputDecorator(
                         decoration: InputDecoration(
                           border: const OutlineInputBorder(),
-                          labelText: _trDisplay('budget_start_date'),
+                          labelText: context.tr('budget_start_date'),
                         ),
                         child: Text(
                           DateFormat('MMM d, yyyy').format(_startDate),
@@ -282,112 +442,49 @@ class _BudgetFormState extends State<BudgetForm> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: InkWell(
-                      onTap: _selectEndDate,
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          border: const OutlineInputBorder(),
-                          labelText: _trDisplay('budget_end_date'),
+                    child: AbsorbPointer(
+                      absorbing: _timeBoundType != 'custom',
+                      child: InkWell(
+                        onTap: _selectEndDate, // Only works when not absorbed
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            labelText: context.tr('budget_end_date'),
+                            enabled: _timeBoundType == 'custom',
+                            helperText:
+                                _timeBoundType != 'custom'
+                                    ? context.tr('budget_auto_end_date_info')
+                                    : null,
+                            helperStyle: TextStyle(
+                              fontStyle: FontStyle.italic,
+                              fontSize: 11,
+                              color:
+                                  isDarkMode ? Colors.white60 : Colors.black45,
+                            ),
+                          ),
+                          child: Text(
+                            DateFormat('MMM d, yyyy').format(_endDate),
+                            style: TextStyle(
+                              color:
+                                  _timeBoundType != 'custom'
+                                      ? (isDarkMode
+                                          ? Colors.white70
+                                          : Colors.black54)
+                                      : null,
+                            ),
+                          ),
                         ),
-                        child: Text(DateFormat('MMM d, yyyy').format(_endDate)),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // Budget type options
-              Text(
-                _trDisplay('budget_options'),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Saving budget
-              SwitchListTile(
-                title: Text(
-                  _trDisplay('budget_saving'),
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                subtitle: Text(
-                  _trDisplay('budget_saving_description'),
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-                value: _isSaving,
-                onChanged: (value) {
-                  setState(() {
-                    _isSaving = value;
-                  });
-                },
-                activeColor: AppColors.primary,
-              ),
-
-              // Recurring budget
-              SwitchListTile(
-                title: Text(
-                  _trDisplay('budget_recurring'),
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                subtitle: Text(
-                  _trDisplay('budget_recurring_description'),
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-                value: _isRecurring,
-                onChanged: (value) {
-                  setState(() {
-                    _isRecurring = value;
-                  });
-                },
-                activeColor: AppColors.primary,
-              ),
-
-              // Frequency selector (only show if recurring)
-              if (_isRecurring) ...[
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: _trDisplay('budget_frequency'),
-                    border: const OutlineInputBorder(),
-                  ),
-                  value: _frequency,
-                  items: [
-                    DropdownMenuItem(
-                      value: 'monthly',
-                      child: Text(context.tr('budget_monthly')),
-                    ),
-                    DropdownMenuItem(
-                      value: 'weekly',
-                      child: Text(context.tr('budget_weekly')),
-                    ),
-                    DropdownMenuItem(
-                      value: 'daily',
-                      child: Text(context.tr('budget_daily')),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _frequency = value;
-                    });
-                  },
-                ),
-              ],
 
               const SizedBox(height: 24),
 
               // Color picker
               Text(
-                _trDisplay('budget_color'),
+                context.tr('budget_color'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: isDarkMode ? Colors.white : Colors.black87,
                 ),
@@ -409,6 +506,27 @@ class _BudgetFormState extends State<BudgetForm> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTimeFrameChip(String type, String label) {
+    final isSelected = _timeBoundType == type;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _timeBoundType = type;
+            _setEndDateFromTimeFrame();
+          });
+        }
+      },
+      selectedColor: AppColors.primary,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : null,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
     );
   }

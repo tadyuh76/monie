@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
-import 'package:monie/features/budgets/data/models/budget_model.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
@@ -71,41 +70,65 @@ class BudgetCard extends StatelessWidget {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Parse color from hex string or use default
-    Color cardColor;
+    Color budgetColor;
     try {
       if (budget.color != null) {
-        cardColor = _parseColor(
+        budgetColor = _parseColor(
           budget.color,
-          isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50),
+          isDarkMode ? AppColors.primary : const Color(0xFF4CAF50),
         );
       } else {
-        cardColor =
-            isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
+        budgetColor = isDarkMode ? AppColors.primary : const Color(0xFF4CAF50);
       }
     } catch (e) {
-      cardColor =
-          isDarkMode ? AppColors.budgetBackground : const Color(0xFF4CAF50);
+      budgetColor = isDarkMode ? AppColors.primary : const Color(0xFF4CAF50);
     }
+
+    // Get spent amount and calculate percentage
+    final progress = budget.progressPercentage;
+    final progressPercentage = (progress * 100).toInt();
+
+    // Determine color based on progress for text
+    final progressTextColor =
+        budget.isIncome
+            ? progress >= 0.8
+                ? Colors.green
+                : progress >= 0.5
+                ? Colors.orange
+                : Colors.red
+            : progress >= 0.8
+            ? Colors.red
+            : progress >= 0.5
+            ? Colors.orange
+            : Colors.green;
 
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: cardColor,
+      color: isDarkMode ? AppColors.surface : Colors.white,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Colored header
+            Container(
+              decoration: BoxDecoration(
+                color: budgetColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
                       budget.name,
-                      style: textTheme.headlineMedium?.copyWith(
+                      style: textTheme.titleLarge?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
@@ -113,9 +136,44 @@ class BudgetCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  // Budget type indicator
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          budget.isIncome
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          budget.isIncome
+                              ? context.tr('home_income')
+                              : context.tr('home_expense'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   if (onEdit != null || onDelete != null)
                     PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert, color: Colors.white),
+                      color: isDarkMode ? AppColors.surface : Colors.white,
                       onSelected: (value) {
                         if (value == 'edit' && onEdit != null) {
                           onEdit!();
@@ -158,192 +216,185 @@ class BudgetCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                '\$${budget.remainingAmount.toStringAsFixed(2)} ${_trDisplay(context, 'budgets_left_of')} \$${budget.amount.toStringAsFixed(2)}',
-                style: textTheme.titleLarge?.copyWith(color: Colors.white),
-              ),
-              const SizedBox(height: 16),
+            ),
 
-              // Progress indicator
-              Column(
+            // Body content with white/dark background
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Amounts
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${budget.progressPercentage.toStringAsFixed(1)}%',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                        ),
+                      // Spent amount
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _trDisplay(context, 'budget_spent'),
+                            style: textTheme.bodySmall?.copyWith(
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          Text(
+                            budget.formattedSpentAmount,
+                            style: textTheme.titleMedium?.copyWith(
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        '100%',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: Colors.white70,
-                        ),
+                      // Remaining amount
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _trDisplay(context, 'budget_remaining'),
+                            style: textTheme.bodySmall?.copyWith(
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          Text(
+                            budget.formattedRemainingAmount,
+                            style: textTheme.titleMedium?.copyWith(
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: budget.progressPercentage / 100,
-                      backgroundColor: Colors.black26,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isDarkMode
-                            ? AppColors.budgetProgress
-                            : Colors.white.withValues(alpha: 0.9),
+                  const SizedBox(height: 16),
+
+                  // Progress bar
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${budget.formattedSpentAmount} ${context.tr('budgets_left_of')} ${budget.formattedAmount}',
+                            style: textTheme.bodySmall?.copyWith(
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          Text(
+                            '$progressPercentage%',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: progressTextColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      minHeight: 12,
+                      const SizedBox(height: 8),
+                      Stack(
+                        children: [
+                          // Background
+                          Container(
+                            width: double.infinity,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color:
+                                  isDarkMode
+                                      ? Colors.black26
+                                      : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          // Progress
+                          FractionallySizedBox(
+                            widthFactor: progress,
+                            child: Container(
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: budgetColor,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  // Date range and days remaining
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _formatDateRange(
+                              context,
+                              budget.startDate,
+                              budget.endDate,
+                            ),
+                            style: textTheme.bodySmall?.copyWith(
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ),
+                        if (budget.endDate != null)
+                          Text(
+                            _formatDaysRemaining(context, budget.endDate),
+                            style: textTheme.bodySmall?.copyWith(
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],
               ),
-
-              // Date range
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      DateFormat('MMM d').format(budget.startDate),
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: Colors.white70,
-                      ),
-                    ),
-                    _buildDateIndicator(context, budget),
-                    Text(
-                      DateFormat('MMM d').format(budget.effectiveEndDate),
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Budget tags
-              Wrap(
-                spacing: 8,
-                children: [
-                  if (budget.isRecurring)
-                    _buildTag(
-                      context,
-                      _trDisplay(context, 'budget_recurring'),
-                      Icons.repeat,
-                    ),
-                  if (budget.isSaving)
-                    _buildTag(
-                      context,
-                      _trDisplay(context, 'budget_saving'),
-                      Icons.savings,
-                    ),
-                ],
-              ),
-
-              // Saving target
-              if (budget.daysRemaining > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    _trDisplay(context, 'budget_saving_target')
-                        .replaceAll(
-                          '{amount}',
-                          '\$${budget.dailySavingTarget.toStringAsFixed(2)}',
-                        )
-                        .replaceAll('{days}', '${budget.daysRemaining}'),
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: Colors.white70,
-                    ),
-                  ),
-                ),
-
-              // View transactions button
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: TextButton.icon(
-                  onPressed: () {
-                    // Show transactions modal
-                    _showBudgetTransactions(context);
-                  },
-                  icon: const Icon(Icons.receipt_long, color: Colors.white),
-                  label: Text(
-                    _trDisplay(context, 'budget_view_transactions'),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _showBudgetTransactions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _BudgetTransactionsModal(budget: budget),
-    );
+  // Helper to format date
+  String _formatDate(BuildContext context, DateTime date) {
+    final format = DateFormat('MMM d, yyyy');
+    return format.format(date);
   }
 
-  Widget _buildDateIndicator(BuildContext context, Budget budget) {
-    final now = DateTime.now();
-    final isActive =
-        now.isAfter(budget.startDate) && now.isBefore(budget.effectiveEndDate);
+  // Helper to format date range
+  String _formatDateRange(BuildContext context, DateTime start, DateTime? end) {
+    if (end == null) return _formatDate(context, start);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.white : Colors.white54,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        isActive
-            ? _trDisplay(context, 'common_today')
-            : now.isBefore(budget.startDate)
-            ? _trDisplay(context, 'budget_upcoming')
-            : _trDisplay(context, 'budget_ended'),
-        style: TextStyle(
-          color:
-              Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.background
-                  : const Color(0xFF388E3C),
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-      ),
-    );
+    final startFormat = DateFormat('MMM d');
+    final endFormat = DateFormat('MMM d, yyyy');
+
+    return context
+        .tr('budget_date_range_display')
+        .replaceAll('{start}', startFormat.format(start))
+        .replaceAll('{end}', endFormat.format(end));
   }
 
-  Widget _buildTag(BuildContext context, String text, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Colors.white),
-          const SizedBox(width: 4),
-          Text(text, style: const TextStyle(color: Colors.white, fontSize: 12)),
-        ],
-      ),
-    );
+  // Helper to calculate days remaining
+  String _formatDaysRemaining(BuildContext context, DateTime? endDate) {
+    if (endDate == null) return '';
+
+    final daysRemaining = endDate.difference(DateTime.now()).inDays;
+    if (daysRemaining < 0) return '';
+
+    return context
+        .tr('budget_days_remaining')
+        .replaceAll('{days}', daysRemaining.toString());
   }
 }
 
@@ -393,7 +444,7 @@ class _BudgetTransactionsModalState extends State<_BudgetTransactionsModal> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${widget.budget.name} Transactions',
+                  '${widget.budget.name} ${context.tr('home_transactions')}',
                   style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isDarkMode ? Colors.white : Colors.black87,
@@ -421,11 +472,11 @@ class _BudgetTransactionsModalState extends State<_BudgetTransactionsModal> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Spent',
+                        context.tr('budget_spent'),
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                       Text(
-                        '\$${widget.budget.spentAmount.toStringAsFixed(2)}',
+                        widget.budget.formattedSpentAmount,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -438,11 +489,11 @@ class _BudgetTransactionsModalState extends State<_BudgetTransactionsModal> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'Remaining',
+                        context.tr('budget_remaining'),
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                       Text(
-                        '\$${widget.budget.remainingAmount.toStringAsFixed(2)}',
+                        widget.budget.formattedRemainingAmount,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -459,7 +510,11 @@ class _BudgetTransactionsModalState extends State<_BudgetTransactionsModal> {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
-                value: widget.budget.progressPercentage / 100,
+                value:
+                    widget.budget.amount > 0
+                        ? ((widget.budget.spent ?? 0) / widget.budget.amount)
+                            .clamp(0.0, 1.0)
+                        : 0.0,
                 backgroundColor: Colors.grey.shade300,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   _parseColor(widget.budget.color, AppColors.primary),
@@ -497,7 +552,7 @@ class _BudgetTransactionsModalState extends State<_BudgetTransactionsModal> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No transactions for this budget yet',
+                              context.tr('transactions_no_transactions'),
                               style: TextStyle(
                                 color:
                                     isDarkMode
