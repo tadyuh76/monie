@@ -2,25 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/account/presentation/bloc/account_event.dart';
 import 'package:monie/features/account/presentation/bloc/account_state.dart';
 import 'package:monie/features/account/presentation/pages/account_form_modal.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
-import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/home/presentation/widgets/accounts_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/balance_chart_widget.dart';
 import 'package:monie/features/home/presentation/widgets/greeting_widget.dart';
 import 'package:monie/features/home/presentation/widgets/heat_map_section_widget.dart';
-import 'package:monie/features/home/presentation/widgets/pie_chart_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
+import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
+import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 import 'package:monie/features/transactions/presentation/widgets/budget_form_bottom_sheet.dart';
 
 class HomePage extends StatefulWidget {
@@ -190,17 +191,6 @@ class _HomePageState extends State<HomePage> {
                 // Accounts section
                 _buildAccountsSection(context, userId),
 
-                // Summary section
-                // BlocBuilder<TransactionBloc, TransactionState>(
-                //   builder: (context, state) {
-                //     if (state is TransactionsLoaded) {
-                //       return SummarySectionWidget(
-                //         transactions: state.transactions,
-                //       );
-                //     }
-                //     return const Center(child: CircularProgressIndicator());
-                //   },
-                // ),
                 const SizedBox(height: 24),
 
                 // Balance Chart section
@@ -217,86 +207,13 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 24),
 
-                // Pie Chart section - Category analysis
-                const PieChartSectionWidget(),
-
-                const SizedBox(height: 24),
-
                 // Heat Map section
                 const HeatMapSectionWidget(),
 
                 const SizedBox(height: 24),
 
                 // Recent transactions section
-                BlocBuilder<TransactionBloc, TransactionState>(
-                  builder: (context, state) {
-                    if (state is TransactionLoading) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    } else if (state is TransactionError) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            children: [
-                              Text(
-                                context.tr('home_transaction_error'),
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: () => _loadData(),
-                                child: Text(context.tr('retry')),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    } else if (state is TransactionsLoaded) {
-                      return state.transactions.isEmpty
-                          ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Text(
-                                context.tr('home_no_transactions'),
-                                style: TextStyle(
-                                  color:
-                                      isDarkMode
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          )
-                          : RecentTransactionsSectionWidget(
-                            transactions: state.transactions,
-                            onViewAllPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TransactionsPage(),
-                                ),
-                              ).then((_) {
-                                // Reload data when returning from transactions page
-                                _loadData();
-                              });
-                            },
-                          );
-                    }
-                    return const Center(child: CircularProgressIndicator());
-                  },
-                ),
+                _buildTransactions(),
 
                 const SizedBox(height: 24),
 
@@ -309,6 +226,76 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+    );
+  }
+
+  BlocBuilder<TransactionBloc, TransactionState> _buildTransactions() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return BlocBuilder<TransactionBloc, TransactionState>(
+      builder: (context, state) {
+        if (state is TransactionLoading) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        } else if (state is TransactionError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  Text(
+                    context.tr('home_transaction_error'),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () => _loadData(),
+                    child: Text(context.tr('retry')),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else if (state is TransactionsLoaded) {
+          return state.transactions.isEmpty
+              ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    context.tr('home_no_transactions'),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              )
+              : RecentTransactionsSectionWidget(
+                transactions: state.transactions,
+                onViewAllPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => TransactionsPage()),
+                  ).then((_) {
+                    // Reload data when returning from transactions page
+                    _loadData();
+                  });
+                },
+                onTransactionTap: (transaction) {
+                  // Navigate to transaction edit form
+                  _showEditTransactionForm(context, transaction);
+                },
+              );
+        }
+        return const Center(child: CircularProgressIndicator());
+      },
     );
   }
 
@@ -1012,5 +999,64 @@ class _HomePageState extends State<HomePage> {
       default:
         return AppColors.primary;
     }
+  }
+
+  void _showEditTransactionForm(BuildContext context, Transaction transaction) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder:
+          (context) => BlocProvider.value(
+            value: BlocProvider.of<BudgetsBloc>(context),
+            child: AddTransactionForm(
+              transaction: transaction,
+              onSubmit: (transactionData) {
+                final transactionBloc = context.read<TransactionBloc>();
+                final accountBloc = context.read<AccountBloc>();
+
+                final oldAccountId = transaction.accountId ?? '';
+                final newAccountId = transactionData['account_id'] as String;
+                final budgetId = transactionData['budget_id'] as String?;
+
+                // Update the transaction
+                transactionBloc.add(
+                  UpdateTransactionEvent(
+                    transaction.copyWith(
+                      amount: transactionData['amount'] as double,
+                      title: transactionData['title'],
+                      date: DateTime.parse(transactionData['date']),
+                      description: transactionData['description'],
+                      categoryName: transactionData['category_name'],
+                      color: transactionData['category_color'],
+                      accountId: newAccountId,
+                      budgetId: budgetId,
+                    ),
+                  ),
+                );
+
+                // If account changed, recalculate both accounts
+                if (oldAccountId != newAccountId) {
+                  // Recalculate old account
+                  if (oldAccountId.isNotEmpty) {
+                    accountBloc.add(
+                      RecalculateAccountBalanceEvent(oldAccountId),
+                    );
+                  }
+
+                  // Recalculate new account
+                  accountBloc.add(RecalculateAccountBalanceEvent(newAccountId));
+                } else {
+                  // Just recalculate the same account
+                  accountBloc.add(RecalculateAccountBalanceEvent(newAccountId));
+                }
+
+                Navigator.pop(context);
+
+                // Reload data when returning from edit
+                _loadData();
+              },
+            ),
+          ),
+    );
   }
 }

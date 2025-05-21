@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/core/utils/formatters.dart';
+import 'package:monie/core/widgets/transaction_card_widget.dart';
+import 'package:monie/features/account/data/models/account_model.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/account/presentation/bloc/account_event.dart';
+import 'package:monie/features/account/presentation/bloc/account_state.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
+import 'package:monie/features/budgets/data/models/budget_model.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
@@ -327,35 +333,160 @@ class _TransactionsPageState extends State<TransactionsPage> {
                           child: Text('No transactions found.'),
                         );
                       }
+                      // Group transactions by date
+                      final Map<String, List<Transaction>> groupedTransactions =
+                          {};
+
+                      for (var transaction in transactions) {
+                        final dateString = Formatters.formatFullDate(
+                          transaction.date,
+                        );
+                        if (!groupedTransactions.containsKey(dateString)) {
+                          groupedTransactions[dateString] = [];
+                        }
+                        groupedTransactions[dateString]!.add(transaction);
+                      }
+
+                      // Sort the grouped dates with newest first
+                      final sortedDates =
+                          groupedTransactions.keys.toList()..sort((a, b) {
+                            // Since transactions are already sorted by date,
+                            // we can use the first transaction's date in each group for comparison
+                            final dateA = groupedTransactions[a]!.first.date;
+                            final dateB = groupedTransactions[b]!.first.date;
+                            return dateB.compareTo(dateA); // Newest first
+                          });
+
                       return ListView.builder(
-                        itemCount: transactions.length,
-                        itemBuilder: (context, index) {
-                          final transaction = transactions[index];
-                          return ListTile(
-                            title: Text(transaction.title),
-                            subtitle: Text(transaction.description ?? ''),
-                            trailing: PopupMenuButton<String>(
-                              onSelected: (value) {
-                                if (value == 'edit') {
-                                  _showEditTransactionForm(transaction);
-                                } else if (value == 'delete') {
-                                  _confirmDeleteTransaction(
-                                    transaction.transactionId,
-                                  );
-                                }
-                              },
-                              itemBuilder:
-                                  (context) => [
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text('Edit'),
+                        itemCount: sortedDates.length,
+                        itemBuilder: (context, dateIndex) {
+                          final dateString = sortedDates[dateIndex];
+                          final transactionsForDay =
+                              groupedTransactions[dateString]!;
+                          final totalForDay = transactionsForDay.fold<double>(
+                            0,
+                            (sum, transaction) =>
+                                sum +
+                                (transaction.amount < 0
+                                    ? -transaction.amount
+                                    : transaction.amount),
+                          );
+
+                          // Create a list to hold all widgets for this date section
+                          List<Widget> sectionWidgets = [];
+
+                          // Add the date header
+                          sectionWidgets.add(
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16.0,
+                                right: 16.0,
+                                top: 16.0,
+                                bottom: 8.0,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    dateString,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge?.copyWith(
+                                      color:
+                                          Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? AppColors.textSecondary
+                                              : Colors.black54,
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text('Delete'),
+                                  ),
+                                  Text(
+                                    Formatters.formatCurrency(totalForDay),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge?.copyWith(
+                                      color:
+                                          Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white
+                                              : Colors.black87,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
+                                  ),
+                                ],
+                              ),
                             ),
+                          );
+
+                          // Add all transactions for this date
+                          for (var transaction in transactionsForDay) {
+                            // Get account name if available
+                            String? accountName;
+                            if (transaction.accountId != null) {
+                              final accountState =
+                                  context.watch<AccountBloc>().state;
+                              if (accountState is AccountsLoaded) {
+                                final account = accountState.accounts
+                                    .firstWhere(
+                                      (a) =>
+                                          a.accountId == transaction.accountId,
+                                      orElse:
+                                          () => AccountModel(
+                                            accountId: '',
+                                            userId: '',
+                                            name: 'Unknown Account',
+                                            type: 'Other',
+                                          ),
+                                    );
+                                accountName = account.name;
+                              }
+                            }
+
+                            // Get budget name if available
+                            String? budgetName;
+                            if (transaction.budgetId != null) {
+                              final budgetState =
+                                  context.watch<BudgetsBloc>().state;
+                              if (budgetState is BudgetsLoaded) {
+                                final budget = budgetState.budgets.firstWhere(
+                                  (b) => b.budgetId == transaction.budgetId,
+                                  orElse:
+                                      () => BudgetModel(
+                                        budgetId: '',
+                                        userId: '',
+                                        name: 'Unknown Budget',
+                                        amount: 0,
+                                        startDate: DateTime.now(),
+                                      ),
+                                );
+                                budgetName = budget.name;
+                              }
+                            }
+
+                            sectionWidgets.add(
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 4.0,
+                                ),
+                                child: TransactionCardWidget(
+                                  transaction: transaction,
+                                  accountName: accountName,
+                                  budgetName: budgetName,
+                                  onTap:
+                                      () =>
+                                          _showEditTransactionForm(transaction),
+                                  showDate:
+                                      false, // Date is shown in the section header
+                                ),
+                              ),
+                            );
+                          }
+
+                          // Return a column with all widgets for this date
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: sectionWidgets,
                           );
                         },
                       );

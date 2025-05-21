@@ -1,19 +1,22 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
+import 'package:monie/core/widgets/transaction_card_widget.dart';
 import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/account/presentation/bloc/account_event.dart';
 import 'package:monie/features/account/presentation/bloc/account_state.dart';
 import 'package:monie/features/account/presentation/pages/account_form_modal.dart';
+import 'package:monie/features/budgets/data/models/budget_model.dart';
+import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
+import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 
 class DetailAccountsPage extends StatefulWidget {
   final Account account;
@@ -711,82 +714,41 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                     itemCount: _filteredTransactions.length,
                     itemBuilder: (context, index) {
                       final transaction = _filteredTransactions[index];
+
+                      // For this page, we already know the account name
+                      String accountName = account.name;
+
+                      // Get budget name if available
+                      String? budgetName;
+                      if (transaction.budgetId != null) {
+                        final budgetState = context.watch<BudgetsBloc>().state;
+                        if (budgetState is BudgetsLoaded) {
+                          final budget = budgetState.budgets.firstWhere(
+                            (b) => b.budgetId == transaction.budgetId,
+                            orElse:
+                                () => BudgetModel(
+                                  budgetId: '',
+                                  userId: '',
+                                  name: 'Unknown Budget',
+                                  amount: 0,
+                                  startDate: DateTime.now(),
+                                ),
+                          );
+                          budgetName = budget.name;
+                        }
+                      }
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow:
-                                !isDarkMode
-                                    ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ]
-                                    : null,
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            leading: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color:
-                                    transaction.amount > 0
-                                        ? AppColors.income.withValues(
-                                          alpha: 0.2,
-                                        )
-                                        : AppColors.expense.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                shape: BoxShape.circle,
+                        child: TransactionCardWidget(
+                          transaction: transaction,
+                          accountName: accountName,
+                          budgetName: budgetName,
+                          onTap:
+                              () => _showEditTransactionForm(
+                                context,
+                                transaction,
                               ),
-                              child: Icon(
-                                transaction.amount > 0
-                                    ? Icons.arrow_downward
-                                    : Icons.arrow_upward,
-                                color:
-                                    transaction.amount > 0
-                                        ? AppColors.income
-                                        : AppColors.expense,
-                              ),
-                            ),
-                            title: Text(
-                              transaction.title,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${transaction.categoryName ?? 'Uncategorized'} • ${DateFormat.yMMMd().format(transaction.date)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color:
-                                    isDarkMode
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600],
-                              ),
-                            ),
-                            trailing: Text(
-                              Formatters.formatCurrency(transaction.amount),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color:
-                                    transaction.amount > 0
-                                        ? AppColors.income
-                                        : AppColors.expense,
-                              ),
-                            ),
-                          ),
                         ),
                       );
                     },
@@ -902,5 +864,68 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
         );
       }
     }
+  }
+
+  void _showEditTransactionForm(BuildContext context, Transaction transaction) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder:
+          (context) => BlocProvider.value(
+            value: BlocProvider.of<TransactionBloc>(context),
+            child: AddTransactionForm(
+              transaction: transaction,
+              onSubmit: (transactionData) {
+                final transactionBloc = context.read<TransactionBloc>();
+                final accountBloc = context.read<AccountBloc>();
+
+                final oldAccountId = transaction.accountId ?? '';
+                final newAccountId = transactionData['account_id'] as String;
+                final budgetId = transactionData['budget_id'] as String?;
+
+                // Update the transaction
+                transactionBloc.add(
+                  UpdateTransactionEvent(
+                    transaction.copyWith(
+                      amount: transactionData['amount'] as double,
+                      title: transactionData['title'],
+                      date: DateTime.parse(transactionData['date']),
+                      description: transactionData['description'],
+                      categoryName: transactionData['category_name'],
+                      color: transactionData['category_color'],
+                      accountId: newAccountId,
+                      budgetId: budgetId,
+                    ),
+                  ),
+                );
+
+                // If account changed, recalculate both accounts
+                if (oldAccountId != newAccountId) {
+                  // Recalculate old account
+                  if (oldAccountId.isNotEmpty) {
+                    accountBloc.add(
+                      RecalculateAccountBalanceEvent(oldAccountId),
+                    );
+                  }
+
+                  // Recalculate new account
+                  accountBloc.add(RecalculateAccountBalanceEvent(newAccountId));
+                } else {
+                  // Just recalculate the same account
+                  accountBloc.add(RecalculateAccountBalanceEvent(newAccountId));
+                }
+
+                Navigator.pop(context);
+
+                // Refresh transactions for this account
+                if (account.accountId != null) {
+                  transactionBloc.add(
+                    LoadTransactionsByAccountEvent(account.accountId!),
+                  );
+                }
+              },
+            ),
+          ),
+    );
   }
 }
