@@ -749,6 +749,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                                 context,
                                 transaction,
                               ),
+                          onDelete: _confirmDeleteTransaction,
                         ),
                       );
                     },
@@ -925,6 +926,64 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                 }
               },
             ),
+          ),
+    );
+  }
+
+  void _confirmDeleteTransaction(String transactionId) {
+    // First get the transaction to be deleted
+    Transaction? transactionToDelete;
+
+    transactionToDelete = _filteredTransactions.firstWhere(
+      (t) => t.transactionId == transactionId,
+      orElse: () => throw Exception('Transaction not found'),
+    );
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: isDarkMode ? AppColors.cardDark : Colors.white,
+            title: const Text('Delete Transaction'),
+            content: const Text(
+              'Are you sure you want to delete this transaction?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final transactionBloc = context.read<TransactionBloc>();
+                  final accountBloc = context.read<AccountBloc>();
+                  final accountId = transactionToDelete?.accountId;
+
+                  // First delete the transaction
+                  transactionBloc.add(DeleteTransactionEvent(transactionId));
+
+                  // Recalculate the account balance
+                  if (accountId != null) {
+                    accountBloc.add(RecalculateAccountBalanceEvent(accountId));
+                  }
+
+                  Navigator.pop(context);
+
+                  // Refresh transactions for this account
+                  if (account.accountId != null) {
+                    transactionBloc.add(
+                      LoadTransactionsByAccountEvent(account.accountId!),
+                    );
+                  }
+                },
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
     );
   }

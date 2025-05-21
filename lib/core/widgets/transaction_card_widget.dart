@@ -10,6 +10,7 @@ import 'package:monie/features/transactions/domain/entities/transaction.dart';
 class TransactionCardWidget extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback? onTap;
+  final Function(String)? onDelete;
   final String? accountName;
   final String? budgetName;
   final bool showDate;
@@ -18,6 +19,7 @@ class TransactionCardWidget extends StatelessWidget {
     super.key,
     required this.transaction,
     this.onTap,
+    this.onDelete,
     this.accountName,
     this.budgetName,
     this.showDate = true,
@@ -83,77 +85,104 @@ class TransactionCardWidget extends StatelessWidget {
       subtitleText = subtitleParts.join(' • ');
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDarkMode ? AppColors.cardDark : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDarkMode ? .1 : .05),
-              blurRadius: isDarkMode ? 4 : 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Transaction icon with SVG
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(8),
-              child: SvgPicture.asset(iconPath),
-            ),
-            const SizedBox(width: 16),
-
-            // Transaction details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    transaction.title.isEmpty
-                        ? transaction.categoryName ?? 'Other'
-                        : transaction.title,
-                    style: textTheme.titleMedium?.copyWith(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitleText,
-                    style: textTheme.bodySmall?.copyWith(
-                      color:
-                          isDarkMode ? AppColors.textSecondary : Colors.black54,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-
-            // Amount
-            Text(
-              isExpense
-                  ? '-${Formatters.formatCurrency(transaction.amount.abs())}'
-                  : Formatters.formatCurrency(transaction.amount),
-              style: textTheme.titleMedium?.copyWith(
-                color: colorForType,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+    // Card content widget
+    final cardContent = Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppColors.cardDark : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDarkMode ? .1 : .05),
+            blurRadius: isDarkMode ? 4 : 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
+      child: Row(
+        children: [
+          // Transaction icon with SVG
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.all(8),
+            child: SvgPicture.asset(iconPath),
+          ),
+          const SizedBox(width: 16),
+
+          // Transaction details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  transaction.title.isEmpty
+                      ? transaction.categoryName ?? 'Other'
+                      : transaction.title,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitleText,
+                  style: textTheme.bodySmall?.copyWith(
+                    color:
+                        isDarkMode ? AppColors.textSecondary : Colors.black54,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+
+          // Amount
+          Text(
+            isExpense
+                ? '-${Formatters.formatCurrency(transaction.amount.abs())}'
+                : Formatters.formatCurrency(transaction.amount),
+            style: textTheme.titleMedium?.copyWith(
+              color: colorForType,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // If onDelete callback is not provided, don't enable swipe-to-delete
+    if (onDelete == null) {
+      return GestureDetector(onTap: onTap, child: cardContent);
+    }
+
+    // Use Dismissible widget for swipe-to-delete functionality
+    return Dismissible(
+      key: Key('transaction-${transaction.transactionId}'),
+      direction: DismissDirection.endToStart, // Only swipe left
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20.0),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      confirmDismiss: (direction) async {
+        // Instead of showing a dialog here, directly inform parent to show dialog
+        if (onDelete != null) {
+          onDelete!(transaction.transactionId);
+        }
+        // Always return false to prevent actual dismissal - parent will handle it
+        return false;
+      },
+      child: GestureDetector(onTap: onTap, child: cardContent),
     );
   }
 }

@@ -476,6 +476,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                   onTap:
                                       () =>
                                           _showEditTransactionForm(transaction),
+                                  onDelete: _confirmDeleteTransaction,
                                   showDate:
                                       false, // Date is shown in the section header
                                 ),

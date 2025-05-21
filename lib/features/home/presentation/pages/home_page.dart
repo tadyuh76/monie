@@ -229,6 +229,66 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _confirmDeleteTransaction(String transactionId) {
+    // First get the transaction to be deleted
+    final transactionState = context.read<TransactionBloc>().state;
+    Transaction? transactionToDelete;
+
+    if (transactionState is TransactionsLoaded) {
+      transactionToDelete = transactionState.transactions.firstWhere(
+        (t) => t.transactionId == transactionId,
+        orElse: () => throw Exception('Transaction not found'),
+      );
+    }
+
+    // If we can't find the transaction, don't continue
+    if (transactionToDelete == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Transaction not found')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Transaction'),
+            content: const Text(
+              'Are you sure you want to delete this transaction?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final transactionBloc = context.read<TransactionBloc>();
+                  final accountBloc = context.read<AccountBloc>();
+                  final accountId = transactionToDelete?.accountId;
+
+                  // First delete the transaction
+                  transactionBloc.add(DeleteTransactionEvent(transactionId));
+
+                  // Recalculate the account balance
+                  if (accountId != null) {
+                    accountBloc.add(RecalculateAccountBalanceEvent(accountId));
+                  }
+
+                  Navigator.pop(context);
+                  _loadData();
+                },
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
   BlocBuilder<TransactionBloc, TransactionState> _buildTransactions() {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
@@ -250,14 +310,13 @@ class _HomePageState extends State<HomePage> {
                   Text(
                     context.tr('home_transaction_error'),
                     style: TextStyle(
-                      color: isDarkMode ? Colors.white70 : Colors.black54,
-                      fontSize: 16,
+                      color: isDarkMode ? Colors.red[300] : Colors.red,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () => _loadData(),
-                    child: Text(context.tr('retry')),
+                  TextButton(
+                    onPressed: _loadData,
+                    child: Text(context.tr('home_refresh')),
                   ),
                 ],
               ),
@@ -292,6 +351,7 @@ class _HomePageState extends State<HomePage> {
                   // Navigate to transaction edit form
                   _showEditTransactionForm(context, transaction);
                 },
+                onTransactionDelete: _confirmDeleteTransaction,
               );
         }
         return const Center(child: CircularProgressIndicator());

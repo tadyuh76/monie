@@ -15,12 +15,14 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
   final List<Transaction> transactions;
   final VoidCallback onViewAllPressed;
   final Function(Transaction)? onTransactionTap;
+  final Function(String)? onTransactionDelete;
 
   const RecentTransactionsSectionWidget({
     super.key,
     required this.transactions,
     required this.onViewAllPressed,
     this.onTransactionTap,
+    this.onTransactionDelete,
   });
 
   @override
@@ -154,6 +156,7 @@ class RecentTransactionsSectionWidget extends StatelessWidget {
                         onTransactionTap != null
                             ? () => onTransactionTap!(transaction)
                             : null,
+                    onDelete: onTransactionDelete,
                     // Don't display date since it's already in the section header
                     showDate: false,
                   ),
