@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
+import 'package:monie/features/budgets/data/models/budget_model.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/budgets/domain/usecases/add_budget_usecase.dart';
 import 'package:monie/features/budgets/domain/usecases/delete_budget_usecase.dart';
@@ -72,7 +73,8 @@ class BudgetsLoaded extends BudgetsState {
   final double totalBudgeted;
   final double totalSpent;
   final double totalRemaining;
-  final bool isActive; // Whether this is showing all budgets or just active ones
+  final bool
+  isActive; // Whether this is showing all budgets or just active ones
 
   const BudgetsLoaded({
     required this.budgets,
@@ -160,10 +162,10 @@ class BudgetsBloc extends Bloc<BudgetsEvent, BudgetsState> {
     try {
       final budgets = await getBudgetsUseCase();
 
-      // Calculate totals
+      // Calculate totals using extension methods
       final totalBudgeted = budgets.fold<double>(
         0,
-        (sum, budget) => sum + budget.totalAmount,
+        (sum, budget) => sum + budget.amount,
       );
 
       final totalSpent = budgets.fold<double>(
@@ -199,10 +201,10 @@ class BudgetsBloc extends Bloc<BudgetsEvent, BudgetsState> {
     try {
       final budgets = await getActiveBudgetsUseCase();
 
-      // Calculate totals
+      // Calculate totals using extension methods
       final totalBudgeted = budgets.fold<double>(
         0,
-        (sum, budget) => sum + budget.totalAmount,
+        (sum, budget) => sum + budget.amount,
       );
 
       final totalSpent = budgets.fold<double>(
@@ -229,14 +231,11 @@ class BudgetsBloc extends Bloc<BudgetsEvent, BudgetsState> {
     }
   }
 
-  Future<void> _onAddBudget(
-    AddBudget event,
-    Emitter<BudgetsState> emit,
-  ) async {
+  Future<void> _onAddBudget(AddBudget event, Emitter<BudgetsState> emit) async {
     try {
       await addBudgetUseCase(event.budget);
       emit(BudgetAdded(event.budget));
-      
+
       // Reload budgets to get updated list
       add(const LoadBudgets());
     } catch (e) {
@@ -251,7 +250,7 @@ class BudgetsBloc extends Bloc<BudgetsEvent, BudgetsState> {
     try {
       await updateBudgetUseCase(event.budget);
       emit(BudgetUpdated(event.budget));
-      
+
       // Reload budgets to get updated list
       add(const LoadBudgets());
     } catch (e) {
@@ -266,7 +265,7 @@ class BudgetsBloc extends Bloc<BudgetsEvent, BudgetsState> {
     try {
       await deleteBudgetUseCase(event.budgetId);
       emit(BudgetDeleted(event.budgetId));
-      
+
       // Reload budgets to get updated list
       add(const LoadBudgets());
     } catch (e) {

@@ -1,7 +1,7 @@
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/errors/exceptions.dart';
 import 'package:monie/core/network/supabase_client.dart';
-import 'package:monie/features/transactions/data/models/budget_model.dart';
+import 'package:monie/features/budgets/data/models/budget_model.dart';
 
 abstract class BudgetRemoteDataSource {
   Future<List<BudgetModel>> getBudgets(String userId);
@@ -45,9 +45,13 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
               .select()
               .eq('budget_id', budgetId)
               .single();
-
       return BudgetModel.fromJson(response);
     } catch (e) {
+      // Check for specific PostgrestError if needed, e.g., e.code == 'PGRST116' (resource not found)
+      if (e.toString().contains('PGRST116')) {
+        // A simple way to check for not found
+        return null;
+      }
       throw ServerException(message: 'Failed to get budget by ID: $e');
     }
   }
@@ -81,7 +85,10 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
           await _supabaseClientManager.client
               .from('budgets')
               .update(budget.toJson())
-              .eq('budget_id', budget.budgetId)
+              .eq(
+                'budget_id',
+                budget.budgetId,
+              ) // budgetId in BudgetModel is String, not String?
               .select()
               .single();
 

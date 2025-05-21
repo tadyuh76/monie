@@ -2,26 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/account/presentation/bloc/account_event.dart';
+import 'package:monie/features/account/presentation/bloc/account_state.dart';
 import 'package:monie/features/account/presentation/pages/account_form_modal.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
-import 'package:monie/features/home/domain/entities/account.dart'
-    as home_account;
+import 'package:monie/features/account/domain/entities/account.dart';
+import 'package:monie/features/budgets/domain/entities/budget.dart';
+import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/home/presentation/widgets/accounts_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/balance_chart_widget.dart';
 import 'package:monie/features/home/presentation/widgets/greeting_widget.dart';
 import 'package:monie/features/home/presentation/widgets/heat_map_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/pie_chart_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
-import 'package:monie/features/transactions/domain/entities/account.dart'
-    as transaction_account;
-import 'package:monie/features/transactions/domain/entities/budget.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_state.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_event.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_state.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
@@ -37,7 +32,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // Local cache for accounts to avoid UI flickering
-  List<home_account.Account> _cachedAccounts = [];
+  List<Account> _cachedAccounts = [];
 
   @override
   void initState() {
@@ -68,7 +63,7 @@ class _HomePageState extends State<HomePage> {
 
       try {
         // Load budgets
-        context.read<BudgetBloc>().add(LoadBudgetsEvent(userId));
+        context.read<BudgetsBloc>().add(const LoadBudgets());
       } catch (e) {
         // Bloc might be closed, ignore the error
       }
@@ -122,14 +117,14 @@ class _HomePageState extends State<HomePage> {
                   // No need to reload data for simple pin updates
                 },
               ),
-              BlocListener<BudgetBloc, BudgetState>(
+              BlocListener<BudgetsBloc, BudgetsState>(
                 listenWhen:
                     (previous, current) =>
-                        current is BudgetCreated ||
+                        current is BudgetAdded ||
                         current is BudgetUpdated ||
                         current is BudgetDeleted,
                 listener: (context, state) {
-                  if (state is BudgetCreated ||
+                  if (state is BudgetAdded ||
                       state is BudgetUpdated ||
                       state is BudgetDeleted) {
                     if (mounted) {
@@ -325,7 +320,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context, accountState) {
         return BlocBuilder<TransactionBloc, TransactionState>(
           builder: (context, transactionState) {
-            List<home_account.Account> accountsToDisplay = [];
+            List<Account> accountsToDisplay = [];
 
             // Handle loading states explicitly - use cached accounts if we have them
             if ((accountState is AccountLoading ||
@@ -367,10 +362,10 @@ class _HomePageState extends State<HomePage> {
             // Handle successfully loaded states
             else if (accountState is AccountsLoaded &&
                 transactionState is TransactionsLoaded) {
-              // Convert Account entities to home_account.Account entities
+              // Convert Account entities to Account entities
               accountsToDisplay =
                   accountState.accounts.map((acc) {
-                    return home_account.Account(
+                    return Account(
                       accountId: acc.accountId,
                       userId: userId,
                       name: acc.name,
@@ -428,7 +423,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _toggleAccountPin(home_account.Account account) {
+  void _toggleAccountPin(Account account) {
     // Debug print to verify method is called
 
     // Skip if already pinned (shouldn't happen with our UI flow)
@@ -442,13 +437,13 @@ class _HomePageState extends State<HomePage> {
       final accountBloc = context.read<AccountBloc>();
 
       // Find all pinned accounts
-      List<home_account.Account> pinnedAccounts =
+      List<Account> pinnedAccounts =
           _cachedAccounts.where((acc) => acc.pinned).toList();
 
       // First, update the database to ensure persistence
       // Unpin any currently pinned accounts
       for (final acc in pinnedAccounts) {
-        final unpinnedAccount = transaction_account.Account(
+        final unpinnedAccount = Account(
           accountId: acc.accountId!,
           userId: acc.userId,
           name: acc.name,
@@ -464,7 +459,7 @@ class _HomePageState extends State<HomePage> {
       }
 
       // Then pin the selected account
-      final accountToPin = transaction_account.Account(
+      final accountToPin = Account(
         accountId: account.accountId!,
         userId: account.userId,
         name: account.name,
@@ -486,7 +481,7 @@ class _HomePageState extends State<HomePage> {
               // For consistent behavior, we'll ensure only one account is pinned
               if (_cachedAccounts[i].accountId == account.accountId) {
                 // Pin the clicked account
-                _cachedAccounts[i] = home_account.Account(
+                _cachedAccounts[i] = Account(
                   accountId: _cachedAccounts[i].accountId,
                   userId: _cachedAccounts[i].userId,
                   name: _cachedAccounts[i].name,
@@ -499,7 +494,7 @@ class _HomePageState extends State<HomePage> {
                 );
               } else if (_cachedAccounts[i].pinned) {
                 // Unpin any other accounts
-                _cachedAccounts[i] = home_account.Account(
+                _cachedAccounts[i] = Account(
                   accountId: _cachedAccounts[i].accountId,
                   userId: _cachedAccounts[i].userId,
                   name: _cachedAccounts[i].name,
@@ -628,9 +623,9 @@ class _HomePageState extends State<HomePage> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
-    return BlocBuilder<BudgetBloc, BudgetState>(
+    return BlocBuilder<BudgetsBloc, BudgetsState>(
       builder: (context, state) {
-        if (state is BudgetLoading) {
+        if (state is BudgetsLoading) {
           return const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 50.0),
@@ -638,7 +633,7 @@ class _HomePageState extends State<HomePage> {
             ),
           );
         }
-        if (state is BudgetError) {
+        if (state is BudgetsError) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -987,8 +982,8 @@ class _HomePageState extends State<HomePage> {
             ),
             TextButton(
               onPressed: () {
-                final budgetBloc = context.read<BudgetBloc>();
-                budgetBloc.add(DeleteBudgetEvent(budget.budgetId));
+                final budgetBloc = context.read<BudgetsBloc>();
+                budgetBloc.add(DeleteBudget(budget.budgetId));
                 Navigator.pop(context);
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),

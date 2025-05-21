@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/account/presentation/bloc/account_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';

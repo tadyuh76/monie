@@ -1,40 +1,24 @@
 import 'package:equatable/equatable.dart';
 
 class Budget extends Equatable {
-  final String id;
+  final String budgetId;
+  final String userId;
   final String name;
-  final double totalAmount;
-  final double spentAmount;
-  final double remainingAmount;
-  final String currency;
+  final double amount;
   final DateTime startDate;
-  final DateTime endDate;
-  final String? category;
-  final String? categoryId;
-  final double progressPercentage;
-  final double dailySavingTarget;
-  final int daysRemaining;
-  final String? userId;
+  final DateTime? endDate;
   final bool isRecurring;
   final bool isSaving;
   final String? frequency;
   final String? color;
 
   const Budget({
-    required this.id,
+    required this.budgetId,
+    required this.userId,
     required this.name,
-    required this.totalAmount,
-    required this.spentAmount,
-    required this.remainingAmount,
-    required this.currency,
+    required this.amount,
     required this.startDate,
-    required this.endDate,
-    this.category,
-    this.categoryId,
-    required this.progressPercentage,
-    required this.dailySavingTarget,
-    required this.daysRemaining,
-    this.userId,
+    this.endDate,
     this.isRecurring = false,
     this.isSaving = false,
     this.frequency,
@@ -43,23 +27,41 @@ class Budget extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
+    budgetId,
+    userId,
     name,
-    totalAmount,
-    spentAmount,
-    remainingAmount,
-    currency,
+    amount,
     startDate,
     endDate,
-    category,
-    categoryId,
-    progressPercentage,
-    dailySavingTarget,
-    daysRemaining,
-    userId,
     isRecurring,
     isSaving,
     frequency,
     color,
   ];
+
+  Budget copyWith({
+    String? budgetId,
+    String? userId,
+    String? name,
+    double? amount,
+    DateTime? startDate,
+    DateTime? endDate,
+    bool? isRecurring,
+    bool? isSaving,
+    String? frequency,
+    String? color,
+  }) {
+    return Budget(
+      budgetId: budgetId ?? this.budgetId,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      amount: amount ?? this.amount,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      isRecurring: isRecurring ?? this.isRecurring,
+      isSaving: isSaving ?? this.isSaving,
+      frequency: frequency ?? this.frequency,
+      color: color ?? this.color,
+    );
+  }
 }

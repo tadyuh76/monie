@@ -8,6 +8,7 @@ import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/themes/app_theme.dart';
 // import 'package:monie/core/themes/color_extensions.dart';
 import 'package:monie/di/injection.dart';
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
@@ -21,8 +22,6 @@ import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_state.dart';
 import 'package:monie/features/settings/presentation/pages/settings_page.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
@@ -94,7 +93,6 @@ class MyApp extends StatelessWidget {
           create: (context) => sl<TransactionBloc>(),
         ),
         BlocProvider<AccountBloc>(create: (context) => sl<AccountBloc>()),
-        BlocProvider<BudgetBloc>(create: (context) => sl<BudgetBloc>()),
         BlocProvider<BudgetsBloc>(
           create: (context) => sl<BudgetsBloc>()..add(const LoadBudgets()),
         ),

@@ -114,7 +114,7 @@ class BudgetRepositoryImpl implements BudgetRepository {
       await _supabaseClient.client
           .from('budgets')
           .update(budgetModel.toSupabaseJson())
-          .eq('budget_id', budget.id)
+          .eq('budget_id', budgetModel.budgetId)
           .eq('user_id', userId);
     } catch (error) {
       throw Exception('Failed to update budget: $error');

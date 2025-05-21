@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/account/presentation/bloc/account_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/budgets/presentation/pages/budgets_page.dart';
@@ -16,8 +18,6 @@ import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.
 import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 import 'package:monie/main.dart'; // Import for rootScaffoldMessengerKey
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 
 class MainScreen extends StatefulWidget {

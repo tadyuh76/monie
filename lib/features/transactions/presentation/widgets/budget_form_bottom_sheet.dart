@@ -5,9 +5,8 @@ import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
-import 'package:monie/features/transactions/domain/entities/budget.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_event.dart';
+import 'package:monie/features/budgets/domain/entities/budget.dart';
+import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 
 class BudgetFormBottomSheet extends StatefulWidget {
   final Budget? budget;
@@ -411,10 +410,11 @@ class _BudgetFormBottomSheetState extends State<BudgetFormBottomSheet> {
           isRecurring: _isRecurring,
           frequency: _frequency,
         );
-        context.read<BudgetBloc>().add(UpdateBudgetEvent(updatedBudget));
+        context.read<BudgetsBloc>().add(UpdateBudget(updatedBudget));
       } else {
         // Create new budget
         final newBudget = Budget(
+          budgetId: '',
           userId: userId,
           name: name,
           amount: amount,
@@ -424,7 +424,7 @@ class _BudgetFormBottomSheetState extends State<BudgetFormBottomSheet> {
           isRecurring: _isRecurring,
           frequency: _frequency,
         );
-        context.read<BudgetBloc>().add(CreateBudgetEvent(newBudget));
+        context.read<BudgetsBloc>().add(AddBudget(newBudget));
       }
 
       Navigator.pop(context);

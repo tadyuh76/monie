@@ -1,188 +1,150 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
-import 'package:monie/features/home/domain/usecases/add_account_usecase.dart';
-import 'package:monie/features/home/domain/usecases/delete_account_usecase.dart';
-import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
-import 'package:monie/features/home/domain/usecases/update_account_usecase.dart';
+import 'package:monie/features/account/domain/usecases/add_account_usecase.dart';
+import 'package:monie/features/account/domain/usecases/delete_account_usecase.dart';
+import 'package:monie/features/account/domain/usecases/get_account_by_id_usecase.dart';
+import 'package:monie/features/account/domain/usecases/get_accounts_usecase.dart';
+import 'package:monie/features/account/domain/usecases/recalculate_account_balance_usecase.dart';
+import 'package:monie/features/account/domain/usecases/update_account_balance_usecase.dart';
+import 'package:monie/features/account/domain/usecases/update_account_usecase.dart';
+import 'package:monie/features/account/presentation/bloc/account_event.dart';
+import 'package:monie/features/account/presentation/bloc/account_state.dart';
 
-// Events
-abstract class AccountEvent extends Equatable {
-  const AccountEvent();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class AddAccountEvent extends AccountEvent {
-  final Account account;
-
-  const AddAccountEvent({required this.account});
-
-  @override
-  List<Object?> get props => [account];
-}
-
-class GetAccountsEvent extends AccountEvent {
-  final String userId;
-  const GetAccountsEvent({required this.userId});
-
-  @override
-  List<Object?> get props => [userId];
-}
-
-class UpdateAccountEvent extends AccountEvent {
-  final Account account;
-
-  const UpdateAccountEvent({required this.account});
-
-  @override
-  List<Object?> get props => [account];
-}
-
-class DeleteAccountEvent extends AccountEvent {
-  final Account account;
-
-  const DeleteAccountEvent({required this.account});
-
-  @override
-  List<Object?> get props => [account];
-}
-
-// States
-abstract class AccountState extends Equatable {
-  const AccountState();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class AccountInitial extends AccountState {}
-
-class AddAccountState extends AccountState {
-  final Account account;
-
-  const AddAccountState({required this.account});
-
-  @override
-  List<Object?> get props => [account];
-}
-
-class UpdateAccountState extends AccountState {
-  final List<Account> accounts;
-
-  const UpdateAccountState({required this.accounts});
-
-  @override
-  List<Object?> get props => [accounts];
-}
-
-class GetAccountsState extends AccountState {
-  final List<Account> accounts;
-
-  const GetAccountsState({required this.accounts});
-
-  @override
-  List<Object?> get props => [accounts];
-}
-
-class DeleteAccountState extends AccountState {
-  final List<Account> accounts;
-
-  const DeleteAccountState({required this.accounts});
-
-  @override
-  List<Object?> get props => [accounts];
-}
-
-class Loading extends AccountState {
-  const Loading();
-}
-
-class Error extends AccountState {
-  final String message;
-
-  const Error(this.message);
-
-  @override
-  List<Object?> get props => [message];
-}
-
-// Bloc
 @injectable
 class AccountBloc extends Bloc<AccountEvent, AccountState> {
-  final GetAccountsUseCase getAccountsUseCase;
-  final AddAccountUseCase addAccountUseCase;
-  final UpdateAccountUseCase updateAccountUseCase;
-  final DeleteAccountUseCase deleteAccountUseCase;
+  final GetAccountsUseCase getAccounts;
+  final GetAccountByIdUseCase getAccountById;
+  final AddAccountUseCase addAccount;
+  final UpdateAccountUseCase updateAccount;
+  final DeleteAccountUseCase deleteAccount;
+  final UpdateAccountBalanceUseCase updateAccountBalance;
+  final RecalculateAccountBalanceUseCase recalculateAccountBalance;
 
   AccountBloc({
-    required this.getAccountsUseCase,
-    required this.addAccountUseCase,
-    required this.updateAccountUseCase,
-    required this.deleteAccountUseCase,
+    required this.getAccounts,
+    required this.getAccountById,
+    required this.addAccount,
+    required this.updateAccount,
+    required this.deleteAccount,
+    required this.updateAccountBalance,
+    required this.recalculateAccountBalance,
   }) : super(AccountInitial()) {
-    on<GetAccountsEvent>(_getAccounts);
-    on<AddAccountEvent>(_addAccount);
-    on<UpdateAccountEvent>(_updateAccount);
-    on<DeleteAccountEvent>(_deleteAccount);
+    on<LoadAccountsEvent>(_onLoadAccounts);
+    on<LoadAccountByIdEvent>(_onLoadAccountById);
+    on<CreateAccountEvent>(_onCreateAccount);
+    on<UpdateAccountEvent>(_onUpdateAccount);
+    on<DeleteAccountEvent>(_onDeleteAccount);
+    on<UpdateAccountBalanceEvent>(_onUpdateAccountBalance);
+    on<RecalculateAccountBalanceEvent>(_onRecalculateAccountBalance);
   }
 
-  Future<void> _getAccounts(
-    GetAccountsEvent event,
+  Future<void> _onLoadAccounts(
+    LoadAccountsEvent event,
     Emitter<AccountState> emit,
   ) async {
-    emit(const Loading());
+    emit(AccountLoading());
     try {
-      final accounts = await getAccountsUseCase(event.userId);
-      emit(GetAccountsState(accounts: accounts));
+      final accounts = await getAccounts(event.userId);
+      emit(AccountsLoaded(accounts));
     } catch (e) {
-      emit(Error(e.toString()));
+      emit(AccountError(e.toString()));
     }
   }
 
-  Future<void> _addAccount(
-    AddAccountEvent event,
+  Future<void> _onLoadAccountById(
+    LoadAccountByIdEvent event,
     Emitter<AccountState> emit,
   ) async {
-    emit(const Loading());
+    emit(AccountLoading());
     try {
-      // Add to repository and get the created account with the generated ID
-      final createdAccount = await addAccountUseCase(event.account);
-      emit(AddAccountState(account: createdAccount));
+      final account = await getAccountById(event.accountId);
+      if (account != null) {
+        emit(AccountLoaded(account));
+      } else {
+        emit(const AccountError('Account not found'));
+      }
     } catch (e) {
-      emit(Error(e.toString()));
+      emit(AccountError(e.toString()));
     }
   }
 
-  Future<void> _updateAccount(
+  Future<void> _onCreateAccount(
+    CreateAccountEvent event,
+    Emitter<AccountState> emit,
+  ) async {
+    emit(AccountLoading());
+    try {
+      final account = await addAccount(event.account);
+      emit(AccountCreated(account));
+    } catch (e) {
+      emit(AccountError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateAccount(
     UpdateAccountEvent event,
     Emitter<AccountState> emit,
   ) async {
-    emit(const Loading());
+    emit(AccountLoading());
     try {
-      // Add to repository
-      await updateAccountUseCase(event.account);
-      final accounts = await getAccountsUseCase(event.account.userId);
-      emit(UpdateAccountState(accounts: accounts));
+      final account = await updateAccount(event.account);
+      emit(AccountUpdated(account));
     } catch (e) {
-      emit(Error(e.toString()));
+      emit(AccountError(e.toString()));
     }
   }
 
-  Future<void> _deleteAccount(
+  Future<void> _onDeleteAccount(
     DeleteAccountEvent event,
     Emitter<AccountState> emit,
   ) async {
-    emit(const Loading());
+    emit(AccountLoading());
     try {
-      // Add to repository
-      await deleteAccountUseCase(event.account.accountId!);
-      final accounts = await getAccountsUseCase(event.account.userId);
-      emit(DeleteAccountState(accounts: accounts));
+      await deleteAccount(event.accountId);
+      emit(AccountDeleted(event.accountId));
     } catch (e) {
-      emit(Error(e.toString()));
+      emit(AccountError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateAccountBalance(
+    UpdateAccountBalanceEvent event,
+    Emitter<AccountState> emit,
+  ) async {
+    emit(AccountLoading());
+    try {
+      final account = await updateAccountBalance(event.accountId, event.amount);
+      emit(
+        AccountBalanceUpdated(
+          accountId: event.accountId,
+          newBalance: account.balance,
+        ),
+      );
+    } catch (e) {
+      emit(AccountError(e.toString()));
+    }
+  }
+
+  Future<void> _onRecalculateAccountBalance(
+    RecalculateAccountBalanceEvent event,
+    Emitter<AccountState> emit,
+  ) async {
+    emit(AccountLoading());
+    try {
+      final success = await recalculateAccountBalance(event.accountId);
+      if (success) {
+        // After recalculating, fetch the updated account
+        final account = await getAccountById(event.accountId);
+        if (account != null) {
+          emit(AccountBalanceRecalculated(account));
+        } else {
+          emit(const AccountError('Account not found after recalculation'));
+        }
+      } else {
+        emit(const AccountError('Failed to recalculate account balance'));
+      }
+    } catch (e) {
+      emit(AccountError(e.toString()));
     }
   }
 }

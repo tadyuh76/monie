@@ -68,7 +68,9 @@ class _BudgetsPageState extends State<BudgetsPage> {
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  context.read<BudgetsBloc>().add(DeleteBudget(budget.id));
+                  context.read<BudgetsBloc>().add(
+                    DeleteBudget(budget.budgetId),
+                  );
                 },
                 child: Text(
                   context.tr('common_delete'),

@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
-import '../entities/account.dart';
-import '../repositories/account_repository.dart';
+import '../../domain/entities/account.dart';
+import 'package:monie/features/account/domain/repositories/account_repository.dart';
 
 @injectable
 class GetAccountsUseCase {

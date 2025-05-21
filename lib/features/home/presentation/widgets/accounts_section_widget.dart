@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/account/presentation/bloc/account_event.dart';
 import 'package:monie/features/account/presentation/pages/account_form_modal.dart';
-import 'package:monie/features/home/domain/entities/account.dart'
-    as home_account;
-import 'package:monie/features/transactions/domain/entities/account.dart'
-    as transaction_account;
+import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
 
 import 'account_card_widget.dart';
 
 class AccountsSectionWidget extends StatefulWidget {
-  final List<home_account.Account> accounts;
+  final List<Account> accounts;
   final List<Transaction> transactions;
-  final Function(home_account.Account)? onAccountPinToggle;
+  final Function(Account)? onAccountPinToggle;
 
   const AccountsSectionWidget({
     super.key,
@@ -28,7 +25,7 @@ class AccountsSectionWidget extends StatefulWidget {
 }
 
 class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
-  void _togglePin(home_account.Account account) {
+  void _togglePin(Account account) {
     if (widget.onAccountPinToggle != null) {
       widget.onAccountPinToggle!(account);
       return;
@@ -44,37 +41,14 @@ class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
         // First, unpin any currently pinned accounts
         for (final acc in widget.accounts) {
           if (acc.pinned) {
-            // Convert home account to transaction account
-            final transactionAccount = transaction_account.Account(
-              accountId: acc.accountId!,
-              userId: acc.userId,
-              name: acc.name,
-              type: acc.type,
-              balance: acc.balance,
-              currency: acc.currency,
-              color: acc.color,
-              pinned: false, // unpin
-              archived: acc.archived,
-            );
-
-            accountBloc.add(UpdateAccountEvent(transactionAccount));
+            final updatedAcc = acc.copyWith(pinned: false);
+            accountBloc.add(UpdateAccountEvent(updatedAcc));
           }
         }
 
         // Then pin the selected account
-        final transactionAccount = transaction_account.Account(
-          accountId: account.accountId!,
-          userId: account.userId,
-          name: account.name,
-          type: account.type,
-          balance: account.balance,
-          currency: account.currency,
-          color: account.color,
-          pinned: true, // pin this account
-          archived: account.archived,
-        );
-
-        accountBloc.add(UpdateAccountEvent(transactionAccount));
+        final updatedSelectedAcc = account.copyWith(pinned: true);
+        accountBloc.add(UpdateAccountEvent(updatedSelectedAcc));
       }
       // If account is already pinned, we don't unpin it since we need one account pinned
     } catch (e) {
@@ -86,7 +60,7 @@ class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
   @override
   Widget build(BuildContext context) {
     // Sort accounts alphabetically by name
-    final sortedAccounts = List<home_account.Account>.from(widget.accounts);
+    final sortedAccounts = List<Account>.from(widget.accounts);
     sortedAccounts.sort((a, b) => a.name.compareTo(b.name));
 
     return SizedBox(

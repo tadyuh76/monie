@@ -3,22 +3,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/themes/category_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
+import 'package:monie/di/injection.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/account/presentation/bloc/account_event.dart';
+import 'package:monie/features/account/presentation/bloc/account_state.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
+// import 'package:monie/features/home/domain/entities/account.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
-import 'package:monie/features/transactions/domain/entities/transaction.dart'
-    as transaction_entity;
+import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart'
-    as transactions_account;
-import 'package:monie/features/transactions/presentation/bloc/account_event.dart'
-    as transactions_account_event;
-import 'package:monie/di/injection.dart';
 
 class AccountFormModal extends StatefulWidget {
   final Account? account;
@@ -340,13 +338,13 @@ class _AccountFormModalState extends State<AccountFormModal> {
                     create: (context) => sl<TransactionBloc>(),
                   ),
                   // Try to get the transactions AccountBloc from context, or create a new one if not available
-                  BlocProvider<transactions_account.AccountBloc>(
+                  BlocProvider<AccountBloc>(
                     create: (context) {
                       try {
-                        return context.read<transactions_account.AccountBloc>();
+                        return context.read<AccountBloc>();
                       } catch (e) {
                         // If not available, create a new instance
-                        return sl<transactions_account.AccountBloc>();
+                        return sl<AccountBloc>();
                       }
                     },
                   ),
@@ -355,7 +353,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
                   listeners: [
                     BlocListener<AccountBloc, AccountState>(
                       listener: (context, state) {
-                        if (state is AddAccountState) {
+                        if (state is AccountCreated) {
                           final authState = context.read<AuthBloc>().state;
                           if (authState is Authenticated) {
                             // Always trigger HomeBloc to reload data with the new account
@@ -369,12 +367,9 @@ class _AccountFormModalState extends State<AccountFormModal> {
                             // Also trigger the transactions AccountBloc to update its state
                             try {
                               final transactionsAccountBloc =
-                                  context
-                                      .read<transactions_account.AccountBloc>();
+                                  context.read<AccountBloc>();
                               transactionsAccountBloc.add(
-                                transactions_account_event.LoadAccountsEvent(
-                                  authState.user.id,
-                                ),
+                                LoadAccountsEvent(authState.user.id),
                               );
                             } catch (e) {
                               // If the bloc is not available in this context, that's okay
@@ -395,20 +390,19 @@ class _AccountFormModalState extends State<AccountFormModal> {
                                     context.read<TransactionBloc>();
 
                                 // Create an initial balance transaction
-                                final initialTransaction =
-                                    transaction_entity.Transaction(
-                                      userId: authState.user.id,
-                                      amount: balance,
-                                      title: 'Initial balance',
-                                      description: 'Initial account balance',
-                                      date: DateTime.now(),
-                                      accountId: state.account.accountId!,
-                                      categoryName: 'Account Adjustment',
-                                      color: CategoryUtils.getCategoryColorHex(
-                                        'Account Adjustment',
-                                        isIncome: true,
-                                      ),
-                                    );
+                                final initialTransaction = Transaction(
+                                  userId: authState.user.id,
+                                  amount: balance,
+                                  title: 'Initial balance',
+                                  description: 'Initial account balance',
+                                  date: DateTime.now(),
+                                  accountId: state.account.accountId!,
+                                  categoryName: 'Account Adjustment',
+                                  color: CategoryUtils.getCategoryColorHex(
+                                    'Account Adjustment',
+                                    isIncome: true,
+                                  ),
+                                );
 
                                 // Add the transaction
                                 transactionBloc.add(
@@ -424,7 +418,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
                               Navigator.of(context).pop();
                             }
                           }
-                        } else if (state is UpdateAccountState) {
+                        } else if (state is AccountUpdated) {
                           final authState = context.read<AuthBloc>().state;
                           if (authState is Authenticated) {
                             // Reload home data after account update
@@ -438,12 +432,9 @@ class _AccountFormModalState extends State<AccountFormModal> {
                             // Also trigger the transactions AccountBloc to update its state
                             try {
                               final transactionsAccountBloc =
-                                  context
-                                      .read<transactions_account.AccountBloc>();
+                                  context.read<AccountBloc>();
                               transactionsAccountBloc.add(
-                                transactions_account_event.LoadAccountsEvent(
-                                  authState.user.id,
-                                ),
+                                LoadAccountsEvent(authState.user.id),
                               );
                             } catch (e) {
                               // If the bloc is not available in this context, that's okay
@@ -456,7 +447,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
                           });
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Error: ${state.message}'),
+                              content: Text('Error: ${state.toString()}'),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -480,12 +471,9 @@ class _AccountFormModalState extends State<AccountFormModal> {
                             // Also trigger the transactions AccountBloc to update its state
                             try {
                               final transactionsAccountBloc =
-                                  context
-                                      .read<transactions_account.AccountBloc>();
+                                  context.read<AccountBloc>();
                               transactionsAccountBloc.add(
-                                transactions_account_event.LoadAccountsEvent(
-                                  authState.user.id,
-                                ),
+                                LoadAccountsEvent(authState.user.id),
                               );
                             } catch (e) {
                               // If the bloc is not available in this context, that's okay
@@ -587,11 +575,11 @@ class _AccountFormModalState extends State<AccountFormModal> {
                                               // Add the account creation event
                                               context.read<AccountBloc>().add(
                                                 widget.isEdit == false
-                                                    ? AddAccountEvent(
-                                                      account: accountRequest,
+                                                    ? CreateAccountEvent(
+                                                      accountRequest,
                                                     )
                                                     : UpdateAccountEvent(
-                                                      account: accountRequest,
+                                                      accountRequest,
                                                     ),
                                               );
                                             }

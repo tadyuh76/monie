@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/localization/app_localizations.dart';
-import 'package:monie/features/transactions/domain/entities/account.dart';
-import 'package:monie/features/transactions/domain/entities/budget.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/account/presentation/bloc/account_event.dart';
+import 'package:monie/features/account/presentation/bloc/account_state.dart';
+import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_state.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_event.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_state.dart';
+import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 
@@ -49,7 +47,7 @@ class _TransactionFormWidgetState extends State<TransactionFormWidget> {
 
     // Load accounts and budgets
     context.read<AccountBloc>().add(LoadAccountsEvent(widget.userId));
-    context.read<BudgetBloc>().add(LoadBudgetsEvent(widget.userId));
+    context.read<BudgetsBloc>().add(const LoadBudgets());
 
     // If editing an existing transaction, populate the form
     if (widget.transaction != null) {
@@ -257,7 +255,7 @@ class _TransactionFormWidgetState extends State<TransactionFormWidget> {
           const SizedBox(height: 16),
 
           // Budget Dropdown
-          BlocBuilder<BudgetBloc, BudgetState>(
+          BlocBuilder<BudgetsBloc, BudgetsState>(
             builder: (context, state) {
               List<Budget> budgets = [];
               if (state is BudgetsLoaded) {
@@ -282,6 +280,12 @@ class _TransactionFormWidgetState extends State<TransactionFormWidget> {
                   setState(() {
                     _selectedBudgetId = value;
                   });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return context.tr('transaction_budget_required');
+                  }
+                  return null;
                 },
               );
             },

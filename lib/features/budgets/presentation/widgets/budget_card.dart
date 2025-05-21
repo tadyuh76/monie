@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/features/budgets/data/models/budget_model.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
@@ -159,7 +160,7 @@ class BudgetCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '\$${budget.remainingAmount.toStringAsFixed(2)} ${_trDisplay(context, 'budgets_left_of')} \$${budget.totalAmount.toStringAsFixed(2)}',
+                '\$${budget.remainingAmount.toStringAsFixed(2)} ${_trDisplay(context, 'budgets_left_of')} \$${budget.amount.toStringAsFixed(2)}',
                 style: textTheme.titleLarge?.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 16),
@@ -216,7 +217,7 @@ class BudgetCard extends StatelessWidget {
                     ),
                     _buildDateIndicator(context, budget),
                     Text(
-                      DateFormat('MMM d').format(budget.endDate),
+                      DateFormat('MMM d').format(budget.effectiveEndDate),
                       style: textTheme.bodyMedium?.copyWith(
                         color: Colors.white70,
                       ),
@@ -301,7 +302,7 @@ class BudgetCard extends StatelessWidget {
   Widget _buildDateIndicator(BuildContext context, Budget budget) {
     final now = DateTime.now();
     final isActive =
-        now.isAfter(budget.startDate) && now.isBefore(budget.endDate);
+        now.isAfter(budget.startDate) && now.isBefore(budget.effectiveEndDate);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -362,7 +363,7 @@ class _BudgetTransactionsModalState extends State<_BudgetTransactionsModal> {
     super.initState();
     // Load transactions for this budget
     context.read<TransactionBloc>().add(
-      LoadTransactionsByBudgetEvent(widget.budget.id),
+      LoadTransactionsByBudgetEvent(widget.budget.budgetId),
     );
   }
 
@@ -478,7 +479,7 @@ class _BudgetTransactionsModalState extends State<_BudgetTransactionsModal> {
                   } else if (state is TransactionsLoaded) {
                     final transactions =
                         state.transactions
-                            .where((t) => t.budgetId == widget.budget.id)
+                            .where((t) => t.budgetId == widget.budget.budgetId)
                             .toList();
 
                     if (transactions.isEmpty) {

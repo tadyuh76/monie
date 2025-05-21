@@ -1,4 +1,4 @@
-import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/account/domain/entities/account.dart'; // Updated
 
 /// A model class that represents an account in the application.
 /// This class extends the base [Account] entity and provides JSON serialization capabilities.

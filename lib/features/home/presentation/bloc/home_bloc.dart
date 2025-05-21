@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
-import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
+import 'package:monie/features/account/domain/usecases/get_accounts_usecase.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
 

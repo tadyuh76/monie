@@ -1,7 +1,7 @@
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/errors/exceptions.dart';
 import 'package:monie/core/network/supabase_client.dart';
-import 'package:monie/features/transactions/data/models/account_model.dart';
+import 'package:monie/features/account/data/models/account_model.dart';
 
 abstract class AccountRemoteDataSource {
   Future<List<AccountModel>> getAccounts(String userId);
@@ -79,11 +79,16 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
   @override
   Future<AccountModel> updateAccount(AccountModel account) async {
     try {
+      if (account.accountId == null) {
+        throw ServerException(
+          message: 'Account ID cannot be null when updating an account.',
+        );
+      }
       final response =
           await _supabaseClientManager.client
               .from('accounts')
               .update(account.toJson())
-              .eq('account_id', account.accountId)
+              .eq('account_id', account.accountId!)
               .select()
               .single();
 

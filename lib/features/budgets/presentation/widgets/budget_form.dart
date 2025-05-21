@@ -26,7 +26,6 @@ class _BudgetFormState extends State<BudgetForm> {
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
   bool _isRecurring = false;
   bool _isSaving = false;
-  String? _categoryId;
   String? _frequency;
   String _color = 'FF4CAF50'; // Default green color
 
@@ -37,12 +36,12 @@ class _BudgetFormState extends State<BudgetForm> {
     // If editing an existing budget, populate the form
     if (widget.budget != null) {
       _nameController.text = widget.budget!.name;
-      _amountController.text = widget.budget!.totalAmount.toString();
+      _amountController.text = widget.budget!.amount.toString();
       _startDate = widget.budget!.startDate;
-      _endDate = widget.budget!.endDate;
+      _endDate =
+          widget.budget!.endDate ?? _startDate.add(const Duration(days: 30));
       _isRecurring = widget.budget!.isRecurring;
       _isSaving = widget.budget!.isSaving;
-      _categoryId = widget.budget!.categoryId;
       _frequency = widget.budget!.frequency;
       if (widget.budget!.color != null && widget.budget!.color!.isNotEmpty) {
         _color = widget.budget!.color!;
@@ -126,8 +125,6 @@ class _BudgetFormState extends State<BudgetForm> {
     if (_formKey.currentState!.validate()) {
       final double amount = double.parse(_amountController.text);
 
-      // Debug logs
-
       // Create or update budget
       final budget =
           widget.budget == null
@@ -136,34 +133,25 @@ class _BudgetFormState extends State<BudgetForm> {
                 amount: amount,
                 startDate: _startDate,
                 endDate: _endDate,
-                categoryId: _categoryId,
+                userId:
+                    "user_id_placeholder", // This would need to be replaced with the actual user ID
                 isRecurring: _isRecurring,
                 isSaving: _isSaving,
                 frequency: _frequency,
                 color: _color,
               )
               : BudgetModel(
-                id: widget.budget!.id,
+                budgetId: widget.budget!.budgetId,
+                userId: widget.budget!.userId,
                 name: _nameController.text,
-                totalAmount: amount,
-                spentAmount: widget.budget!.spentAmount,
-                remainingAmount: amount - widget.budget!.spentAmount,
-                currency: widget.budget!.currency,
+                amount: amount,
                 startDate: _startDate,
                 endDate: _endDate,
-                category: widget.budget!.category,
-                categoryId: _categoryId,
-                progressPercentage: widget.budget!.progressPercentage,
-                dailySavingTarget: widget.budget!.dailySavingTarget,
-                daysRemaining: _endDate.difference(DateTime.now()).inDays,
-                userId: widget.budget!.userId,
                 isRecurring: _isRecurring,
                 isSaving: _isSaving,
                 frequency: _frequency,
                 color: _color,
               );
-
-      // Debug log
 
       // Dispatch event to bloc
       if (widget.budget == null) {

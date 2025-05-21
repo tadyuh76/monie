@@ -8,10 +8,10 @@ import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/constants/transaction_categories.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/account/presentation/bloc/account_event.dart';
+import 'package:monie/features/account/presentation/bloc/account_state.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_state.dart';
 
 class AddTransactionForm extends StatefulWidget {
   final Function(Map<String, dynamic>)? onSubmit;
@@ -1197,7 +1197,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                         }
 
                         return DropdownMenuItem(
-                          value: budget.id,
+                          value: budget.budgetId,
                           child: Row(
                             children: [
                               Container(
@@ -1216,7 +1216,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                                 ),
                               ),
                               Text(
-                                '\$${budget.remainingAmount.toStringAsFixed(0)} left',
+                                '\$${budget.amount.toStringAsFixed(0)} left',
                                 style: TextStyle(
                                   color:
                                       isDarkMode

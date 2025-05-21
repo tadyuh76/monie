@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:monie/features/transactions/domain/entities/account.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
 
 abstract class AccountState extends Equatable {
   const AccountState();

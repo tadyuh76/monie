@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 
 class ItemTransactionCard extends StatelessWidget {

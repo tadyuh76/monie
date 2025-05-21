@@ -1,8 +1,20 @@
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
-import 'package:monie/features/account/presentation/bloc/account_bloc.dart'
-    as account_feature;
+import 'package:monie/features/account/data/datasources/account_remote_data_source.dart';
+import 'package:monie/features/account/data/repositories/account_repository_impl.dart';
+import 'package:monie/features/account/domain/repositories/account_repository.dart';
+import 'package:monie/features/account/domain/usecases/add_account_usecase.dart'
+    as add_account_usecase_alias;
+import 'package:monie/features/account/domain/usecases/delete_account_usecase.dart'
+    as account_delete_account_usecase;
+import 'package:monie/features/account/domain/usecases/get_account_by_id_usecase.dart';
+import 'package:monie/features/account/domain/usecases/get_accounts_usecase.dart';
+import 'package:monie/features/account/domain/usecases/recalculate_account_balance_usecase.dart';
+import 'package:monie/features/account/domain/usecases/update_account_balance_usecase.dart';
+import 'package:monie/features/account/domain/usecases/update_account_usecase.dart'
+    as account_update_account_usecase;
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
 import 'package:monie/features/authentication/domain/repositories/auth_repository.dart';
@@ -15,6 +27,7 @@ import 'package:monie/features/authentication/domain/usecases/sign_in.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
+import 'package:monie/features/budgets/data/datasources/budget_remote_data_source.dart';
 import 'package:monie/features/budgets/data/repositories/budget_repository_impl.dart';
 import 'package:monie/features/budgets/domain/repositories/budget_repository.dart';
 import 'package:monie/features/budgets/domain/usecases/add_budget_usecase.dart';
@@ -23,39 +36,22 @@ import 'package:monie/features/budgets/domain/usecases/get_active_budgets_usecas
 import 'package:monie/features/budgets/domain/usecases/get_budgets_usecase.dart';
 import 'package:monie/features/budgets/domain/usecases/update_budget_usecase.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
-import 'package:monie/features/home/data/repositories/account_repository_impl.dart';
-import 'package:monie/features/home/domain/repositories/account_repository.dart';
-import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
-import 'package:monie/features/home/domain/usecases/update_account_usecase.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 import 'package:monie/features/settings/data/repositories/settings_repository.dart';
 import 'package:monie/features/settings/domain/repositories/settings_repository.dart';
-import 'package:monie/features/settings/domain/usecases/get_app_settings.dart';
-import 'package:monie/features/settings/domain/usecases/save_app_settings.dart';
-import 'package:monie/features/settings/domain/usecases/get_user_profile.dart';
-import 'package:monie/features/settings/domain/usecases/update_user_profile.dart';
 import 'package:monie/features/settings/domain/usecases/change_password.dart';
+import 'package:monie/features/settings/domain/usecases/get_app_settings.dart';
+import 'package:monie/features/settings/domain/usecases/get_user_profile.dart';
+import 'package:monie/features/settings/domain/usecases/save_app_settings.dart';
+import 'package:monie/features/settings/domain/usecases/update_user_profile.dart';
 import 'package:monie/features/settings/domain/usecases/upload_avatar.dart';
-import 'package:monie/features/transactions/data/datasources/account_remote_data_source.dart';
-import 'package:monie/features/transactions/data/datasources/budget_remote_data_source.dart';
+import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/transactions/data/datasources/transaction_remote_data_source.dart';
 import 'package:monie/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:monie/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:monie/features/transactions/domain/usecases/add_transaction_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/create_account_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/create_budget_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/create_category_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/delete_account_usecase.dart'
-    as transactions_delete_account;
-import 'package:monie/features/transactions/domain/usecases/delete_budget_usecase.dart'
-    as transactions_delete_budget;
 import 'package:monie/features/transactions/domain/usecases/delete_transaction_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/get_account_by_id_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/get_accounts_usecase.dart'
-    as transactions_accounts;
-import 'package:monie/features/transactions/domain/usecases/get_budget_by_id_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/get_budgets_usecase.dart'
-    as transactions_budgets;
 import 'package:monie/features/transactions/domain/usecases/get_categories_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transactions_by_account_usecase.dart';
@@ -63,33 +59,14 @@ import 'package:monie/features/transactions/domain/usecases/get_transactions_by_
 import 'package:monie/features/transactions/domain/usecases/get_transactions_by_date_range_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transactions_by_type_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/recalculate_account_balance_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/update_account_balance_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/update_account_usecase.dart'
-    as transactions_update_account;
-import 'package:monie/features/transactions/domain/usecases/update_budget_usecase.dart'
-    as transactions_update_budget;
 import 'package:monie/features/transactions/domain/usecases/update_transaction_usecase.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/budget_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 
-import '../features/home/domain/usecases/add_account_usecase.dart';
-import '../features/home/domain/usecases/delete_account_usecase.dart';
-import '../features/transactions/domain/repositories/account_repository.dart'
-    as transactions_account_repo;
-import '../features/transactions/domain/repositories/budget_repository.dart'
-    as transactions_budget_repo;
-import '../features/transactions/domain/repositories/category_repository.dart';
-import '../features/transactions/data/repositories/account_repository_impl.dart'
-    as transactions_account_repo_impl;
-import '../features/transactions/data/repositories/budget_repository_impl.dart'
-    as transactions_budget_repo_impl;
 import '../features/transactions/data/repositories/category_repository_impl.dart';
+import '../features/transactions/domain/repositories/category_repository.dart';
 
 final sl = GetIt.instance;
 
@@ -154,24 +131,30 @@ Future<void> configureDependencies() async {
     () => CategoryRepositoryImpl(sl<SupabaseClientManager>()),
   );
 
-  // Transaction feature repositories
-  sl.registerLazySingleton<transactions_account_repo.AccountRepository>(
-    () => transactions_account_repo_impl.AccountRepositoryImpl(
-      remoteDataSource: sl<AccountRemoteDataSource>(),
-    ),
-  );
-
-  sl.registerLazySingleton<transactions_budget_repo.BudgetRepository>(
-    () => transactions_budget_repo_impl.BudgetRepositoryImpl(
-      remoteDataSource: sl<BudgetRemoteDataSource>(),
-    ),
-  );
-
   // Use cases
   sl.registerLazySingleton(() => GetAccountsUseCase(sl()));
-  sl.registerLazySingleton(() => AddAccountUseCase(sl()));
-  sl.registerLazySingleton(() => UpdateAccountUseCase(sl()));
-  sl.registerLazySingleton(() => DeleteAccountUseCase(sl()));
+  sl.registerLazySingleton(
+    () => GetAccountByIdUseCase(accountRepository: sl()),
+  );
+  sl.registerLazySingleton(
+    () => add_account_usecase_alias.AddAccountUseCase(sl()),
+  );
+  sl.registerLazySingleton(
+    () => account_update_account_usecase.UpdateAccountUseCase(
+      sl<AccountRepository>(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => account_delete_account_usecase.DeleteAccountUseCase(
+      sl<AccountRepository>(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => RecalculateAccountBalanceUseCase(sl<AccountRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => UpdateAccountBalanceUseCase(sl<AccountRepository>()),
+  );
 
   sl.registerLazySingleton(() => GetTransactionsUseCase(sl()));
   sl.registerLazySingleton(() => GetTransactionByIdUseCase(sl()));
@@ -188,64 +171,6 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetCategoriesUseCase(sl()));
   sl.registerLazySingleton(() => CreateCategoryUseCase(sl()));
 
-  // Transaction feature use cases
-  sl.registerLazySingleton(
-    () => transactions_accounts.GetAccountsUseCase(
-      sl<transactions_account_repo.AccountRepository>(),
-    ),
-  );
-  sl.registerLazySingleton(
-    () => GetAccountByIdUseCase(
-      sl<transactions_account_repo.AccountRepository>(),
-    ),
-  );
-  sl.registerLazySingleton(
-    () =>
-        CreateAccountUseCase(sl<transactions_account_repo.AccountRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => transactions_update_account.UpdateAccountUseCase(
-      sl<transactions_account_repo.AccountRepository>(),
-    ),
-  );
-  sl.registerLazySingleton(
-    () => transactions_delete_account.DeleteAccountUseCase(
-      sl<transactions_account_repo.AccountRepository>(),
-    ),
-  );
-  sl.registerLazySingleton(
-    () => UpdateAccountBalanceUseCase(
-      sl<transactions_account_repo.AccountRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton(
-    () => RecalculateAccountBalanceUseCase(
-      sl<transactions_account_repo.AccountRepository>(),
-    ),
-  );
-
-  sl.registerLazySingleton(
-    () => transactions_budgets.GetBudgetsUseCase(
-      sl<transactions_budget_repo.BudgetRepository>(),
-    ),
-  );
-  sl.registerLazySingleton(
-    () => GetBudgetByIdUseCase(sl<transactions_budget_repo.BudgetRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => CreateBudgetUseCase(sl<transactions_budget_repo.BudgetRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => transactions_update_budget.UpdateBudgetUseCase(
-      sl<transactions_budget_repo.BudgetRepository>(),
-    ),
-  );
-  sl.registerLazySingleton(
-    () => transactions_delete_budget.DeleteBudgetUseCase(
-      sl<transactions_budget_repo.BudgetRepository>(),
-    ),
-  );
   sl.registerLazySingleton(
     () => GetTransactionsByAccountUseCase(sl<TransactionRepository>()),
   );
@@ -271,12 +196,15 @@ Future<void> configureDependencies() async {
     () => HomeBloc(getAccountsUseCase: sl(), getTransactionsUseCase: sl()),
   );
 
-  sl.registerFactory<account_feature.AccountBloc>(
-    () => account_feature.AccountBloc(
-      getAccountsUseCase: sl(),
-      addAccountUseCase: sl(),
-      updateAccountUseCase: sl(),
-      deleteAccountUseCase: sl(),
+  sl.registerFactory<AccountBloc>(
+    () => AccountBloc(
+      getAccounts: sl(),
+      getAccountById: sl(),
+      addAccount: sl(),
+      updateAccount: sl(),
+      deleteAccount: sl(),
+      recalculateAccountBalance: sl(),
+      updateAccountBalance: sl(),
     ),
   );
 
@@ -300,28 +228,6 @@ Future<void> configureDependencies() async {
       deleteTransaction: sl<DeleteTransactionUseCase>(),
       getTransactionsByAccount: sl<GetTransactionsByAccountUseCase>(),
       getTransactionsByBudget: sl<GetTransactionsByBudgetUseCase>(),
-    ),
-  );
-
-  sl.registerFactory<AccountBloc>(
-    () => AccountBloc(
-      getAccounts: sl<transactions_accounts.GetAccountsUseCase>(),
-      getAccountById: sl<GetAccountByIdUseCase>(),
-      createAccount: sl<CreateAccountUseCase>(),
-      updateAccount: sl<transactions_update_account.UpdateAccountUseCase>(),
-      deleteAccount: sl<transactions_delete_account.DeleteAccountUseCase>(),
-      updateAccountBalance: sl<UpdateAccountBalanceUseCase>(),
-      recalculateAccountBalance: sl<RecalculateAccountBalanceUseCase>(),
-    ),
-  );
-
-  sl.registerFactory<BudgetBloc>(
-    () => BudgetBloc(
-      getBudgets: sl<transactions_budgets.GetBudgetsUseCase>(),
-      getBudgetById: sl<GetBudgetByIdUseCase>(),
-      createBudget: sl<CreateBudgetUseCase>(),
-      updateBudget: sl<transactions_update_budget.UpdateBudgetUseCase>(),
-      deleteBudget: sl<transactions_delete_budget.DeleteBudgetUseCase>(),
     ),
   );
 

@@ -1,9 +1,9 @@
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/errors/exceptions.dart';
 import 'package:monie/core/network/supabase_client.dart';
-import 'package:monie/features/home/data/models/account_model.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
-import 'package:monie/features/home/domain/repositories/account_repository.dart';
+import 'package:monie/features/account/data/models/account_model.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
+import 'package:monie/features/account/domain/repositories/account_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Implementation of [AccountRepository] using Supabase as the data source
@@ -30,6 +30,27 @@ class AccountRepositoryImpl implements AccountRepository {
     } catch (e) {
       throw ServerException(
         message: 'Failed to fetch accounts: ${e.toString()}',
+      );
+    }
+  }
+
+  @override
+  Future<Account?> getAccountById(String accountId) async {
+    try {
+      final response =
+          await _supabaseClient.client
+              .from(_tableName)
+              .select()
+              .eq('account_id', accountId)
+              .maybeSingle();
+
+      if (response == null) {
+        return null;
+      }
+      return AccountModel.fromJson(response);
+    } catch (e) {
+      throw ServerException(
+        message: 'Failed to fetch account by ID: ${e.toString()}',
       );
     }
   }
@@ -194,6 +215,40 @@ class AccountRepositoryImpl implements AccountRepository {
     } catch (e) {
       throw ServerException(
         message: 'Failed to update account balance: ${e.toString()}',
+      );
+    }
+  }
+
+  @override
+  Future<bool> recalculateAccountBalance(String accountId) async {
+    try {
+      // Get all transactions for this account
+      final response = await _supabaseClient.client
+          .from(
+            'transactions',
+          ) // Assuming 'transactions' is the correct table name
+          .select('amount')
+          .eq('account_id', accountId);
+
+      // Calculate total balance from transactions
+      double totalBalance = 0;
+      for (final transaction in response as List) {
+        final amount = transaction['amount'] as num?; // Allow num? for safety
+        if (amount != null) {
+          totalBalance += amount.toDouble();
+        }
+      }
+
+      // Update the account with the recalculated balance
+      await _supabaseClient.client
+          .from(_tableName) // _tableName is 'accounts'
+          .update({'balance': totalBalance})
+          .eq('account_id', accountId);
+
+      return true;
+    } catch (e) {
+      throw ServerException(
+        message: 'Failed to recalculate account balance: ${e.toString()}',
       );
     }
   }

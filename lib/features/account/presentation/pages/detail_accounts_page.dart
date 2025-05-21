@@ -5,14 +5,12 @@ import 'package:intl/intl.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/account/presentation/bloc/account_event.dart';
+import 'package:monie/features/account/presentation/bloc/account_state.dart';
 import 'package:monie/features/account/presentation/pages/account_form_modal.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
-import 'package:monie/features/transactions/domain/entities/account.dart'
-    as transaction_account;
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_bloc.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_event.dart';
-import 'package:monie/features/transactions/presentation/bloc/account_state.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
@@ -228,7 +226,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                 // Refresh transactions to include any new adjustment transactions
                 final transactionBloc = context.read<TransactionBloc>();
                 transactionBloc.add(
-                  LoadTransactionsByAccountEvent(state.account.accountId),
+                  LoadTransactionsByAccountEvent(state.account.accountId!),
                 );
               }
             }
@@ -880,15 +878,9 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
 
   void _recalculateAccountBalance() {
     if (account.accountId != null) {
-      final transactionAccount = _convertHomeAccountToTransactionAccount(
-        account,
-      );
-
       try {
         final accountBloc = context.read<AccountBloc>();
-        accountBloc.add(
-          RecalculateAccountBalanceEvent(transactionAccount.accountId),
-        );
+        accountBloc.add(RecalculateAccountBalanceEvent(account.accountId!));
 
         // Show a snackbar to indicate the operation is in progress
         ScaffoldMessenger.of(context).showSnackBar(
@@ -910,21 +902,5 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
         );
       }
     }
-  }
-
-  transaction_account.Account _convertHomeAccountToTransactionAccount(
-    Account account,
-  ) {
-    return transaction_account.Account(
-      accountId: account.accountId!,
-      userId: account.userId,
-      name: account.name,
-      type: account.type,
-      balance: account.balance,
-      currency: account.currency,
-      color: account.color,
-      pinned: account.pinned,
-      archived: account.archived,
-    );
   }
 }
