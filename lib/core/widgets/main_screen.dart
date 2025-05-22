@@ -169,8 +169,8 @@ class _MainScreenState extends State<MainScreen> {
                   label: 'Budgets',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.more_horiz),
-                  label: 'More',
+                  icon: Icon(Icons.group),
+                  label: 'Expense Group',
                 ),
               ],
             ),
