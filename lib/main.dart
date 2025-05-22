@@ -14,6 +14,7 @@ import 'package:monie/features/authentication/presentation/bloc/auth_event.dart'
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/authentication/presentation/pages/auth_wrapper.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
+import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 import 'package:monie/features/home/presentation/pages/home_page.dart';
 import 'package:monie/core/widgets/main_screen.dart';
@@ -25,6 +26,8 @@ import 'package:monie/features/settings/presentation/pages/settings_page.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
+import 'package:monie/features/groups/presentation/pages/group_detail_page.dart';
+import 'package:monie/features/groups/presentation/pages/add_group_expense_page.dart';
 
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -100,6 +103,7 @@ class MyApp extends StatelessWidget {
           create:
               (context) => sl<SettingsBloc>()..add(const LoadSettingsEvent()),
         ),
+        BlocProvider<GroupBloc>(create: (context) => sl<GroupBloc>()),
       ],
       child: BlocBuilder<SettingsBloc, SettingsState>(
         builder: (context, state) {
@@ -137,6 +141,16 @@ class MyApp extends StatelessWidget {
             routes: {
               '/home': (context) => MainScreen(),
               '/settings': (context) => const SettingsPage(),
+              '/group-details':
+                  (context) => GroupDetailPage(
+                    groupId:
+                        ModalRoute.of(context)!.settings.arguments as String,
+                  ),
+              '/add-group-expense':
+                  (context) => AddGroupExpensePage(
+                    groupId:
+                        ModalRoute.of(context)!.settings.arguments as String,
+                  ),
               // For transactions and budgets, we'll use the tab navigation
               // from within the MainScreen rather than these routes
             },

@@ -3,52 +3,61 @@ import 'package:monie/features/groups/domain/entities/expense_group.dart';
 class ExpenseGroupModel extends ExpenseGroup {
   const ExpenseGroupModel({
     required super.id,
+    required super.adminId,
     required super.name,
+    super.description,
     required super.members,
     required super.totalAmount,
-    required super.currency,
-    required super.createdAt,
-    super.updatedAt,
     required super.isSettled,
+    required super.createdAt,
   });
 
   factory ExpenseGroupModel.fromJson(Map<String, dynamic> json) {
     return ExpenseGroupModel(
-      id: json['id'],
+      id: json['group_id'],
+      adminId: json['admin_id'],
       name: json['name'],
-      members: List<String>.from(json['members']),
-      totalAmount: json['totalAmount'].toDouble(),
-      currency: json['currency'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt:
-          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
-      isSettled: json['isSettled'],
+      description: json['description'],
+      // Members will be loaded separately
+      members: const [],
+      // These will be calculated separately
+      totalAmount: 0.0,
+      isSettled: json['is_settled'] ?? false,
+      createdAt: DateTime.parse(
+        json['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'group_id': id,
+      'admin_id': adminId,
       'name': name,
-      'members': members,
-      'totalAmount': totalAmount,
-      'currency': currency,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
-      'isSettled': isSettled,
+      'description': description,
+      'is_settled': isSettled,
     };
   }
 
-  factory ExpenseGroupModel.fromEntity(ExpenseGroup entity) {
+  ExpenseGroupModel copyWith({
+    String? id,
+    String? adminId,
+    String? name,
+    String? description,
+    List<String>? members,
+    double? totalAmount,
+    bool? isSettled,
+    DateTime? createdAt,
+  }) {
     return ExpenseGroupModel(
-      id: entity.id,
-      name: entity.name,
-      members: entity.members,
-      totalAmount: entity.totalAmount,
-      currency: entity.currency,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-      isSettled: entity.isSettled,
+      id: id ?? this.id,
+      adminId: adminId ?? this.adminId,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      members: members ?? this.members,
+      totalAmount: totalAmount ?? this.totalAmount,
+      isSettled: isSettled ?? this.isSettled,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

@@ -36,6 +36,21 @@ import 'package:monie/features/budgets/domain/usecases/get_active_budgets_usecas
 import 'package:monie/features/budgets/domain/usecases/get_budgets_usecase.dart';
 import 'package:monie/features/budgets/domain/usecases/update_budget_usecase.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
+import 'package:monie/features/groups/data/datasources/group_remote_datasource.dart';
+import 'package:monie/features/groups/data/repositories/group_repository_impl.dart';
+import 'package:monie/features/groups/domain/repositories/group_repository.dart';
+import 'package:monie/features/groups/domain/usecases/add_member.dart';
+import 'package:monie/features/groups/domain/usecases/calculate_debts.dart'
+    as calc;
+import 'package:monie/features/groups/domain/usecases/create_group.dart';
+import 'package:monie/features/groups/domain/usecases/get_group_by_id.dart'
+    as get_group;
+import 'package:monie/features/groups/domain/usecases/get_group_members.dart'
+    as get_members;
+import 'package:monie/features/groups/domain/usecases/get_groups.dart';
+import 'package:monie/features/groups/domain/usecases/settle_group.dart'
+    as settle;
+import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 import 'package:monie/features/settings/data/repositories/settings_repository.dart';
 import 'package:monie/features/settings/domain/repositories/settings_repository.dart';
@@ -67,6 +82,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../features/transactions/data/repositories/category_repository_impl.dart';
 import '../features/transactions/domain/repositories/category_repository.dart';
+import 'package:monie/features/groups/domain/usecases/add_group_expense.dart';
+import 'package:monie/features/groups/domain/usecases/get_group_transactions.dart';
+import 'package:monie/features/groups/domain/usecases/approve_group_transaction.dart';
 
 final sl = GetIt.instance;
 
@@ -244,6 +262,44 @@ Future<void> configureDependencies() async {
   sl.registerFactory<CategoriesBloc>(
     () =>
         CategoriesBloc(getCategoriesUseCase: sl(), createCategoryUseCase: sl()),
+  );
+
+  // Groups Feature
+  sl.registerLazySingleton<GroupRemoteDataSource>(
+    () =>
+        GroupRemoteDataSourceImpl(supabase: sl<SupabaseClientManager>().client),
+  );
+
+  sl.registerLazySingleton<GroupRepository>(
+    () => GroupRepositoryImpl(dataSource: sl()),
+  );
+
+  // Group usecases
+  sl.registerLazySingleton(() => GetGroups(repository: sl()));
+  sl.registerLazySingleton(() => get_group.GetGroupById(repository: sl()));
+  sl.registerLazySingleton(() => CreateGroup(repository: sl()));
+  sl.registerLazySingleton(() => AddMember(repository: sl()));
+  sl.registerLazySingleton(() => calc.CalculateDebts(repository: sl()));
+  sl.registerLazySingleton(() => settle.SettleGroup(repository: sl()));
+  sl.registerLazySingleton(() => AddGroupExpense(repository: sl()));
+  sl.registerLazySingleton(() => GetGroupTransactions(repository: sl()));
+  sl.registerLazySingleton(() => ApproveGroupTransaction(repository: sl()));
+  sl.registerLazySingleton(() => get_members.GetGroupMembers(repository: sl()));
+
+  // Group Bloc
+  sl.registerFactory<GroupBloc>(
+    () => GroupBloc(
+      getGroups: sl(),
+      getGroupById: sl(),
+      createGroup: sl(),
+      addMember: sl(),
+      calculateDebts: sl(),
+      settleGroup: sl(),
+      addGroupExpense: sl(),
+      getGroupTransactions: sl(),
+      approveGroupTransaction: sl(),
+      getGroupMembers: sl(),
+    ),
   );
 
   // Settings
