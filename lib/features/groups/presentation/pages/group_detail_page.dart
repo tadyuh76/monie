@@ -26,7 +26,6 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   late TabController _tabController;
   bool _isLoading = false;
   bool _dataLoaded = false;
-  bool _showingDebts = false;
 
   @override
   void initState() {
@@ -95,6 +94,11 @@ class _GroupDetailPageState extends State<GroupDetailPage>
           context.read<GroupBloc>().add(
             GetGroupByIdEvent(groupId: widget.groupId),
           );
+        } else {
+          // Load transactions for the overview tab
+          context.read<GroupBloc>().add(
+            GetGroupTransactionsEvent(groupId: widget.groupId),
+          );
         }
         break;
       case 1: // Members tab
@@ -105,18 +109,11 @@ class _GroupDetailPageState extends State<GroupDetailPage>
           );
         }
         break;
-      case 2: // Expenses tab
+      case 2: // Debts tab
+        // Just reload the group if needed
         if (!hasCorrectGroupData) {
           context.read<GroupBloc>().add(
             GetGroupByIdEvent(groupId: widget.groupId),
-          );
-        } else {
-          // If we have group data, just load transactions
-          context.read<GroupBloc>().add(
-            GetGroupTransactionsEvent(groupId: widget.groupId),
-          );
-          context.read<GroupBloc>().add(
-            CalculateDebtsEvent(groupId: widget.groupId),
           );
         }
         break;
@@ -191,7 +188,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
           tabs: [
             Tab(text: context.tr('groups_overview')),
             Tab(text: context.tr('groups_members')),
-            Tab(text: context.tr('groups_expenses')),
+            Tab(text: context.tr('groups_debts')),
           ],
         ),
       ),
@@ -229,7 +226,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               children: [
                 _buildOverviewTab(context, state.group),
                 _buildMembersTab(context, state.group),
-                _buildExpensesTab(context, state.group, state.debts),
+                _buildDebtsTab(context, state.group),
               ],
             );
           } else if (state is SingleGroupLoaded) {
@@ -276,12 +273,12 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               onPressed: () {
                 if (_tabController.index == 1) {
                   _showAddMemberDialog(context, widget.groupId);
-                } else {
+                } else if (_tabController.index == 0) {
                   Navigator.pushNamed(
                     context,
                     '/add-group-expense',
                     arguments: widget.groupId,
-                  );
+                  ).then((_) => _loadDataForCurrentTab(forceRefresh: true));
                 }
               },
               backgroundColor: AppColors.primary,
@@ -306,200 +303,278 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     final transactions =
         currentState is SingleGroupLoaded ? currentState.transactions : null;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Group summary card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDarkMode ? AppColors.cardDark : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow:
-                  !isDarkMode
-                      ? [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(13),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ]
-                      : null,
+    // Group transactions by date
+    final Map<String, List<dynamic>> groupedTransactions = {};
+
+    if (transactions != null && transactions.isNotEmpty) {
+      // Sort transactions by date (newest first)
+      final sortedTransactions = List.from(transactions);
+      sortedTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+      // Group by date
+      for (var transaction in sortedTransactions) {
+        final dateKey = DateFormat('yyyy-MM-dd').format(transaction.date);
+        if (!groupedTransactions.containsKey(dateKey)) {
+          groupedTransactions[dateKey] = [];
+        }
+        groupedTransactions[dateKey]!.add(transaction);
+      }
+    }
+
+    // Build the children widgets list
+    List<Widget> children = [
+      // Group summary card
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDarkMode ? AppColors.cardDark : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow:
+              !isDarkMode
+                  ? [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(13),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ]
+                  : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr('groups_total_amount'),
+              style: textTheme.titleLarge?.copyWith(
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 8),
+            Text(
+              '\$${group.totalAmount.toStringAsFixed(0)}',
+              style: textTheme.headlineMedium?.copyWith(
+                color: isDarkMode ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
               children: [
+                Icon(
+                  Icons.calendar_today,
+                  size: 16,
+                  color:
+                      isDarkMode
+                          ? AppColors.textSecondary
+                          : Colors.grey.shade600,
+                ),
+                const SizedBox(width: 8),
                 Text(
-                  context.tr('groups_total_amount'),
-                  style: textTheme.titleLarge?.copyWith(
-                    color: isDarkMode ? Colors.white : Colors.black87,
+                  '${context.tr('groups_created')}: ${DateFormat('MMM d, yyyy').format(group.createdAt)}',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color:
+                        isDarkMode
+                            ? AppColors.textSecondary
+                            : Colors.grey.shade600,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '\$${group.totalAmount.toStringAsFixed(0)}',
-                  style: textTheme.headlineMedium?.copyWith(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 16,
-                      color:
-                          isDarkMode
-                              ? AppColors.textSecondary
-                              : Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${context.tr('groups_created')}: ${DateFormat('MMM d, yyyy').format(group.createdAt)}',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color:
-                            isDarkMode
-                                ? AppColors.textSecondary
-                                : Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.group,
-                      size: 16,
-                      color:
-                          isDarkMode
-                              ? AppColors.textSecondary
-                              : Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${context.tr('groups_members')}: ${group.members.length}',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color:
-                            isDarkMode
-                                ? AppColors.textSecondary
-                                : Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                if (group.isSettled)
-                  Container(
-                    margin: const EdgeInsets.only(top: 16),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: (isDarkMode
-                              ? AppColors.textSecondary
-                              : Colors.grey.shade400)
-                          .withAlpha(51),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color:
-                              isDarkMode
-                                  ? AppColors.textSecondary
-                                  : Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          context.tr('groups_settled'),
-                          style: textTheme.bodyMedium?.copyWith(
-                            color:
-                                isDarkMode
-                                    ? AppColors.textSecondary
-                                    : Colors.grey.shade600,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
               ],
             ),
-          ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.group,
+                  size: 16,
+                  color:
+                      isDarkMode
+                          ? AppColors.textSecondary
+                          : Colors.grey.shade600,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${context.tr('groups_members')}: ${group.members.length}',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color:
+                        isDarkMode
+                            ? AppColors.textSecondary
+                            : Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+            if (group.isSettled)
+              Container(
+                margin: const EdgeInsets.only(top: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: (isDarkMode
+                          ? AppColors.textSecondary
+                          : Colors.grey.shade400)
+                      .withAlpha(51),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color:
+                          isDarkMode
+                              ? AppColors.textSecondary
+                              : Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      context.tr('groups_settled'),
+                      style: textTheme.bodyMedium?.copyWith(
+                        color:
+                            isDarkMode
+                                ? AppColors.textSecondary
+                                : Colors.grey.shade600,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    ];
 
-          // Description section
-          if (group.description != null && group.description!.isNotEmpty) ...[
-            const SizedBox(height: 24),
+    // Description section
+    if (group.description != null && group.description!.isNotEmpty) {
+      children.addAll([
+        const SizedBox(height: 24),
+        Text(
+          context.tr('groups_description'),
+          style: textTheme.titleLarge?.copyWith(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDarkMode ? AppColors.cardDark : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow:
+                !isDarkMode
+                    ? [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(13),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                    : null,
+          ),
+          child: Text(
+            group.description!,
+            style: textTheme.bodyMedium?.copyWith(
+              color: isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      ]);
+    }
+
+    // Transactions section
+    if (transactions != null) {
+      children.add(const SizedBox(height: 24));
+      children.add(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
             Text(
-              context.tr('groups_description'),
+              context.tr('groups_transactions'),
               style: textTheme.titleLarge?.copyWith(
                 color: isDarkMode ? Colors.white : Colors.black87,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDarkMode ? AppColors.cardDark : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow:
-                    !isDarkMode
-                        ? [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(13),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ]
-                        : null,
-              ),
-              child: Text(
-                group.description!,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                // Force refresh transactions
+                context.read<GroupBloc>().add(
+                  GetGroupTransactionsEvent(groupId: group.id),
+                );
+              },
+              color: isDarkMode ? Colors.white : Colors.black87,
             ),
           ],
+        ),
+      );
 
-          // Recent transactions section
-          if (transactions != null && transactions.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      if (transactions.isEmpty) {
+        // No transactions yet
+        children.addAll([
+          const SizedBox(height: 16),
+          Center(
+            child: Column(
               children: [
-                Text(
-                  context.tr('groups_recent_transactions'),
-                  style: textTheme.titleLarge?.copyWith(
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Icon(
+                  Icons.receipt_long,
+                  size: 64,
+                  color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () {
-                    // Force refresh transactions
-                    context.read<GroupBloc>().add(
-                      GetGroupTransactionsEvent(groupId: group.id),
-                    );
-                  },
-                  color: isDarkMode ? Colors.white : Colors.black87,
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('groups_no_expenses_yet'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            ...transactions.take(5).map((transaction) {
-              // Find the display name of the person who paid
-              String? paidByName;
-              if (transaction.paidBy.isNotEmpty) {
+          ),
+        ]);
+      } else {
+        // Display transactions grouped by date
+        for (final entry in groupedTransactions.entries) {
+          final dateStr = entry.key;
+          final dateTransactions = entry.value;
+
+          // Format the date for display
+          final date = DateTime.parse(dateStr);
+          final formattedDate = DateFormat.yMMMMd().format(date);
+
+          // Add date header
+          children.add(
+            Padding(
+              padding: const EdgeInsets.only(top: 16, bottom: 8),
+              child: Text(
+                formattedDate,
+                style: textTheme.titleMedium?.copyWith(
+                  color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          );
+
+          // Add transactions for this date
+          for (final transaction in dateTransactions) {
+            // Find the display name of the person who paid
+            String? paidByName;
+
+            // Check if transaction has user display name from the join
+            if (transaction.paidBy.isNotEmpty) {
+              // First try to get the name from the transaction's user data
+              // The data source joins with users table to get display_name
+              if (transaction is Map<String, dynamic> &&
+                  transaction['users'] != null &&
+                  transaction['users']['display_name'] != null) {
+                paidByName = transaction['users']['display_name'];
+              } else {
                 // Try to find the member who paid
                 for (var member in group.members) {
                   if (member.contains(transaction.paidBy)) {
@@ -507,9 +582,25 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                     break;
                   }
                 }
-              }
 
-              return GroupTransactionCard(
+                // If we couldn't find a match, use the ID as a fallback
+                if (paidByName == null) {
+                  final supabase = SupabaseClientManager.instance.client;
+                  final currentUserId = supabase.auth.currentUser?.id;
+
+                  // If the current user is the one who paid
+                  if (transaction.paidBy == currentUserId) {
+                    paidByName = context.tr('common_user'); // "You" or "User"
+                  } else {
+                    // Just use a generic label if we can't determine the name
+                    paidByName = context.tr('groups_members');
+                  }
+                }
+              }
+            }
+
+            children.add(
+              GroupTransactionCard(
                 transaction: transaction,
                 paidByName: paidByName,
                 showApprovalButtons:
@@ -527,71 +618,64 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                   _handleTransactionApproval(context, transactionId, approved);
                 },
                 categoryName: transaction.categoryName,
-              );
-            }),
-
-            if (transactions.length > 5) ...[
-              const SizedBox(height: 16),
-              Center(
-                child: TextButton.icon(
-                  icon: const Icon(Icons.arrow_forward),
-                  label: Text(context.tr('groups_view_all_transactions')),
-                  onPressed: () {
-                    // Switch to expenses tab
-                    _tabController.animateTo(2);
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                  ),
-                ),
               ),
-            ],
-          ],
+            );
+          }
+        }
+      }
+    }
 
-          // Actions
-          if (!group.isSettled) ...[
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          title: Text(context.tr('groups_settle_group')),
-                          content: Text(context.tr('groups_settle_confirm')),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text(context.tr('cancel')),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                context.read<GroupBloc>().add(
-                                  SettleGroupEvent(groupId: group.id),
-                                );
-                              },
-                              child: Text(context.tr('confirm')),
-                            ),
-                          ],
+    // Actions section
+    if (!group.isSettled) {
+      children.addAll([
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: Text(context.tr('groups_settle_group')),
+                      content: Text(context.tr('groups_settle_confirm')),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(context.tr('common_cancel')),
                         ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(context.tr('groups_settle_group')),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            context.read<GroupBloc>().add(
+                              SettleGroupEvent(groupId: group.id),
+                            );
+                          },
+                          child: Text(context.tr('confirm')),
+                        ),
+                      ],
+                    ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
-          ],
-        ],
+            child: Text(context.tr('groups_settle_group')),
+          ),
+        ),
+      ]);
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
       ),
     );
   }
@@ -625,7 +709,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: AppColors.primary.withOpacity(0.2),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.2),
                 child: Text(
                   member.substring(0, 1).toUpperCase(),
                   style: TextStyle(
@@ -642,254 +726,33 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                   ),
                 ),
               ),
+              // Show admin badge if this member is the admin
+              if (member.contains(group.adminId))
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Text(
+                    context.tr('groups_admin'),
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildExpensesTab(
-    BuildContext context,
-    ExpenseGroup group,
-    Map<String, double>? debts,
-  ) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final textTheme = Theme.of(context).textTheme;
-
-    // Get the current bloc state
-    final currentState = context.watch<GroupBloc>().state;
-
-    if (currentState is SingleGroupLoaded) {
-      final transactions = currentState.transactions;
-
-      // If there are transactions and we're not explicitly showing debts, show transactions
-      if (transactions != null && transactions.isNotEmpty && !_showingDebts) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    context.tr('groups_expenses'),
-                    style: textTheme.titleLarge?.copyWith(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      // Add button to show debts calculation if available
-                      if (debts != null && debts.isNotEmpty)
-                        TextButton.icon(
-                          icon: const Icon(Icons.calculate),
-                          label: Text(context.tr('groups_show_debts')),
-                          onPressed: () {
-                            setState(() {
-                              _showingDebts = true;
-                            });
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                          ),
-                        ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh),
-                        onPressed: () {
-                          // Force refresh transactions
-                          context.read<GroupBloc>().add(
-                            GetGroupTransactionsEvent(groupId: group.id),
-                          );
-                        },
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: transactions.length,
-                itemBuilder: (context, index) {
-                  final transaction = transactions[index];
-
-                  // Find the display name of the person who paid
-                  String? paidByName;
-                  if (transaction.paidBy.isNotEmpty) {
-                    // Try to find the member who paid
-                    for (var member in group.members) {
-                      if (member.contains(transaction.paidBy)) {
-                        paidByName = member;
-                        break;
-                      }
-                    }
-                  }
-
-                  return GroupTransactionCard(
-                    transaction: transaction,
-                    paidByName: paidByName,
-                    showApprovalButtons:
-                        _isUserAdmin(group) &&
-                        transaction.approvalStatus == 'pending',
-                    onTap: () {
-                      // Show transaction details dialog
-                      _showTransactionDetailsDialog(
-                        context,
-                        transaction,
-                        paidByName,
-                      );
-                    },
-                    onApprove: (transactionId, approved) {
-                      _handleTransactionApproval(
-                        context,
-                        transactionId,
-                        approved,
-                      );
-                    },
-                    categoryName: transaction.categoryName,
-                  );
-                },
-              ),
-            ),
-            if (!group.isSettled)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: Text(context.tr('groups_add_expense')),
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/add-group-expense',
-                        arguments: group.id,
-                      ).then((_) {
-                        // Refresh transactions when returning
-                        context.read<GroupBloc>().add(
-                          GetGroupTransactionsEvent(groupId: group.id),
-                        );
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      }
-
-      // If we're explicitly showing debts and they're available
-      if (_showingDebts && debts != null && debts.isNotEmpty) {
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    context.tr('groups_debts_calculation'),
-                    style: textTheme.titleLarge?.copyWith(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      // Add button to show transactions
-                      if (transactions != null && transactions.isNotEmpty)
-                        TextButton.icon(
-                          icon: const Icon(Icons.receipt_long),
-                          label: Text(context.tr('groups_show_transactions')),
-                          onPressed: () {
-                            setState(() {
-                              _showingDebts = false;
-                            });
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                          ),
-                        ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh),
-                        onPressed: () {
-                          context.read<GroupBloc>().add(
-                            CalculateDebtsEvent(groupId: widget.groupId),
-                          );
-                        },
-                        tooltip: context.tr('groups_recalculate'),
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Expanded(child: _buildDebtsSection(context, debts)),
-          ],
-        );
-      }
-    }
-
-    // If no transactions or debts are available
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.receipt_long,
-            size: 64,
-            color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            context.tr('groups_no_expenses_yet'),
-            style: TextStyle(
-              fontSize: 18,
-              color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
-            ),
-          ),
-          const SizedBox(height: 24),
-          if (!group.isSettled)
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/add-group-expense',
-                  arguments: group.id,
-                ).then((_) {
-                  // Refresh transactions when returning
-                  context.read<GroupBloc>().add(
-                    GetGroupTransactionsEvent(groupId: group.id),
-                  );
-                });
-              },
-              icon: const Icon(Icons.add),
-              label: Text(context.tr('groups_add_expense')),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 
@@ -945,7 +808,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(context.tr('cancel')),
+                child: Text(context.tr('common_cancel')),
               ),
               TextButton(
                 onPressed: () {
@@ -1116,9 +979,9 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.1),
+        color: badgeColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: badgeColor.withOpacity(0.5)),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.5)),
       ),
       child: Text(
         statusText,
@@ -1131,24 +994,112 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     );
   }
 
-  // Helper method to build debts section
-  Widget _buildDebtsSection(BuildContext context, Map<String, double> debts) {
+  Widget _buildDebtsTab(BuildContext context, ExpenseGroup group) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount:
-          debts
-              .length, // Remove +1 for the header since we now handle it separately
-      itemBuilder: (context, index) {
-        // Debt items
-        final entry = debts.entries.elementAt(index);
-        final member = entry.key;
-        final amount = entry.value;
+    // Get the current bloc state to access transactions
+    final currentState = context.watch<GroupBloc>().state;
+    final transactions =
+        currentState is SingleGroupLoaded ? currentState.transactions : null;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
+    // Calculate debts between members
+    Map<String, Map<String, double>> debts = {};
+    Map<String, String> memberNames = {};
+
+    // Create a map of user IDs to display names
+    // This is a simplification - in a real app, you'd have a more robust way to map IDs to names
+    for (var member in group.members) {
+      // For simplicity, we'll just use the member name as is
+      // In a real app, you'd extract the actual user ID
+      memberNames[member] = member;
+      debts[member] = {};
+
+      // Initialize debts to each other member as 0
+      for (var otherMember in group.members) {
+        if (member != otherMember) {
+          debts[member]![otherMember] = 0;
+        }
+      }
+    }
+
+    // Calculate debts based on transactions
+    if (transactions != null && transactions.isNotEmpty) {
+      for (var transaction in transactions) {
+        if (transaction.approvalStatus == 'approved' ||
+            transaction.approvalStatus == 'settled') {
+          // Find the payer's name
+          String payerName = "";
+          for (var member in group.members) {
+            if (member.contains(transaction.paidBy)) {
+              payerName = member;
+              break;
+            }
+          }
+
+          // If we couldn't find the payer, skip this transaction
+          if (payerName.isEmpty) continue;
+
+          double amount = transaction.amount;
+
+          // For simplicity, we'll split evenly among all members
+          // In a real app, you might have specific split rules
+          int memberCount = group.members.length;
+          if (memberCount > 0) {
+            double amountPerPerson = amount / memberCount;
+
+            // Each member owes the payer their share (except the payer)
+            for (var member in group.members) {
+              if (member != payerName) {
+                // Increase what member owes to payer
+                debts[member]![payerName] =
+                    (debts[member]![payerName] ?? 0) + amountPerPerson;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Simplify debts (if A owes B $10 and B owes A $5, then A just owes B $5)
+    for (var debtor in debts.keys) {
+      for (var creditor in debts[debtor]!.keys) {
+        if (debts[debtor]![creditor]! > 0 && debts[creditor]![debtor]! > 0) {
+          // Offset the debts
+          if (debts[debtor]![creditor]! >= debts[creditor]![debtor]!) {
+            debts[debtor]![creditor] =
+                debts[debtor]![creditor]! - debts[creditor]![debtor]!;
+            debts[creditor]![debtor] = 0;
+          } else {
+            debts[creditor]![debtor] =
+                debts[creditor]![debtor]! - debts[debtor]![creditor]!;
+            debts[debtor]![creditor] = 0;
+          }
+        }
+      }
+    }
+
+    // Build UI for debts
+    List<Widget> debtWidgets = [];
+
+    // Add a header
+    debtWidgets.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Text(
+          context.tr('groups_debts_summary'),
+          style: textTheme.titleLarge?.copyWith(
+            color: isDarkMode ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+
+    // If the group is settled, show a message
+    if (group.isSettled) {
+      debtWidgets.add(
+        Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isDarkMode ? AppColors.cardDark : Colors.white,
@@ -1164,56 +1115,173 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                     ]
                     : null,
           ),
-          child: Row(
+          child: Column(
             children: [
-              CircleAvatar(
-                backgroundColor:
-                    amount >= 0
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.red.withOpacity(0.2),
-                child: Icon(
-                  amount >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                  color: amount >= 0 ? Colors.green : Colors.red,
-                  size: 16,
+              Icon(Icons.check_circle_outline, size: 48, color: Colors.green),
+              const SizedBox(height: 16),
+              Text(
+                context.tr('groups_all_settled'),
+                style: textTheme.titleMedium?.copyWith(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 8),
+              Text(
+                context.tr('groups_no_debts'),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Show all debts between members
+      bool hasDebts = false;
+
+      for (var debtor in debts.keys) {
+        for (var creditor in debts[debtor]!.keys) {
+          double amount = debts[debtor]![creditor]!;
+
+          if (amount > 0) {
+            hasDebts = true;
+
+            // Show the debt card
+            debtWidgets.add(
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? AppColors.cardDark : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow:
+                      !isDarkMode
+                          ? [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(13),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ]
+                          : null,
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      member,
-                      style: textTheme.titleMedium?.copyWith(
-                        color: isDarkMode ? Colors.white : Colors.black87,
+                    CircleAvatar(
+                      backgroundColor: AppColors.expense.withValues(alpha: 0.2),
+                      child: Text(
+                        debtor.substring(0, 1).toUpperCase(),
+                        style: TextStyle(color: AppColors.expense),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: _getShortName(debtor),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(text: ' ${context.tr('groups_owes')} '),
+                            TextSpan(
+                              text: _getShortName(creditor),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     Text(
-                      amount >= 0
-                          ? context.tr('groups_gets_paid')
-                          : context.tr('groups_needs_to_pay'),
-                      style: textTheme.bodyMedium?.copyWith(
-                        color:
-                            isDarkMode
-                                ? AppColors.textSecondary
-                                : Colors.grey.shade600,
+                      '\$${amount.toStringAsFixed(2)}',
+                      style: textTheme.titleMedium?.copyWith(
+                        color: AppColors.expense,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
-              Text(
-                '\$${amount.abs().toStringAsFixed(2)}',
-                style: textTheme.titleMedium?.copyWith(
-                  color: amount >= 0 ? Colors.green : Colors.red,
-                  fontWeight: FontWeight.bold,
+            );
+          }
+        }
+      }
+
+      // If no debts, show a message
+      if (!hasDebts) {
+        debtWidgets.add(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            decoration: BoxDecoration(
+              color: isDarkMode ? AppColors.cardDark : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow:
+                  !isDarkMode
+                      ? [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(13),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                      : null,
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 48,
+                  color: isDarkMode ? Colors.white54 : Colors.grey.shade400,
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('groups_no_debts_yet'),
+                  style: textTheme.titleMedium?.copyWith(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  context.tr('groups_add_expenses_to_see_debts'),
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         );
-      },
+      }
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: debtWidgets,
+      ),
     );
+  }
+
+  // Helper method to get a shorter display name
+  String _getShortName(String fullName) {
+    final parts = fullName.split(' ');
+    if (parts.length > 1) {
+      return '${parts.first} ${parts.last.substring(0, 1)}.';
+    }
+    return fullName;
   }
 }

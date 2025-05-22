@@ -233,7 +233,7 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
                       decoration: BoxDecoration(
                         color: CategoryUtils.getCategoryColor(
                           _selectedCategory!['svgName'],
-                        ).withOpacity(0.2),
+                        ).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       padding: const EdgeInsets.all(6),
@@ -451,7 +451,7 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
         decoration: BoxDecoration(
           color:
               isSelected
-                  ? categoryColor.withOpacity(0.3)
+                  ? categoryColor.withValues(alpha: 0.3)
                   : isDarkMode
                   ? AppColors.cardDark
                   : Colors.grey.shade100,
@@ -467,7 +467,7 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: categoryColor.withOpacity(0.2),
+                color: categoryColor.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: SvgPicture.asset(iconPath, width: 24, height: 24),

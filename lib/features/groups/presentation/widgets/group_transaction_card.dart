@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:intl/intl.dart';
 import 'package:monie/core/constants/category_icons.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
@@ -45,7 +44,7 @@ class GroupTransactionCard extends StatelessWidget {
     Color categoryColor = CategoryUtils.getCategoryColor(actualCategoryName);
 
     // Create a light background based on the category color
-    final backgroundColor = categoryColor.withOpacity(0.2);
+    final backgroundColor = categoryColor.withValues(alpha: 0.2);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -54,7 +53,7 @@ class GroupTransactionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDarkMode ? 0.1 : 0.05),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.1 : 0.05),
             blurRadius: isDarkMode ? 4 : 8,
             offset: const Offset(0, 2),
           ),
@@ -95,16 +94,6 @@ class GroupTransactionCard extends StatelessWidget {
                           style: textTheme.titleMedium?.copyWith(
                             color: isDarkMode ? Colors.white : Colors.black87,
                             fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          DateFormat.yMMMd().format(transaction.date),
-                          style: textTheme.bodySmall?.copyWith(
-                            color:
-                                isDarkMode
-                                    ? AppColors.textSecondary
-                                    : Colors.black54,
                           ),
                         ),
                         if (paidByName != null)
@@ -241,9 +230,9 @@ class GroupTransactionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.1),
+        color: badgeColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: badgeColor.withOpacity(0.5)),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.5)),
       ),
       child: Text(
         statusText,
