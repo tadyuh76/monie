@@ -47,9 +47,6 @@ app.*.map.json
 
 # env
 .env
-
-# Firebase related
-/push-notify/push-notify-key.json
-
-# Ignore Node.js dependencies
+push-notify/push-notify-key.json
+push-notify/node_modules/
 node_modules/

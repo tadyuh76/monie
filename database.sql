@@ -46,7 +46,8 @@ CREATE TABLE budgets (
     is_recurring BOOLEAN DEFAULT FALSE,
     is_saving BOOLEAN DEFAULT FALSE,
     frequency VARCHAR(20),
-    color VARCHAR(20)
+    color VARCHAR(20),
+    type VARCHAR(20) DEFAULT 'expense'
 );
 
 -- groups table

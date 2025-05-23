@@ -151,4 +151,173 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Call the function
-SELECT upsert_default_categories(); 
+SELECT upsert_default_categories();
+
+-- Function to update user's profile image URL
+CREATE OR REPLACE FUNCTION update_user_avatar(user_id_param TEXT, image_url_param TEXT)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  updated_rows int;
+BEGIN
+  -- Security check: Only allow users to update their own avatar
+  IF auth.uid()::text <> user_id_param THEN
+    RAISE EXCEPTION 'You can only update your own avatar';
+    RETURN FALSE;
+  END IF;
+
+  -- Update the user's profile_image_url in the users table
+  UPDATE users
+  SET profile_image_url = image_url_param
+  WHERE user_id = user_id_param;
+  
+  GET DIAGNOSTICS updated_rows = ROW_COUNT;
+  
+  -- Return true if a row was updated, false otherwise
+  RETURN updated_rows > 0;
+END;
+$$;
+
+-- Function to get user profile information including avatar
+CREATE OR REPLACE FUNCTION get_user_profile(user_id_param TEXT DEFAULT NULL)
+RETURNS TABLE (
+  user_id TEXT,
+  email TEXT,
+  display_name TEXT,
+  profile_image_url TEXT,
+  color_mode TEXT,
+  language TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- If no user_id provided, use the current authenticated user
+  IF user_id_param IS NULL THEN
+    user_id_param := auth.uid()::text;
+  END IF;
+
+  -- Security check: Only allow users to get their own profile
+  IF auth.uid()::text <> user_id_param THEN
+    RAISE EXCEPTION 'You can only access your own profile';
+  END IF;
+
+  -- Return user profile from database
+  RETURN QUERY
+  SELECT 
+    u.user_id,
+    u.email,
+    u.display_name,
+    u.profile_image_url,
+    u.color_mode,
+    u.language
+  FROM users u
+  WHERE u.user_id = user_id_param;
+END;
+$$;
+
+-- Function for settings page to handle avatar uploads and profile update
+CREATE OR REPLACE FUNCTION settings_update_avatar(
+  avatar_url_param TEXT
+)
+RETURNS TABLE (
+  success BOOLEAN,
+  profile_image_url TEXT,
+  user_id TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  user_id_var TEXT;
+  updated_rows INT;
+BEGIN
+  -- Get the authenticated user ID
+  user_id_var := auth.uid()::text;
+  
+  IF user_id_var IS NULL THEN
+    -- No authenticated user found
+    RETURN QUERY SELECT false, NULL::TEXT, NULL::TEXT;
+    RETURN;
+  END IF;
+  
+  -- Update the user's profile_image_url in the users table
+  UPDATE users
+  SET profile_image_url = avatar_url_param
+  WHERE user_id = user_id_var;
+  
+  GET DIAGNOSTICS updated_rows = ROW_COUNT;
+  
+  -- If user doesn't exist in the users table, insert them
+  IF updated_rows = 0 THEN
+    -- Get user email from auth session
+    DECLARE
+      user_email TEXT;
+      display_name TEXT;
+    BEGIN
+      SELECT email, raw_user_meta_data->>'name' 
+      INTO user_email, display_name 
+      FROM auth.users 
+      WHERE id = user_id_var::uuid;
+      
+      -- Insert user if we have the email
+      IF user_email IS NOT NULL THEN
+        INSERT INTO users (user_id, email, profile_image_url, display_name)
+        VALUES (user_id_var, user_email, avatar_url_param, display_name);
+        updated_rows := 1;
+      END IF;
+    END;
+  END IF;
+  
+  -- Return the result
+  RETURN QUERY SELECT 
+    updated_rows > 0, 
+    avatar_url_param,
+    user_id_var;
+END;
+$$;
+
+-- Update the trigger that recalculates account balance to account for budget changes
+CREATE OR REPLACE FUNCTION update_account_balance() RETURNS TRIGGER AS $$
+BEGIN
+  -- Update the balance of the account when a transaction is inserted, updated, or deleted
+  IF TG_OP = 'INSERT' THEN
+    UPDATE accounts 
+    SET balance = balance + NEW.amount
+    WHERE account_id = NEW.account_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    -- Only update if account_id or amount changed
+    IF NEW.account_id <> OLD.account_id OR NEW.amount <> OLD.amount THEN
+      -- Revert the old amount from the old account
+      IF OLD.account_id IS NOT NULL THEN
+        UPDATE accounts 
+        SET balance = balance - OLD.amount
+        WHERE account_id = OLD.account_id;
+      END IF;
+      
+      -- Add the new amount to the new account
+      IF NEW.account_id IS NOT NULL THEN
+        UPDATE accounts 
+        SET balance = balance + NEW.amount
+        WHERE account_id = NEW.account_id;
+      END IF;
+    END IF;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    -- Remove the amount from the account balance when a transaction is deleted
+    IF OLD.account_id IS NOT NULL THEN
+      UPDATE accounts 
+      SET balance = balance - OLD.amount
+      WHERE account_id = OLD.account_id;
+    END IF;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql; 
