@@ -2,43 +2,81 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
+import 'package:monie/features/account/data/datasources/account_remote_data_source.dart';
+import 'package:monie/features/account/data/repositories/account_repository_impl.dart';
+import 'package:monie/features/account/domain/repositories/account_repository.dart';
+import 'package:monie/features/account/domain/usecases/add_account_usecase.dart'
+    as add_account_usecase_alias;
+import 'package:monie/features/account/domain/usecases/delete_account_usecase.dart'
+    as account_delete_account_usecase;
+import 'package:monie/features/account/domain/usecases/get_account_by_id_usecase.dart';
+import 'package:monie/features/account/domain/usecases/get_accounts_usecase.dart';
+import 'package:monie/features/account/domain/usecases/recalculate_account_balance_usecase.dart';
+import 'package:monie/features/account/domain/usecases/update_account_balance_usecase.dart';
+import 'package:monie/features/account/domain/usecases/update_account_usecase.dart'
+    as account_update_account_usecase;
+import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/core/services/app_lifecycle_service.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
 import 'package:monie/features/authentication/domain/repositories/auth_repository.dart';
+import 'package:monie/features/authentication/domain/usecases/check_email_exists.dart';
 import 'package:monie/features/authentication/domain/usecases/get_current_user.dart';
 import 'package:monie/features/authentication/domain/usecases/is_email_verified.dart';
-import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
 import 'package:monie/features/authentication/domain/usecases/resend_verification_email.dart';
+import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_in.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
-import 'package:monie/features/authentication/domain/usecases/check_email_exists.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
-import 'package:monie/features/home/data/repositories/account_repository_impl.dart';
-import 'package:monie/features/home/domain/repositories/account_repository.dart';
-import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
-import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
-import 'package:monie/features/transactions/data/repositories/transaction_repository_impl.dart';
-import 'package:monie/features/transactions/domain/repositories/transaction_repository.dart';
-import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
-import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
-import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
-import 'package:monie/features/budgets/domain/usecases/get_budgets_usecase.dart';
+import 'package:monie/features/budgets/data/datasources/budget_remote_data_source.dart';
 import 'package:monie/features/budgets/data/repositories/budget_repository_impl.dart';
 import 'package:monie/features/budgets/domain/repositories/budget_repository.dart';
+import 'package:monie/features/budgets/domain/usecases/add_budget_usecase.dart';
+import 'package:monie/features/budgets/domain/usecases/delete_budget_usecase.dart';
+import 'package:monie/features/budgets/domain/usecases/get_active_budgets_usecase.dart';
+import 'package:monie/features/budgets/domain/usecases/get_budgets_usecase.dart';
+import 'package:monie/features/budgets/domain/usecases/update_budget_usecase.dart';
+import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
+import 'package:monie/features/groups/data/datasources/group_remote_datasource.dart';
+import 'package:monie/features/groups/data/repositories/group_repository_impl.dart';
+import 'package:monie/features/groups/domain/repositories/group_repository.dart';
+import 'package:monie/features/groups/domain/usecases/add_member.dart';
+import 'package:monie/features/groups/domain/usecases/calculate_debts.dart'
+    as calc;
+import 'package:monie/features/groups/domain/usecases/create_group.dart';
+import 'package:monie/features/groups/domain/usecases/get_group_by_id.dart'
+    as get_group;
+import 'package:monie/features/groups/domain/usecases/get_group_members.dart'
+    as get_members;
+import 'package:monie/features/groups/domain/usecases/get_groups.dart';
+import 'package:monie/features/groups/domain/usecases/settle_group.dart'
+    as settle;
+import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
+import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
+import 'package:monie/features/settings/data/repositories/settings_repository.dart';
+import 'package:monie/features/settings/domain/repositories/settings_repository.dart';
+import 'package:monie/features/settings/domain/usecases/change_password.dart';
+import 'package:monie/features/settings/domain/usecases/get_app_settings.dart';
+import 'package:monie/features/settings/domain/usecases/get_user_profile.dart';
+import 'package:monie/features/settings/domain/usecases/save_app_settings.dart';
+import 'package:monie/features/settings/domain/usecases/update_user_profile.dart';
+import 'package:monie/features/settings/domain/usecases/upload_avatar.dart';
+import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/transactions/data/datasources/transaction_remote_data_source.dart';
-import 'package:monie/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/get_transactions_by_type_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/get_transactions_by_date_range_usecase.dart';
+import 'package:monie/features/transactions/data/repositories/transaction_repository_impl.dart';
+import 'package:monie/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:monie/features/transactions/domain/usecases/add_transaction_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/update_transaction_usecase.dart';
-import 'package:monie/features/transactions/domain/usecases/delete_transaction_usecase.dart';
-import 'package:monie/features/transactions/data/datasources/category_remote_data_source.dart';
-import 'package:monie/features/transactions/data/repositories/category_repository_impl.dart';
-import 'package:monie/features/transactions/domain/repositories/category_repository.dart';
 import 'package:monie/features/transactions/domain/usecases/create_category_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/delete_transaction_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/get_categories_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transaction_by_id_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_by_account_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_by_budget_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_by_date_range_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_by_type_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
+import 'package:monie/features/transactions/domain/usecases/update_transaction_usecase.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/notifications/data/datasources/notification_local_data_source.dart';
 import 'package:monie/features/notifications/data/datasources/notification_remote_data_source.dart';
@@ -51,8 +89,15 @@ import 'package:monie/features/notifications/presentation/bloc/notification_bloc
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
+import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
+import '../features/transactions/data/repositories/category_repository_impl.dart';
+import '../features/transactions/domain/repositories/category_repository.dart';
+import 'package:monie/features/groups/domain/usecases/add_group_expense.dart';
+import 'package:monie/features/groups/domain/usecases/get_group_transactions.dart';
+import 'package:monie/features/groups/domain/usecases/approve_group_transaction.dart';
 
-final getIt = GetIt.instance;
+final sl = GetIt.instance;
 
 @InjectableInit(
   initializerName: 'init', // default
@@ -65,144 +110,280 @@ Future<void> configureDependencies() async {
   // await init(getIt);
 
   // External
-  getIt.registerSingleton<SupabaseClientManager>(
-    SupabaseClientManager.instance,
-  );
+  sl.registerSingleton<SupabaseClientManager>(SupabaseClientManager.instance);
+  
+  // Shared Preferences
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerSingleton<SharedPreferences>(sharedPreferences);
   
   // Firebase Messaging and Local Notifications
-  getIt.registerLazySingleton(() => FirebaseMessaging.instance);
-  getIt.registerLazySingleton(() => FlutterLocalNotificationsPlugin());
-  getIt.registerLazySingleton(() => http.Client());
-  
-  // SharedPreferences
-  final sharedPreferences = await SharedPreferences.getInstance();
-  getIt.registerLazySingleton(() => sharedPreferences);
+  sl.registerLazySingleton(() => FirebaseMessaging.instance);
+  sl.registerLazySingleton(() => FlutterLocalNotificationsPlugin());
+  sl.registerLazySingleton(() => http.Client());
 
   // Authentication
-  getIt.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(supabaseClient: getIt()),
+  sl.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(supabaseClient: sl()),
   );
-  getIt.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(remoteDataSource: getIt()),
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(remoteDataSource: sl()),
   );
 
   // Authentication use cases
-  getIt.registerLazySingleton(() => GetCurrentUser(getIt()));
-  getIt.registerLazySingleton(() => SignUp(getIt()));
-  getIt.registerLazySingleton(() => SignIn(getIt()));
-  getIt.registerLazySingleton(() => SignOut(getIt()));
-  getIt.registerLazySingleton(() => ResendVerificationEmail(getIt()));
-  getIt.registerLazySingleton(() => IsEmailVerified(getIt()));
-  getIt.registerLazySingleton(() => ResetPassword(getIt()));
-  getIt.registerLazySingleton(() => CheckEmailExists(getIt()));
+  sl.registerLazySingleton(() => GetCurrentUser(sl()));
+  sl.registerLazySingleton(() => SignUp(sl()));
+  sl.registerLazySingleton(() => SignIn(sl()));
+  sl.registerLazySingleton(() => SignOut(sl()));
+  sl.registerLazySingleton(() => ResendVerificationEmail(sl()));
+  sl.registerLazySingleton(() => IsEmailVerified(sl()));
+  sl.registerLazySingleton(() => ResetPassword(sl()));
+  sl.registerLazySingleton(() => CheckEmailExists(sl()));
+
+  // Data sources
+  sl.registerLazySingleton<AccountRemoteDataSource>(
+    () => AccountRemoteDataSourceImpl(supabaseClientManager: sl()),
+  );
+
+  sl.registerLazySingleton<BudgetRemoteDataSource>(
+    () => BudgetRemoteDataSourceImpl(supabaseClientManager: sl()),
+  );
+
+  sl.registerLazySingleton<TransactionRemoteDataSource>(
+    () => TransactionRemoteDataSourceImpl(supabaseClientManager: sl()),
+  );
 
   // Repository implementations
-  getIt.registerLazySingleton<AccountRepository>(() => AccountRepositoryImpl());
-  getIt.registerLazySingleton<TransactionRemoteDataSource>(
-    () => TransactionRemoteDataSourceImpl(supabaseClientManager: getIt()),
+  sl.registerLazySingleton<AccountRepository>(
+    () => AccountRepositoryImpl(sl<SupabaseClientManager>()),
   );
-  getIt.registerLazySingleton<TransactionRepository>(
-    () => TransactionRepositoryImpl(remoteDataSource: getIt()),
+
+  sl.registerLazySingleton<TransactionRepository>(
+    () => TransactionRepositoryImpl(remoteDataSource: sl()),
   );
-  getIt.registerLazySingleton<CategoryRemoteDataSource>(
-    () => CategoryRemoteDataSourceImpl(
-      supabaseClient: SupabaseClientManager.instance,
-    ),
+
+  sl.registerLazySingleton<BudgetRepository>(
+    () => BudgetRepositoryImpl(sl<SupabaseClientManager>()),
   );
-  getIt.registerLazySingleton<CategoryRepository>(
-    () => CategoryRepositoryImpl(remoteDataSource: getIt()),
+
+  sl.registerLazySingleton<CategoryRepository>(
+    () => CategoryRepositoryImpl(sl<SupabaseClientManager>()),
   );
-  getIt.registerLazySingleton<BudgetRepository>(() => BudgetRepositoryImpl());
   
   // Notification repositories and data sources
-  getIt.registerLazySingleton<NotificationLocalDataSource>(
-    () => NotificationLocalDataSourceImpl(sharedPreferences: getIt()),
+  sl.registerLazySingleton<NotificationLocalDataSource>(
+    () => NotificationLocalDataSourceImpl(sharedPreferences: sl()),
   );
-  getIt.registerLazySingleton<NotificationRemoteDataSource>(
+  sl.registerLazySingleton<NotificationRemoteDataSource>(
     () => NotificationRemoteDataSourceImpl(
-      firebaseMessaging: getIt(),
-      flutterLocalNotificationsPlugin: getIt(),
-      client: getIt(),
+      firebaseMessaging: sl(),
+      flutterLocalNotificationsPlugin: sl(),
+      client: sl(),
       baseUrl: 'http://localhost:4000', // Local server URL
     ),
   );
-  getIt.registerLazySingleton<NotificationRepository>(
+  sl.registerLazySingleton<NotificationRepository>(
     () => NotificationRepositoryImpl(
-      remoteDataSource: getIt(),
-      localDataSource: getIt(),
+      remoteDataSource: sl(),
+      localDataSource: sl(),
     ),
   );
 
   // Use cases
-  getIt.registerLazySingleton(() => GetAccountsUseCase(getIt()));
-  getIt.registerLazySingleton(() => GetTransactionsUseCase(getIt()));
-  getIt.registerLazySingleton(() => GetTransactionByIdUseCase(getIt()));
-  getIt.registerLazySingleton(() => GetTransactionsByTypeUseCase(getIt()));
-  getIt.registerLazySingleton(() => GetTransactionsByDateRangeUseCase(getIt()));
-  getIt.registerLazySingleton(() => AddTransactionUseCase(getIt()));
-  getIt.registerLazySingleton(() => UpdateTransactionUseCase(getIt()));
-  getIt.registerLazySingleton(() => DeleteTransactionUseCase(getIt()));
-  getIt.registerLazySingleton(() => GetBudgetsUseCase(getIt()));
-  getIt.registerLazySingleton(() => GetCategoriesUseCase(getIt()));
-  getIt.registerLazySingleton(() => CreateCategoryUseCase(getIt()));
+  sl.registerLazySingleton(() => GetAccountsUseCase(sl()));
+  sl.registerLazySingleton(
+    () => GetAccountByIdUseCase(accountRepository: sl()),
+  );
+  sl.registerLazySingleton(
+    () => add_account_usecase_alias.AddAccountUseCase(sl()),
+  );
+  sl.registerLazySingleton(
+    () => account_update_account_usecase.UpdateAccountUseCase(
+      sl<AccountRepository>(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => account_delete_account_usecase.DeleteAccountUseCase(
+      sl<AccountRepository>(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => RecalculateAccountBalanceUseCase(sl<AccountRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => UpdateAccountBalanceUseCase(sl<AccountRepository>()),
+  );
+
+  sl.registerLazySingleton(() => GetTransactionsUseCase(sl()));
+  sl.registerLazySingleton(() => GetTransactionByIdUseCase(sl()));
+  sl.registerLazySingleton(() => GetTransactionsByTypeUseCase(sl()));
+  sl.registerLazySingleton(() => GetTransactionsByDateRangeUseCase(sl()));
+  sl.registerLazySingleton(() => AddTransactionUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateTransactionUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteTransactionUseCase(sl()));
+  sl.registerLazySingleton(() => GetBudgetsUseCase(sl()));
+  sl.registerLazySingleton(() => GetActiveBudgetsUseCase(sl()));
+  sl.registerLazySingleton(() => AddBudgetUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateBudgetUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteBudgetUseCase(sl()));
+  sl.registerLazySingleton(() => GetCategoriesUseCase(sl()));
+  sl.registerLazySingleton(() => CreateCategoryUseCase(sl()));
+
+  sl.registerLazySingleton(
+    () => GetTransactionsByAccountUseCase(sl<TransactionRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => GetTransactionsByBudgetUseCase(sl<TransactionRepository>()),
+  );
   
   // Notification use cases
-  getIt.registerLazySingleton(() => RegisterDeviceUseCase(getIt()));
-  getIt.registerLazySingleton(() => SetupNotificationListenersUseCase(getIt()));
-  getIt.registerLazySingleton(() => SendAppStateChangeNotificationUseCase(getIt()));
+  sl.registerLazySingleton(() => RegisterDeviceUseCase(sl()));
+  sl.registerLazySingleton(() => SetupNotificationListenersUseCase(sl()));
+  sl.registerLazySingleton(() => SendAppStateChangeNotificationUseCase(sl()));
 
   // BLoCs
-  getIt.registerFactory<AuthBloc>(
+  sl.registerFactory<AuthBloc>(
     () => AuthBloc(
-      getCurrentUser: getIt(),
-      signIn: getIt(),
-      signUp: getIt(),
-      signOut: getIt(),
-      resetPassword: getIt(),
-      resendVerificationEmail: getIt(),
-      isEmailVerified: getIt(),
-      checkEmailExists: getIt(),
+      getCurrentUser: sl(),
+      signIn: sl(),
+      signUp: sl(),
+      signOut: sl(),
+      resetPassword: sl(),
+      resendVerificationEmail: sl(),
+      isEmailVerified: sl(),
+      checkEmailExists: sl(),
     ),
   );
 
-  getIt.registerFactory<HomeBloc>(
-    () =>
-        HomeBloc(getAccountsUseCase: getIt(), getTransactionsUseCase: getIt()),
+  sl.registerFactory<HomeBloc>(
+    () => HomeBloc(getAccountsUseCase: sl(), getTransactionsUseCase: sl()),
   );
 
-  getIt.registerFactory<TransactionsBloc>(
+  sl.registerFactory<AccountBloc>(
+    () => AccountBloc(
+      getAccounts: sl(),
+      getAccountById: sl(),
+      addAccount: sl(),
+      updateAccount: sl(),
+      deleteAccount: sl(),
+      recalculateAccountBalance: sl(),
+      updateAccountBalance: sl(),
+    ),
+  );
+
+  sl.registerFactory<TransactionsBloc>(
     () => TransactionsBloc(
-      getTransactionsUseCase: getIt(),
-      getTransactionsByTypeUseCase: getIt(),
-      getTransactionsByDateRangeUseCase: getIt(),
-      addTransactionUseCase: getIt(),
-      updateTransactionUseCase: getIt(),
-      deleteTransactionUseCase: getIt(),
+      getTransactionsUseCase: sl(),
+      getTransactionsByTypeUseCase: sl(),
+      getTransactionsByDateRangeUseCase: sl(),
+      addTransactionUseCase: sl(),
+      updateTransactionUseCase: sl(),
+      deleteTransactionUseCase: sl(),
     ),
   );
 
-  getIt.registerFactory<BudgetsBloc>(
-    () => BudgetsBloc(getBudgetsUseCase: getIt()),
+  sl.registerFactory<TransactionBloc>(
+    () => TransactionBloc(
+      getTransactions: sl<GetTransactionsUseCase>(),
+      getTransactionById: sl<GetTransactionByIdUseCase>(),
+      createTransaction: sl<AddTransactionUseCase>(),
+      updateTransaction: sl<UpdateTransactionUseCase>(),
+      deleteTransaction: sl<DeleteTransactionUseCase>(),
+      getTransactionsByAccount: sl<GetTransactionsByAccountUseCase>(),
+      getTransactionsByBudget: sl<GetTransactionsByBudgetUseCase>(),
+    ),
   );
 
-  getIt.registerFactory<CategoriesBloc>(
-    () => CategoriesBloc(
-      getCategoriesUseCase: getIt(),
-      createCategoryUseCase: getIt(),
+  sl.registerFactory<BudgetsBloc>(
+    () => BudgetsBloc(
+      getBudgetsUseCase: sl(),
+      getActiveBudgetsUseCase: sl(),
+      addBudgetUseCase: sl(),
+      updateBudgetUseCase: sl(),
+      deleteBudgetUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory<CategoriesBloc>(
+    () =>
+        CategoriesBloc(getCategoriesUseCase: sl(), createCategoryUseCase: sl()),
+  );
+
+  // Groups Feature
+  sl.registerLazySingleton<GroupRemoteDataSource>(
+    () =>
+        GroupRemoteDataSourceImpl(supabase: sl<SupabaseClientManager>().client),
+  );
+
+  sl.registerLazySingleton<GroupRepository>(
+    () => GroupRepositoryImpl(dataSource: sl()),
+  );
+
+  // Group usecases
+  sl.registerLazySingleton(() => GetGroups(repository: sl()));
+  sl.registerLazySingleton(() => get_group.GetGroupById(repository: sl()));
+  sl.registerLazySingleton(() => CreateGroup(repository: sl()));
+  sl.registerLazySingleton(() => AddMember(repository: sl()));
+  sl.registerLazySingleton(() => calc.CalculateDebts(repository: sl()));
+  sl.registerLazySingleton(() => settle.SettleGroup(repository: sl()));
+  sl.registerLazySingleton(() => AddGroupExpense(repository: sl()));
+  sl.registerLazySingleton(() => GetGroupTransactions(repository: sl()));
+  sl.registerLazySingleton(() => ApproveGroupTransaction(repository: sl()));
+  sl.registerLazySingleton(() => get_members.GetGroupMembers(repository: sl()));
+
+  // Group Bloc
+  sl.registerFactory<GroupBloc>(
+    () => GroupBloc(
+      getGroups: sl(),
+      getGroupById: sl(),
+      createGroup: sl(),
+      addMember: sl(),
+      calculateDebts: sl(),
+      settleGroup: sl(),
+      addGroupExpense: sl(),
+      getGroupTransactions: sl(),
+      approveGroupTransaction: sl(),
+      getGroupMembers: sl(),
+    ),
+  );
+
+  // Settings
+  sl.registerLazySingleton<SettingsRepository>(
+    () => SettingsRepositoryImpl(
+      supabaseClient: sl(),
+      preferences: sharedPreferences,
+    ),
+  );
+
+  // Register settings use cases
+  sl.registerLazySingleton(() => GetAppSettings(sl<SettingsRepository>()));
+  sl.registerLazySingleton(() => SaveAppSettings(sl<SettingsRepository>()));
+  sl.registerLazySingleton(() => GetUserProfile(sl<SettingsRepository>()));
+  sl.registerLazySingleton(() => UpdateUserProfile(sl<SettingsRepository>()));
+  sl.registerLazySingleton(() => ChangePassword(sl<SettingsRepository>()));
+  sl.registerLazySingleton(() => UploadAvatar(sl<SettingsRepository>()));
+
+  sl.registerFactory<SettingsBloc>(
+    () => SettingsBloc(
+      getAppSettings: sl(),
+      saveAppSettings: sl(),
+      getUserProfile: sl(),
+      updateUserProfile: sl(),
+      changePassword: sl(),
+      uploadAvatar: sl(),
     ),
   );
   
   // Notification Bloc
-  getIt.registerFactory<NotificationBloc>(
+  sl.registerFactory<NotificationBloc>(
     () => NotificationBloc(
-      registerDeviceUseCase: getIt(),
-      setupNotificationListenersUseCase: getIt(),
-      sendAppStateChangeNotificationUseCase: getIt(),
+      registerDeviceUseCase: sl(),
+      setupNotificationListenersUseCase: sl(),
+      sendAppStateChangeNotificationUseCase: sl(),
     ),
   );
   
   // App Lifecycle Service
-  getIt.registerLazySingleton<AppLifecycleService>(
-    () => AppLifecycleService(notificationBloc: getIt()),
+  sl.registerLazySingleton<AppLifecycleService>(
+    () => AppLifecycleService(notificationBloc: sl()),
   );
 }
