@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/account/data/datasources/account_remote_data_source.dart';
@@ -15,6 +16,7 @@ import 'package:monie/features/account/domain/usecases/update_account_balance_us
 import 'package:monie/features/account/domain/usecases/update_account_usecase.dart'
     as account_update_account_usecase;
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/core/services/app_lifecycle_service.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
 import 'package:monie/features/authentication/domain/repositories/auth_repository.dart';
@@ -76,10 +78,19 @@ import 'package:monie/features/transactions/domain/usecases/get_transactions_by_
 import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
 import 'package:monie/features/transactions/domain/usecases/update_transaction_usecase.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
+import 'package:monie/features/notifications/data/datasources/notification_local_data_source.dart';
+import 'package:monie/features/notifications/data/datasources/notification_remote_data_source.dart';
+import 'package:monie/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:monie/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:monie/features/notifications/domain/usecases/register_device_usecase.dart';
+import 'package:monie/features/notifications/domain/usecases/send_app_state_change_notification_usecase.dart';
+import 'package:monie/features/notifications/domain/usecases/setup_notification_listeners_usecase.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../features/transactions/data/repositories/category_repository_impl.dart';
 import '../features/transactions/domain/repositories/category_repository.dart';
 import 'package:monie/features/groups/domain/usecases/add_group_expense.dart';
@@ -100,6 +111,15 @@ Future<void> configureDependencies() async {
 
   // External
   sl.registerSingleton<SupabaseClientManager>(SupabaseClientManager.instance);
+  
+  // Shared Preferences
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerSingleton<SharedPreferences>(sharedPreferences);
+  
+  // Firebase Messaging and Local Notifications
+  sl.registerLazySingleton(() => FirebaseMessaging.instance);
+  sl.registerLazySingleton(() => FlutterLocalNotificationsPlugin());
+  sl.registerLazySingleton(() => http.Client());
 
   // Authentication
   sl.registerLazySingleton<AuthRemoteDataSource>(
@@ -148,6 +168,25 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<CategoryRepository>(
     () => CategoryRepositoryImpl(sl<SupabaseClientManager>()),
   );
+  
+  // Notification repositories and data sources
+  sl.registerLazySingleton<NotificationLocalDataSource>(
+    () => NotificationLocalDataSourceImpl(sharedPreferences: sl()),
+  );
+  sl.registerLazySingleton<NotificationRemoteDataSource>(
+    () => NotificationRemoteDataSourceImpl(
+      firebaseMessaging: sl(),
+      flutterLocalNotificationsPlugin: sl(),
+      client: sl(),
+      baseUrl: 'http://localhost:4000', // Local server URL
+    ),
+  );
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(
+      remoteDataSource: sl(),
+      localDataSource: sl(),
+    ),
+  );
 
   // Use cases
   sl.registerLazySingleton(() => GetAccountsUseCase(sl()));
@@ -195,6 +234,11 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(
     () => GetTransactionsByBudgetUseCase(sl<TransactionRepository>()),
   );
+  
+  // Notification use cases
+  sl.registerLazySingleton(() => RegisterDeviceUseCase(sl()));
+  sl.registerLazySingleton(() => SetupNotificationListenersUseCase(sl()));
+  sl.registerLazySingleton(() => SendAppStateChangeNotificationUseCase(sl()));
 
   // BLoCs
   sl.registerFactory<AuthBloc>(
@@ -303,7 +347,6 @@ Future<void> configureDependencies() async {
   );
 
   // Settings
-  final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton<SettingsRepository>(
     () => SettingsRepositoryImpl(
       supabaseClient: sl(),
@@ -328,5 +371,19 @@ Future<void> configureDependencies() async {
       changePassword: sl(),
       uploadAvatar: sl(),
     ),
+  );
+  
+  // Notification Bloc
+  sl.registerFactory<NotificationBloc>(
+    () => NotificationBloc(
+      registerDeviceUseCase: sl(),
+      setupNotificationListenersUseCase: sl(),
+      sendAppStateChangeNotificationUseCase: sl(),
+    ),
+  );
+  
+  // App Lifecycle Service
+  sl.registerLazySingleton<AppLifecycleService>(
+    () => AppLifecycleService(notificationBloc: sl()),
   );
 }

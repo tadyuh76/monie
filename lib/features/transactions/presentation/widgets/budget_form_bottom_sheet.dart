@@ -83,241 +83,243 @@ class _BudgetFormBottomSheetState extends State<BudgetFormBottomSheet> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with title and close button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _isEditing
-                        ? context.tr('budget_edit')
-                        : context.tr('budget_new'),
-                    style: textTheme.titleLarge?.copyWith(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Budget name field
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: context.tr('budget_name'),
-                  hintText: context.tr('budget_name_hint'),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  prefixIcon: const Icon(Icons.assignment),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return context.tr('budget_name_required');
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Budget amount field
-              TextFormField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: context.tr('budget_amount'),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  prefixIcon: const Icon(Icons.attach_money),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return context.tr('budget_amount_required');
-                  }
-                  final amount = double.tryParse(value);
-                  if (amount == null) {
-                    return context.tr('budget_amount_valid');
-                  }
-                  if (amount <= 0) {
-                    return context.tr('budget_amount_positive');
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Date range selection
-              // Text(
-              //   context.tr('budget_date_range'),
-              //   style: textTheme.titleMedium?.copyWith(
-              //     color: isDarkMode ? Colors.white : Colors.black87,
-              //   ),
-              // ),
-              // const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _selectDate(context, true),
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: context.tr('budgets_start_date'),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        child: Text(DateFormat.yMd().format(_startDate)),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with title and close button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _isEditing
+                          ? context.tr('budget_edit')
+                          : context.tr('budget_new'),
+                      style: textTheme.titleLarge?.copyWith(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _selectDate(context, false),
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: context.tr('budgets_end_date'),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        child: Text(
-                          _endDate != null
-                              ? DateFormat.yMd().format(_endDate!)
-                              : '-',
-                        ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.close,
+                        color: isDarkMode ? Colors.white : Colors.black87,
                       ),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Options section
-              Text(
-                context.tr('budget_options'),
-                style: textTheme.titleMedium?.copyWith(
-                  color: isDarkMode ? Colors.white : Colors.black87,
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 16),
 
-              // Recurring switch
-              SwitchListTile(
-                title: Text(context.tr('budget_recurring')),
-                subtitle: Text(context.tr('budget_recurring_description')),
-                value: _isRecurring,
-                activeColor: AppColors.primary,
-                contentPadding: EdgeInsets.zero,
-                onChanged: (value) {
-                  setState(() {
-                    _isRecurring = value;
-                  });
-                },
-              ),
-
-              // Frequency dropdown (only if recurring)
-              if (_isRecurring)
-                DropdownButtonFormField<String>(
-                  value: _frequency,
+                // Budget name field
+                TextFormField(
+                  controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: context.tr('budget_frequency'),
+                    labelText: context.tr('budget_name'),
+                    hintText: context.tr('budget_name_hint'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    prefixIcon: const Icon(Icons.assignment),
                   ),
-                  items: [
-                    DropdownMenuItem(
-                      value: 'daily',
-                      child: Text(context.tr('budget_daily')),
-                    ),
-                    DropdownMenuItem(
-                      value: 'weekly',
-                      child: Text(context.tr('budget_weekly')),
-                    ),
-                    DropdownMenuItem(
-                      value: 'monthly',
-                      child: Text(context.tr('budget_monthly')),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _frequency = value;
-                      });
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return context.tr('budget_name_required');
                     }
+                    return null;
                   },
                 ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Color selection
-              Text(
-                context.tr('budget_color'),
-                style: textTheme.titleMedium?.copyWith(
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 50,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _buildColorOption('blue', Colors.blue),
-                    _buildColorOption('green', Colors.green),
-                    _buildColorOption('purple', Colors.purple),
-                    _buildColorOption('orange', Colors.orange),
-                    _buildColorOption('red', Colors.red),
-                    _buildColorOption('teal', Colors.teal),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Submit button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
+                // Budget amount field
+                TextFormField(
+                  controller: _amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: context.tr('budget_amount'),
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    prefixIcon: const Icon(Icons.attach_money),
                   ),
-                  child: Text(
-                    _isEditing
-                        ? context.tr('common_save')
-                        : context.tr('budget_create'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return context.tr('budget_amount_required');
+                    }
+                    final amount = double.tryParse(value);
+                    if (amount == null) {
+                      return context.tr('budget_amount_valid');
+                    }
+                    if (amount <= 0) {
+                      return context.tr('budget_amount_positive');
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Date range selection
+                // Text(
+                //   context.tr('budget_date_range'),
+                //   style: textTheme.titleMedium?.copyWith(
+                //     color: isDarkMode ? Colors.white : Colors.black87,
+                //   ),
+                // ),
+                // const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _selectDate(context, true),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: context.tr('budgets_start_date'),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                          child: Text(DateFormat.yMd().format(_startDate)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _selectDate(context, false),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: context.tr('budgets_end_date'),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                          child: Text(
+                            _endDate != null
+                                ? DateFormat.yMd().format(_endDate!)
+                                : '-',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Options section
+                Text(
+                  context.tr('budget_options'),
+                  style: textTheme.titleMedium?.copyWith(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Recurring switch
+                SwitchListTile(
+                  title: Text(context.tr('budget_recurring')),
+                  subtitle: Text(context.tr('budget_recurring_description')),
+                  value: _isRecurring,
+                  activeColor: AppColors.primary,
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (value) {
+                    setState(() {
+                      _isRecurring = value;
+                    });
+                  },
+                ),
+
+                // Frequency dropdown (only if recurring)
+                if (_isRecurring)
+                  DropdownButtonFormField<String>(
+                    value: _frequency,
+                    decoration: InputDecoration(
+                      labelText: context.tr('budget_frequency'),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'daily',
+                        child: Text(context.tr('budget_daily')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'weekly',
+                        child: Text(context.tr('budget_weekly')),
+                      ),
+                      DropdownMenuItem(
+                        value: 'monthly',
+                        child: Text(context.tr('budget_monthly')),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _frequency = value;
+                        });
+                      }
+                    },
+                  ),
+                const SizedBox(height: 16),
+
+                // Color selection
+                Text(
+                  context.tr('budget_color'),
+                  style: textTheme.titleMedium?.copyWith(
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 50,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _buildColorOption('blue', Colors.blue),
+                      _buildColorOption('green', Colors.green),
+                      _buildColorOption('purple', Colors.purple),
+                      _buildColorOption('orange', Colors.orange),
+                      _buildColorOption('red', Colors.red),
+                      _buildColorOption('teal', Colors.teal),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Submit button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _submitForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      _isEditing
+                          ? context.tr('common_save')
+                          : context.tr('budget_create'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

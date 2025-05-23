@@ -619,20 +619,24 @@ class _HomePageState extends State<HomePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  context.tr('home_no_accounts'),
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white70 : Colors.black87,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                Flexible(
+                  child: Text(
+                    context.tr('home_no_accounts'),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black87,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  context.tr('home_no_accounts_desc'),
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white54 : Colors.black54,
-                    fontSize: 14,
+                Flexible(
+                  child: Text(
+                    context.tr('home_no_accounts_desc'),
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white54 : Colors.black54,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ],
