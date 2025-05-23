@@ -10,12 +10,14 @@ class CategoryPieChart extends StatelessWidget {
   final bool isExpense;
   final double totalAmount;
   final List<Map<String, dynamic>> categories;
+  final bool isDarkMode;
 
   const CategoryPieChart({
     super.key,
     required this.isExpense,
     required this.totalAmount,
     required this.categories,
+    this.isDarkMode = true,
   });
 
   @override
@@ -57,13 +59,16 @@ class CategoryPieChart extends StatelessWidget {
           children: [
             Icon(
               isExpense ? Icons.money_off : Icons.account_balance_wallet,
-              color: Colors.white54,
+              color: isDarkMode ? Colors.white54 : Colors.black45,
               size: 48,
             ),
             const SizedBox(height: 16),
             Text(
               'No $titleText data available',
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+                fontSize: 16
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -111,8 +116,8 @@ class CategoryPieChart extends StatelessWidget {
           children: [
             Text(
               titleText,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black87,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -158,7 +163,10 @@ class CategoryPieChart extends StatelessWidget {
               decoration: BoxDecoration(
                 color: validCategories[index]['color'],
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.cardDark, width: 2),
+                border: Border.all(
+                  color: isDarkMode ? AppColors.cardDark : Colors.white,
+                  width: 2
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.2),
@@ -183,7 +191,9 @@ class CategoryPieChart extends StatelessWidget {
           right: 0,
           child: Container(
             height: 36,
-            color: AppColors.background.withValues(alpha: 0.7),
+            color: (isDarkMode 
+                ? AppColors.background 
+                : Colors.grey[100]!).withValues(alpha: 0.7),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: validCategories.length,
@@ -209,8 +219,8 @@ class CategoryPieChart extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${validCategories[index]['name']} (${percentage.round()}%)',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black87,
                           fontSize: 10,
                         ),
                       ),

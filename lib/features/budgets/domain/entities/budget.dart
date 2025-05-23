@@ -1,47 +1,110 @@
 import 'package:equatable/equatable.dart';
 
 class Budget extends Equatable {
-  final String id;
+  final String budgetId;
+  final String userId;
   final String name;
-  final double totalAmount;
-  final double spentAmount;
-  final double remainingAmount;
-  final String currency;
+  final double amount;
   final DateTime startDate;
-  final DateTime endDate;
-  final String? category;
-  final double progressPercentage;
-  final double dailySavingTarget;
-  final int daysRemaining;
+  final DateTime? endDate;
+  final bool isRecurring;
+  final bool isSaving; // When true, this is an income budget
+  final String? frequency;
+  final String? color;
+  final double?
+  spent; // Calculated field for the amount spent against this budget
 
   const Budget({
-    required this.id,
+    required this.budgetId,
+    required this.userId,
     required this.name,
-    required this.totalAmount,
-    required this.spentAmount,
-    required this.remainingAmount,
-    required this.currency,
+    required this.amount,
     required this.startDate,
-    required this.endDate,
-    this.category,
-    required this.progressPercentage,
-    required this.dailySavingTarget,
-    required this.daysRemaining,
+    this.endDate,
+    this.isRecurring = false,
+    this.isSaving = false, // Default to expense (not saving)
+    this.frequency,
+    this.color,
+    this.spent,
   });
 
   @override
   List<Object?> get props => [
-    id,
+    budgetId,
+    userId,
     name,
-    totalAmount,
-    spentAmount,
-    remainingAmount,
-    currency,
+    amount,
     startDate,
     endDate,
-    category,
-    progressPercentage,
-    dailySavingTarget,
-    daysRemaining,
+    isRecurring,
+    isSaving,
+    frequency,
+    color,
+    spent,
   ];
+
+  Budget copyWith({
+    String? budgetId,
+    String? userId,
+    String? name,
+    double? amount,
+    DateTime? startDate,
+    DateTime? endDate,
+    bool? isRecurring,
+    bool? isSaving,
+    String? frequency,
+    String? color,
+    double? spent,
+  }) {
+    return Budget(
+      budgetId: budgetId ?? this.budgetId,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      amount: amount ?? this.amount,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      isRecurring: isRecurring ?? this.isRecurring,
+      isSaving: isSaving ?? this.isSaving,
+      frequency: frequency ?? this.frequency,
+      color: color ?? this.color,
+      spent: spent ?? this.spent,
+    );
+  }
+
+  // Helper method to calculate remaining amount
+  double get remainingAmount {
+    final spentAmount = spent ?? 0;
+    return amount - spentAmount;
+  }
+
+  // Helper method to get spent amount
+  double get spentAmount => spent ?? 0;
+
+  // Helper to format spent amount for display
+  String get formattedSpentAmount => '\$${spentAmount.toStringAsFixed(2)}';
+
+  // Helper to format remaining amount for display
+  String get formattedRemainingAmount =>
+      '\$${remainingAmount.toStringAsFixed(2)}';
+
+  // Helper to format total amount for display
+  String get formattedAmount => '\$${amount.toStringAsFixed(2)}';
+
+  // Convenience getter for legacy code compatibility
+  double get remaining => remainingAmount;
+
+  // Helper to calculate progress percentage (0.0 to 1.0)
+  double get progressPercentage {
+    if (amount <= 0) return 0;
+    return (spentAmount / amount).clamp(0.0, 1.0);
+  }
+
+  // Check if budget is over limit
+  bool get isOverLimit => progressPercentage >= 1.0;
+
+  // Convenience method to check if this is an income budget
+  bool get isIncome => isSaving;
+
+  // Convenience method to check if this is an expense budget
+  bool get isExpense => !isSaving;
 }

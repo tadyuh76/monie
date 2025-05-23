@@ -5,24 +5,42 @@ import 'package:monie/core/themes/category_colors.dart';
 class CategoryIcons {
   // Get the icon path for a given category
   static String getIconPath(String categoryName) {
-    final String normalizedName = categoryName.toLowerCase().trim();
+    // Convert display name to SVG name format
+    final String svgName = convertToSvgName(categoryName);
 
     // Check if it's an income or expense category
-    if (incomeCategories.contains(normalizedName)) {
-      return 'assets/icons/income/$normalizedName.svg';
+    if (incomeCategories.contains(svgName)) {
+      return 'assets/icons/income/$svgName.svg';
     } else {
-      return 'assets/icons/expense/$normalizedName.svg';
+      return 'assets/icons/expense/$svgName.svg';
     }
+  }
+
+  // Helper method to convert display name to SVG name
+  static String convertToSvgName(String displayName) {
+    // First check if the name is already in the correct format
+    final String normalized = displayName.toLowerCase().trim();
+
+    if (incomeCategories.contains(normalized) ||
+        expenseCategories.contains(normalized)) {
+      return normalized;
+    }
+
+    // If not found in our categories, convert it to snake_case
+    return normalized
+        .replaceAll(RegExp(r'[^\w\s]'), '') // Remove special chars
+        .replaceAll(RegExp(r'\s+'), '_'); // Replace spaces with underscores
   }
 
   // Get the color for a given category
   static Color getColor(String categoryName) {
-    final String normalizedName = categoryName.toLowerCase().trim();
-    return CategoryColorHelper.getColorForCategory(normalizedName);
+    final String svgName = convertToSvgName(categoryName);
+    return CategoryColorHelper.getColorForCategory(svgName);
   }
 
   // List of income categories - exactly as specified
   static const List<String> incomeCategories = [
+    'account_adjustment',
     'allowance',
     'commission',
     'family_support',
@@ -34,6 +52,7 @@ class CategoryIcons {
 
   // List of expense categories - exactly as specified
   static const List<String> expenseCategories = [
+    'account_adjustment',
     'bills',
     'debt',
     'dining',
@@ -68,6 +87,8 @@ class CategoryColorHelper {
   // Map of category names to their respective colors
   static final Map<String, Color> categoryColorMap = {
     // Expense categories
+    'account_adjustment':
+        CategoryColors.red, // This will be for expense (withdrawal)
     'bills': CategoryColors.blue,
     'debt': CategoryColors.green,
     'dining': CategoryColors.coolGrey,
@@ -95,7 +116,7 @@ class CategoryColorHelper {
     'transport': CategoryColors.teal,
     'travel': CategoryColors.blue,
 
-    // Income categories
+    // Income categories (removing duplicate account_adjustment)
     'salary': CategoryColors.blue,
     'scholarship': CategoryColors.orange,
     'insurance_payout': CategoryColors.green,
@@ -106,14 +127,20 @@ class CategoryColorHelper {
   };
 
   // Get the color for a specific category
-  static Color getColorForCategory(String categoryName) {
+  static Color getColorForCategory(String categoryName, {bool? isIncome}) {
     final String normalizedName = categoryName.toLowerCase().trim();
+
+    // Special handling for account_adjustment based on transaction type
+    if (normalizedName == 'account_adjustment' && isIncome == true) {
+      return CategoryColors.green; // Deposit (income)
+    }
+
     return categoryColorMap[normalizedName] ?? CategoryColors.coolGrey;
   }
 
   // Get the color in hex format for a specific category
-  static String getHexColorForCategory(String categoryName) {
-    final Color color = getColorForCategory(categoryName);
+  static String getHexColorForCategory(String categoryName, {bool? isIncome}) {
+    final Color color = getColorForCategory(categoryName, isIncome: isIncome);
     return CategoryColors.toHex(color);
   }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
-import 'package:monie/features/home/domain/entities/account.dart';
-import 'package:monie/features/home/domain/usecases/get_accounts_usecase.dart';
+import 'package:monie/features/account/domain/entities/account.dart';
+import 'package:monie/features/account/domain/usecases/get_accounts_usecase.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/domain/usecases/get_transactions_usecase.dart';
 
@@ -15,7 +15,11 @@ abstract class HomeEvent extends Equatable {
 }
 
 class LoadHomeData extends HomeEvent {
-  const LoadHomeData();
+  final String userId;
+  const LoadHomeData(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
 }
 
 // States
@@ -74,13 +78,15 @@ class HomeError extends HomeState {
 // Bloc
 @injectable
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
-  final GetAccountsUseCase getAccountsUseCase;
-  final GetTransactionsUseCase getTransactionsUseCase;
+  final GetAccountsUseCase _getAccountsUseCase;
+  final GetTransactionsUseCase _getTransactionsUseCase;
 
   HomeBloc({
-    required this.getAccountsUseCase,
-    required this.getTransactionsUseCase,
-  }) : super(const HomeInitial()) {
+    required GetAccountsUseCase getAccountsUseCase,
+    required GetTransactionsUseCase getTransactionsUseCase,
+  }) : _getAccountsUseCase = getAccountsUseCase,
+       _getTransactionsUseCase = getTransactionsUseCase,
+       super(const HomeInitial()) {
     on<LoadHomeData>(_onLoadHomeData);
   }
 
@@ -91,13 +97,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     emit(const HomeLoading());
 
     try {
-      final accounts = await getAccountsUseCase();
-      final transactions = await getTransactionsUseCase();
+      final accounts = await _getAccountsUseCase(event.userId);
+      final transactions = await _getTransactionsUseCase(event.userId);
 
       // Calculate totals
       final totalBalance = accounts.fold<double>(
         0,
-        (sum, account) => sum + account.balance,
+        (sum, account) => sum + (account.balance),
       );
 
       // Calculate totals with updated transaction model

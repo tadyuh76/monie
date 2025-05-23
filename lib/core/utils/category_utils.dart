@@ -21,6 +21,39 @@ class CategoryUtils {
     return TransactionCategories.incomeCategories;
   }
 
+  // Convert category display name to SVG name
+  // Example: 'Account Adjustment' -> 'account_adjustment'
+  static String getCategorySvgName(String displayName) {
+    // First check if the name is already in the correct format
+    if (CategoryIcons.incomeCategories.contains(
+          displayName.toLowerCase().trim(),
+        ) ||
+        CategoryIcons.expenseCategories.contains(
+          displayName.toLowerCase().trim(),
+        )) {
+      return displayName.toLowerCase().trim();
+    }
+
+    // Check if it's a display name in our categories
+    final category = categories.firstWhere(
+      (c) =>
+          c['name'].toString().toLowerCase() ==
+          displayName.toLowerCase().trim(),
+      orElse: () => {'svgName': null},
+    );
+
+    if (category['svgName'] != null) {
+      return category['svgName'] as String;
+    }
+
+    // If not found in our categories, convert it to snake_case
+    return displayName
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '') // Remove special chars
+        .trim()
+        .replaceAll(RegExp(r'\s+'), '_'); // Replace spaces with underscores
+  }
+
   // Get icon for a category name
   static IconData getCategoryIcon(String categoryName) {
     final category = categories.firstWhere(
@@ -31,38 +64,46 @@ class CategoryUtils {
   }
 
   // Get color for a category name or svgName
-  static Color getCategoryColor(String categoryIdentifier) {
-    // Check if it's a svgName first
-    String normalizedIdentifier = categoryIdentifier.toLowerCase().trim();
+  static Color getCategoryColor(String categoryIdentifier, {bool? isIncome}) {
+    // Convert to SVG name format first
+    String svgName = getCategorySvgName(categoryIdentifier);
 
     // Try to find directly in category color helper
     Color? color = CategoryColorHelper.getColorForCategory(
-      normalizedIdentifier,
+      svgName,
+      isIncome: isIncome,
     );
 
-    // If not found, it might be a display name, try to get svgName first
+    // If we got the default color, try finding the svgName through TransactionCategories
     if (color == CategoryColors.coolGrey) {
-      String svgName = TransactionCategories.getSvgNameForCategory(
-        normalizedIdentifier,
+      svgName = TransactionCategories.getSvgNameForCategory(categoryIdentifier);
+      color = CategoryColorHelper.getColorForCategory(
+        svgName,
+        isIncome: isIncome,
       );
-      color = CategoryColorHelper.getColorForCategory(svgName);
     }
 
     return color;
   }
 
   // Get category color hex from category name
-  static String getCategoryColorHex(String categoryName) {
-    // First try directly with the categoryName as a svgName
-    String normalizedName = categoryName.toLowerCase().trim();
-    String result = CategoryColorHelper.getHexColorForCategory(normalizedName);
+  static String getCategoryColorHex(String categoryName, {bool? isIncome}) {
+    // Convert to SVG name format first
+    String svgName = getCategorySvgName(categoryName);
 
-    // If we got the default color, try finding the svgName first
+    // Try with the SVG name
+    String result = CategoryColorHelper.getHexColorForCategory(
+      svgName,
+      isIncome: isIncome,
+    );
+
+    // If we got the default color, try finding the svgName through TransactionCategories
     if (result == CategoryColors.toHex(CategoryColors.coolGrey)) {
-      String svgName = TransactionCategories.getSvgNameForCategory(
-        normalizedName,
+      svgName = TransactionCategories.getSvgNameForCategory(categoryName);
+      result = CategoryColorHelper.getHexColorForCategory(
+        svgName,
+        isIncome: isIncome,
       );
-      result = CategoryColorHelper.getHexColorForCategory(svgName);
     }
 
     return result;

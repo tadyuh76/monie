@@ -12,47 +12,67 @@ class TransactionRepositoryImpl implements TransactionRepository {
   TransactionRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<List<Transaction>> getTransactions() async {
+  Future<List<Transaction>> getTransactions(String userId) async {
     try {
-      return await remoteDataSource.getTransactions();
+      return await remoteDataSource.getTransactions(userId);
     } on ServerException catch (e) {
       throw Exception('Failed to get transactions: ${e.message}');
     }
   }
 
   @override
-  Future<Transaction> getTransactionById(String id) async {
+  Future<Transaction?> getTransactionById(String transactionId) async {
     try {
-      return await remoteDataSource.getTransactionById(id);
+      return await remoteDataSource.getTransactionById(transactionId);
     } on ServerException catch (e) {
       throw Exception('Failed to get transaction by ID: ${e.message}');
     }
   }
 
   @override
-  Future<List<Transaction>> getTransactionsByType(String type) async {
+  Future<List<Transaction>> getTransactionsByAccount(String accountId) async {
     try {
-      return await remoteDataSource.getTransactionsByType(type);
-    } on ServerException catch (e) {
-      throw Exception('Failed to get transactions by type: ${e.message}');
-    }
-  }
-
-  @override
-  Future<List<Transaction>> getTransactionsByAccountId(String accountId) async {
-    try {
-      return await remoteDataSource.getTransactionsByAccountId(accountId);
+      return await remoteDataSource.getTransactionsByAccount(accountId);
     } on ServerException catch (e) {
       throw Exception('Failed to get transactions by account ID: ${e.message}');
     }
   }
 
   @override
-  Future<List<Transaction>> getTransactionsByBudgetId(String budgetId) async {
+  Future<List<Transaction>> getTransactionsByBudget(String budgetId) async {
     try {
-      return await remoteDataSource.getTransactionsByBudgetId(budgetId);
+      return await remoteDataSource.getTransactionsByBudget(budgetId);
     } on ServerException catch (e) {
       throw Exception('Failed to get transactions by budget ID: ${e.message}');
+    }
+  }
+
+  @override
+  Future<Transaction> createTransaction(Transaction transaction) async {
+    try {
+      final transactionModel = TransactionModel.fromEntity(transaction);
+      return await remoteDataSource.createTransaction(transactionModel);
+    } on ServerException catch (e) {
+      throw Exception('Failed to create transaction: ${e.message}');
+    }
+  }
+
+  @override
+  Future<Transaction> updateTransaction(Transaction transaction) async {
+    try {
+      final transactionModel = TransactionModel.fromEntity(transaction);
+      return await remoteDataSource.updateTransaction(transactionModel);
+    } on ServerException catch (e) {
+      throw Exception('Failed to update transaction: ${e.message}');
+    }
+  }
+
+  @override
+  Future<bool> deleteTransaction(String transactionId) async {
+    try {
+      return await remoteDataSource.deleteTransaction(transactionId);
+    } on ServerException catch (e) {
+      throw Exception('Failed to delete transaction: ${e.message}');
     }
   }
 
@@ -72,31 +92,14 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }
 
   @override
-  Future<void> addTransaction(Transaction transaction) async {
+  Future<List<Transaction>> getTransactionsByType(
+    String userId,
+    String type,
+  ) async {
     try {
-      final transactionModel = TransactionModel.fromEntity(transaction);
-      await remoteDataSource.addTransaction(transactionModel);
+      return await remoteDataSource.getTransactionsByType(userId, type);
     } on ServerException catch (e) {
-      throw Exception('Failed to add transaction: ${e.message}');
-    }
-  }
-
-  @override
-  Future<void> updateTransaction(Transaction transaction) async {
-    try {
-      final transactionModel = TransactionModel.fromEntity(transaction);
-      await remoteDataSource.updateTransaction(transactionModel);
-    } on ServerException catch (e) {
-      throw Exception('Failed to update transaction: ${e.message}');
-    }
-  }
-
-  @override
-  Future<void> deleteTransaction(String id) async {
-    try {
-      await remoteDataSource.deleteTransaction(id);
-    } on ServerException catch (e) {
-      throw Exception('Failed to delete transaction: ${e.message}');
+      throw Exception('Failed to get transactions by type: ${e.message}');
     }
   }
 }

@@ -19,13 +19,19 @@ abstract class TransactionsEvent extends Equatable {
 }
 
 class LoadTransactions extends TransactionsEvent {
-  const LoadTransactions();
+  final String userId;
+
+  const LoadTransactions({required this.userId});
+
+  @override
+  List<Object?> get props => [userId];
 }
 
 class FilterTransactionsByType extends TransactionsEvent {
+  final String userId;
   final String? type;
 
-  const FilterTransactionsByType(this.type);
+  const FilterTransactionsByType({required this.userId, this.type});
 
   @override
   List<Object?> get props => [type];
@@ -201,7 +207,7 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
     emit(const TransactionsLoading());
 
     try {
-      _allTransactions = await getTransactionsUseCase();
+      _allTransactions = await getTransactionsUseCase(event.userId);
       _emitLoadedState(emit);
     } catch (e) {
       emit(TransactionsError(e.toString()));
@@ -217,10 +223,13 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
     try {
       if (event.type != null) {
         _activeFilter = event.type;
-        _allTransactions = await getTransactionsByTypeUseCase(event.type!);
+        _allTransactions = await getTransactionsByTypeUseCase(
+          event.userId,
+          event.type!,
+        );
       } else {
         _activeFilter = null;
-        _allTransactions = await getTransactionsUseCase();
+        _allTransactions = await getTransactionsUseCase(event.userId);
       }
       _emitLoadedState(emit);
     } catch (e) {
@@ -261,7 +270,6 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
     AddNewTransaction event,
     Emitter<TransactionsState> emit,
   ) async {
-    // Immediately emit loading state so UI shows progress
     emit(const TransactionActionInProgress());
 
     try {
@@ -269,53 +277,30 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
       final String transactionId = const Uuid().v4();
 
       final transaction = Transaction(
-        id: transactionId,
-        amount: event.amount,
+        transactionId: transactionId,
+        amount:
+            event.isIncome
+                ? event.amount
+                : -event.amount, // Convert to negative for expenses
         date: event.date,
         description: event.description,
         title: event.title,
         userId: event.userId,
         categoryName: event.categoryName,
-        categoryColor: event.categoryColor,
+        color: event.categoryColor,
         accountId: event.accountId,
         budgetId: event.budgetId,
         isRecurring: false,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
       );
 
       // Add to repository
       await addTransactionUseCase(transaction);
 
-      // Reload transactions to get fresh data from database
-      if (_selectedMonth != null) {
-        // Create date range for the selected month
-        final startDate = DateTime(
-          _selectedMonth!.year,
-          _selectedMonth!.month,
-          1,
-        );
-        final endDate = DateTime(
-          _selectedMonth!.year,
-          _selectedMonth!.month + 1,
-          0, // Last day of month
-          23,
-          59,
-          59,
-        );
-
-        _allTransactions = await getTransactionsByDateRangeUseCase(
-          startDate: startDate,
-          endDate: endDate,
-        );
-      } else {
-        _allTransactions = await getTransactionsUseCase();
-      }
-
-      // Emit success state
+      // Emit success state immediately
       emit(const TransactionActionSuccess('Transaction added successfully'));
 
-      // Emit updated state with fresh data
+      // Then reload transactions with fresh data from database
+      _allTransactions = await getTransactionsUseCase(event.userId);
       _emitLoadedState(emit);
     } catch (e) {
       emit(TransactionsError('Failed to add transaction: ${e.toString()}'));
@@ -331,27 +316,25 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
     try {
       // Update the transaction with current timestamp
       final updatedTransaction = Transaction(
-        id: event.transaction.id,
+        transactionId: event.transaction.transactionId,
         amount: event.transaction.amount,
         date: event.transaction.date,
         description: event.transaction.description,
         title: event.transaction.title,
         userId: event.transaction.userId,
         categoryName: event.transaction.categoryName,
-        categoryColor: event.transaction.categoryColor,
+        color: event.transaction.color,
         accountId: event.transaction.accountId,
         budgetId: event.transaction.budgetId,
         isRecurring: event.transaction.isRecurring,
         receiptUrl: event.transaction.receiptUrl,
-        createdAt: event.transaction.createdAt,
-        updatedAt: DateTime.now(),
       );
 
       await updateTransactionUseCase(updatedTransaction);
       emit(const TransactionActionSuccess('Transaction updated successfully'));
 
       // Reload transactions
-      add(const LoadTransactions());
+      add(LoadTransactions(userId: event.transaction.userId));
     } catch (e) {
       emit(TransactionsError('Failed to update transaction: ${e.toString()}'));
     }
@@ -368,7 +351,7 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
       emit(const TransactionActionSuccess('Transaction deleted successfully'));
 
       // Reload transactions
-      add(const LoadTransactions());
+      add(LoadTransactions(userId: event.transactionId));
     } catch (e) {
       emit(TransactionsError('Failed to delete transaction: ${e.toString()}'));
     }

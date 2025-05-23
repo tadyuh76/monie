@@ -8,7 +8,7 @@ class GetTransactionsByTypeUseCase {
 
   GetTransactionsByTypeUseCase(this.repository);
 
-  Future<List<Transaction>> call(String type) async {
-    return await repository.getTransactionsByType(type);
+  Future<List<Transaction>> call(String userId, String type) async {
+    return await repository.getTransactionsByType(userId, type);
   }
 }

@@ -37,6 +37,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
+        if (!context.mounted) return;
         if (state is PasswordResetEmailSent) {
           showDialog(
             context: context,
@@ -44,7 +45,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             builder:
                 (context) => AlertDialog(
                   backgroundColor: AppColors.surface,
-                  title: Text(
+                  title: const Text(
                     'Password Reset',
                     style: TextStyle(
                       color: Colors.white,
@@ -55,40 +56,29 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'We\'ve sent a password reset link to:',
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         state.email,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'Please check your email and follow the link to reset your password.',
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                      },
-                      child: Text(
-                        'Back to Login',
-                        style: TextStyle(color: AppColors.primary),
-                      ),
-                    ),
-                  ],
                 ),
           );
         } else if (state is AuthError) {
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );

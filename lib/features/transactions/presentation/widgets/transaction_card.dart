@@ -23,38 +23,45 @@ class TransactionCard extends StatelessWidget {
     final bool isIncome = transaction.amount >= 0;
     final formatter = NumberFormat.currency(symbol: '\$');
     final formattedAmount = formatter.format(transaction.amount.abs());
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Format the category name for display
     final displayCategoryName = _getFormattedCategoryName();
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
-      color: AppColors.surface,
-      elevation: 2,
+      color: isDarkMode ? AppColors.surface : Colors.white,
+      elevation: isDarkMode ? 2 : 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16.0),
         leading: _buildCategoryIcon(),
         title: Text(
           transaction.title.isEmpty ? displayCategoryName : transaction.title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            if (transaction.description.isNotEmpty)
+            if (transaction.description != null &&
+                transaction.description!.isNotEmpty)
               Text(
-                transaction.description,
-                style: const TextStyle(color: Colors.white70),
+                transaction.description!,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
               ),
             const SizedBox(height: 4),
             Text(
               DateFormat.yMMMd().format(transaction.date),
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
@@ -71,6 +78,10 @@ class TransactionCard extends StatelessWidget {
             if (onEdit != null || onDelete != null) ...[
               const SizedBox(width: 8),
               PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_vert,
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
                 onSelected: (value) {
                   if (value == 'edit' && onEdit != null) {
                     onEdit!();
@@ -81,24 +92,50 @@ class TransactionCard extends StatelessWidget {
                 itemBuilder:
                     (context) => [
                       if (onEdit != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'edit',
                           child: Row(
                             children: [
-                              Icon(Icons.edit, size: 20),
-                              SizedBox(width: 8),
-                              Text('Edit'),
+                              Icon(
+                                Icons.edit,
+                                size: 20,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black87,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Edit',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       if (onDelete != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
                           child: Row(
                             children: [
-                              Icon(Icons.delete, size: 20),
-                              SizedBox(width: 8),
-                              Text('Delete'),
+                              Icon(
+                                Icons.delete,
+                                size: 20,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black87,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Delete',
+                                style: TextStyle(
+                                  color:
+                                      isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -114,7 +151,7 @@ class TransactionCard extends StatelessWidget {
   // Get formatted category name for display
   String _getFormattedCategoryName() {
     // Get the raw category name
-    String categoryName = transaction.categoryName?.toLowerCase().trim() ?? '';
+    String categoryName = transaction.categoryName ?? '';
 
     // Use our utility to format the category name
     return CategoryUtils.formatCategoryName(categoryName);
@@ -122,18 +159,17 @@ class TransactionCard extends StatelessWidget {
 
   Widget _buildCategoryIcon() {
     // Get the category name
-    String categoryName = transaction.categoryName?.toLowerCase().trim() ?? '';
+    String categoryName = transaction.categoryName ?? '';
 
     // Get the icon path for the category
     String iconPath = CategoryIcons.getIconPath(categoryName);
 
     // Get the proper category color
     Color categoryColor;
-    if (transaction.categoryColor != null) {
+    if (transaction.color != null) {
       // Use the stored category color if available
       categoryColor = Color(
-        int.parse(transaction.categoryColor!.substring(1), radix: 16) +
-            0xFF000000,
+        int.parse(transaction.color!.substring(1), radix: 16) + 0xFF000000,
       );
     } else {
       // Otherwise, get the color from our mapping

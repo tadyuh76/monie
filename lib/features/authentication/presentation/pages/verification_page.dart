@@ -107,6 +107,7 @@ class _VerificationPageState extends State<VerificationPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
+        if (!context.mounted) return;
         if (state is VerificationEmailSent) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -115,6 +116,7 @@ class _VerificationPageState extends State<VerificationPage> {
             ),
           );
         } else if (state is VerificationSuccess) {
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Email successfully verified! You can now login.'),
@@ -125,14 +127,14 @@ class _VerificationPageState extends State<VerificationPage> {
           // Navigate to login
           final navigator = Navigator.of(context);
           Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              navigator.pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-                (route) => false,
-              );
-            }
+            if (!mounted) return;
+            navigator.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+              (route) => false,
+            );
           });
         } else if (state is VerificationPending) {
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
@@ -142,6 +144,7 @@ class _VerificationPageState extends State<VerificationPage> {
             ),
           );
         } else if (state is AuthError) {
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
