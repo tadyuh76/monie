@@ -7,6 +7,7 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import cron from 'node-cron';
 
 // Setup dotenv to load environment variables from the parent directory
 const __filename = fileURLToPath(import.meta.url);
@@ -87,6 +88,10 @@ app.use(function(req, res, next) {
 const deviceStates = new Map();
 // Track sent notifications to prevent duplicates
 const sentNotifications = new Map();
+// Store reminder settings in memory (in production, use a database)
+const reminderSettings = new Map(); // Map<userId, {reminders: Array<ReminderSetting>, fcmToken: string, lastUpdated: string}>
+// Track active reminder cron jobs
+const activeReminderJobs = new Map(); // Map<userId, Array<ScheduledTask>>
 
 // Add a root route handler
 app.get('/', (req, res) => {
@@ -312,7 +317,7 @@ function sendNotificationToDevice(token, state) {
       break;
     case 'background':
     default:
-      title = 'Monie App - Background Update';
+      title = 'Background State';
       body = 'Your finance summary is ready while you were away';
       break;
   }
@@ -528,8 +533,200 @@ app.get('/test-notification', function(req, res) {
   }
 });
 
-const PORT = process.env.PORT || 4000;  // Updated to match client port in injection.dart
-app.listen(PORT, function () {
-  console.log(`Notification server started on port ${PORT}`);
+// API endpoints for reminder settings
+app.post('/api/reminder-settings', (req, res) => {
+  const { userId, reminders, fcmToken } = req.body;
+  
+  try {
+    if (!userId || !Array.isArray(reminders) || !fcmToken) {
+      return res.status(400).json({ error: 'userId, reminders array, and fcmToken are required' });
+    }
+    
+    console.log(`Updating reminder settings for user ${userId}:`, reminders);
+    
+    // Clear existing cron jobs for this user
+    const existingJobs = activeReminderJobs.get(userId) || [];
+    existingJobs.forEach(job => {
+      if (job.destroy) {
+        job.destroy();
+      }
+    });
+    activeReminderJobs.delete(userId);
+    
+    // Store the reminder settings
+    reminderSettings.set(userId, {
+      reminders: reminders.filter(r => r.enabled), // Only store enabled reminders
+      fcmToken: fcmToken,
+      lastUpdated: new Date().toISOString()
+    });
+    
+    // Create new cron jobs for enabled reminders
+    const newJobs = [];
+    const enabledReminders = reminders.filter(r => r.enabled);
+    
+    enabledReminders.forEach((reminder, index) => {
+      const { hour, minute } = reminder;
+      const cronPattern = `${minute} ${hour} * * *`; // minute hour * * * (every day)
+      
+      console.log(`Setting up cron job for user ${userId}, reminder ${index + 1}: ${cronPattern} (${hour}:${minute.toString().padStart(2, '0')})`);
+      
+      const job = cron.schedule(cronPattern, () => {
+        console.log(`Triggering reminder notification for user ${userId} at ${hour}:${minute.toString().padStart(2, '0')}`);
+        sendTransactionReminderNotification(userId, fcmToken);
+      }, {
+        scheduled: true,
+        timezone: "Asia/Ho_Chi_Minh" // Adjust timezone as needed
+      });
+      
+      newJobs.push(job);
+    });
+    
+    // Store the new jobs
+    if (newJobs.length > 0) {
+      activeReminderJobs.set(userId, newJobs);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `${enabledReminders.length} reminder(s) scheduled successfully`,
+      reminders: enabledReminders
+    });
+  } catch (error) {
+    console.error('Error updating reminder settings:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get reminder settings for a user
+app.get('/api/reminder-settings/:userId', (req, res) => {
+  const { userId } = req.params;
+  
+  try {
+    const settings = reminderSettings.get(userId);
+    if (!settings) {
+      return res.json({ reminders: [] });
+    }
+    
+    res.json({
+      reminders: settings.reminders,
+      lastUpdated: settings.lastUpdated
+    });
+  } catch (error) {
+    console.error('Error getting reminder settings:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Function to send transaction reminder notification
+function sendTransactionReminderNotification(userId, fcmToken) {
+  // Use DATA-ONLY message for terminated app support
+  // This ensures the app will wake up even when terminated
+  const dataOnlyMessage = {
+    data: {
+      type: 'transaction_reminder_data',
+      userId: userId,
+      timestamp: new Date().toISOString(),
+      notificationId: Date.now().toString(),
+      title: "Don't forget to add your expenses!",
+      body: 'Take a moment to add your recent transactions to keep you on track.',
+      click_action: 'FLUTTER_NOTIFICATION_CLICK',
+      action: 'open_app',
+      screen: 'add_transaction',
+      // Additional data for terminated app handling
+      channel_id: 'high_importance_channel',
+      priority: 'high',
+      sound: 'default',
+      vibrate: 'true',
+      icon: 'ic_notification',      
+      color: '#4CAF50',
+    },
+    android: {
+      priority: 'high', // Essential for waking terminated apps
+      ttl: 86400000, // 24 hours
+      restrictedPackageName: 'com.tadyuh.monie',
+      collapseKey: 'transaction_reminder_data'
+    },
+    apns: {
+      headers: {
+        'apns-priority': '10',
+        'apns-push-type': 'background'
+      },
+      payload: {
+        aps: {
+          'content-available': 1,
+          badge: 1
+        }
+      }
+    },
+    token: fcmToken,
+  };
+  console.log(`Sending DATA-ONLY transaction reminder to user ${userId}:`, {
+    title: dataOnlyMessage.data.title,
+    body: dataOnlyMessage.data.body,
+    token: fcmToken.substring(0, 10) + '...',
+    type: 'data-only for terminated app support'
+  });
+
+  // Send the data-only message (optimal for terminated apps)
+  getMessaging()
+    .send(dataOnlyMessage)
+    .then((response) => {
+      console.log(`✅ Successfully sent data-only transaction reminder:`, response);
+    })
+    .catch((error) => {
+      console.error(`❌ Error sending transaction reminder:`, error);
+      
+      // If the error is due to an invalid token, remove the reminder settings
+      if (error.code === 'messaging/invalid-registration-token' || 
+          error.code === 'messaging/registration-token-not-registered') {
+        console.log(`Removing reminder settings for invalid token: ${fcmToken.substring(0, 10)}...`);
+        reminderSettings.delete(userId);
+        
+        // Clear any cron jobs for this user
+        const jobs = activeReminderJobs.get(userId) || [];
+        jobs.forEach(job => {
+          if (job.destroy) {
+            job.destroy();
+          }
+        });
+        activeReminderJobs.delete(userId);
+      }
+    });
+}
+
+// Test endpoint specifically for terminated app notification testing
+app.post('/test-terminated-app-reminder', (req, res) => {
+  const { fcmToken, userId } = req.body;
+  
+  try {
+    if (!fcmToken) {
+      return res.status(400).json({ error: 'FCM token is required' });
+    }
+    
+    const testUserId = userId || 'test-terminated-user';
+    
+    console.log(`Testing terminated app reminder for token: ${fcmToken.substring(0, 10)}...`);
+    
+    // Send a transaction reminder notification designed for terminated app testing
+    sendTransactionReminderNotification(testUserId, fcmToken);
+    
+    res.json({ 
+      success: true, 
+      message: `Test terminated app reminder sent successfully`,
+      userId: testUserId,
+      token: fcmToken.substring(0, 10) + '...'
+    });
+  } catch (error) {
+    console.error('Error sending test terminated app reminder:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 4000;
+const HOST = process.env.HOST || '0.0.0.0'; // Bind to all interfaces for Android emulator access
+app.listen(PORT, HOST, function () {
+  console.log(`Notification server started on ${HOST}:${PORT}`);
   console.log(`Server URL: http://localhost:${PORT}`);
+  console.log(`Android emulator URL: http://10.0.2.2:${PORT}`);
+  console.log(`Reminder system initialized`);
 });
