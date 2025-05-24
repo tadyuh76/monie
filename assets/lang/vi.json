@@ -196,6 +196,7 @@
   "notifications_empty_subtitle": "Bạn đã xem hết! Thông báo mới sẽ xuất hiện ở đây.",
   "notifications_delete_title": "Xóa thông báo",
   "notifications_delete_message": "Bạn có chắc chắn muốn xóa thông báo này?",
+  "notifications_deleted_success": "Đã xóa thông báo thành công",
 
   "category": "Danh mục",
   "select_category": "Chọn danh mục",

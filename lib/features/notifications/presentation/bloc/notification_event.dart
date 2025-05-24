@@ -71,3 +71,12 @@ class LoadUnreadCount extends NotificationEvent {
   @override
   List<Object?> get props => [userId];
 }
+
+class CreateTestNotificationEvent extends NotificationEvent {
+  final String userId;
+
+  const CreateTestNotificationEvent(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}

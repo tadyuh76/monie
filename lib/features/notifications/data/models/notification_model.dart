@@ -40,6 +40,7 @@ class NotificationModel extends Notification {
     };
   }
 
+  @override
   NotificationModel copyWith({
     String? id,
     String? userId,

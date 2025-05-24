@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/notifications/domain/entities/notification.dart'
     as notification_entity;
@@ -119,9 +118,9 @@ class NotificationCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 8),
                     ],
 
-                    const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

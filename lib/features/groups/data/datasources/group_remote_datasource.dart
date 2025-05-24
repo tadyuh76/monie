@@ -792,7 +792,6 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
 
       final title = transaction['title'];
       final amount = transaction['amount'];
-      final creatorId = transaction['user_id'];
       final groupName = groupData['name'];
 
       // Get all group members

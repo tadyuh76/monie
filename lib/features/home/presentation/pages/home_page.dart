@@ -20,6 +20,9 @@ import 'package:monie/features/home/presentation/widgets/monthly_summary_widget.
 import 'package:monie/features/home/presentation/widgets/notification_bell_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/spending_forecast_widget.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_event.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_state.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
@@ -71,6 +74,13 @@ class _HomePageState extends State<HomePage> {
       try {
         // Load budgets
         context.read<BudgetsBloc>().add(const LoadBudgets());
+      } catch (e) {
+        // Bloc might be closed, ignore the error
+      }
+
+      try {
+        // Load notifications unread count
+        context.read<NotificationBloc>().add(LoadUnreadCount(userId));
       } catch (e) {
         // Bloc might be closed, ignore the error
       }

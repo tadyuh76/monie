@@ -6,6 +6,8 @@ import 'package:monie/features/notifications/domain/usecases/mark_notification_r
 import 'package:monie/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:monie/features/notifications/presentation/bloc/notification_event.dart';
 import 'package:monie/features/notifications/presentation/bloc/notification_state.dart';
+import 'package:monie/features/notifications/domain/entities/notification.dart'
+    as notification_entity;
 
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   final GetNotifications _getNotifications;
@@ -32,6 +34,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<CreateGroupNotificationEvent>(_onCreateGroupNotification);
     on<DeleteNotificationEvent>(_onDeleteNotification);
     on<LoadUnreadCount>(_onLoadUnreadCount);
+    on<CreateTestNotificationEvent>(_onCreateTestNotification);
   }
 
   Future<void> _onLoadNotifications(
@@ -115,7 +118,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         );
       }
 
-      emit(const NotificationActionSuccess('All notifications marked as read'));
+      // Don't emit NotificationActionSuccess here as it causes the flash issue
+      // The state update above is sufficient
     } catch (e) {
       emit(
         NotificationError(
@@ -180,7 +184,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         );
       }
 
-      emit(const NotificationActionSuccess('Notification deleted'));
+      // Don't emit NotificationActionSuccess here as it causes the flash issue
+      // The state update above is sufficient
     } catch (e) {
       emit(NotificationError('Failed to delete notification: ${e.toString()}'));
     }
@@ -195,6 +200,38 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       emit(UnreadCountLoaded(count));
     } catch (e) {
       emit(NotificationError('Failed to load unread count: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onCreateTestNotification(
+    CreateTestNotificationEvent event,
+    Emitter<NotificationState> emit,
+  ) async {
+    try {
+      // Create a test notification
+      final testNotification = notification_entity.Notification(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        userId: event.userId,
+        type: notification_entity.NotificationType.general,
+        title: 'Test Notification',
+        message: 'This is a test notification to verify the system is working.',
+        isRead: false,
+        createdAt: DateTime.now(),
+        amount: 100.0,
+      );
+
+      await _repository.createNotification(testNotification);
+
+      emit(const NotificationActionSuccess('Test notification created!'));
+
+      // Reload notifications to show the new one
+      add(LoadNotifications(event.userId));
+    } catch (e) {
+      emit(
+        NotificationError(
+          'Failed to create test notification: ${e.toString()}',
+        ),
+      );
     }
   }
 }

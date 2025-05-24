@@ -52,6 +52,15 @@ import 'package:monie/features/groups/domain/usecases/settle_group.dart'
     as settle;
 import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
+import 'package:monie/features/notifications/data/datasources/notification_datasource.dart';
+import 'package:monie/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:monie/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:monie/features/notifications/domain/usecases/create_budget_notification.dart';
+import 'package:monie/features/notifications/domain/usecases/create_group_notification.dart';
+import 'package:monie/features/notifications/domain/usecases/get_notifications.dart';
+import 'package:monie/features/notifications/domain/usecases/get_unread_count.dart';
+import 'package:monie/features/notifications/domain/usecases/mark_notification_read.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
 import 'package:monie/features/settings/data/repositories/settings_repository.dart';
 import 'package:monie/features/settings/domain/repositories/settings_repository.dart';
 import 'package:monie/features/settings/domain/usecases/change_password.dart';
@@ -196,6 +205,22 @@ Future<void> configureDependencies() async {
     () => GetTransactionsByBudgetUseCase(sl<TransactionRepository>()),
   );
 
+  // Notifications Feature
+  sl.registerLazySingleton<NotificationDataSource>(
+    () => NotificationDataSourceImpl(sl()),
+  );
+
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(sl()),
+  );
+
+  // Notification use cases
+  sl.registerLazySingleton(() => GetNotifications(sl()));
+  sl.registerLazySingleton(() => MarkNotificationRead(sl()));
+  sl.registerLazySingleton(() => CreateGroupNotification(sl()));
+  sl.registerLazySingleton(() => CreateBudgetNotification(sl()));
+  sl.registerLazySingleton(() => GetUnreadCount(sl()));
+
   // BLoCs
   sl.registerFactory<AuthBloc>(
     () => AuthBloc(
@@ -246,6 +271,8 @@ Future<void> configureDependencies() async {
       deleteTransaction: sl<DeleteTransactionUseCase>(),
       getTransactionsByAccount: sl<GetTransactionsByAccountUseCase>(),
       getTransactionsByBudget: sl<GetTransactionsByBudgetUseCase>(),
+      createBudgetNotification: sl<CreateBudgetNotification>(),
+      budgetRepository: sl<BudgetRepository>(),
     ),
   );
 
@@ -262,6 +289,16 @@ Future<void> configureDependencies() async {
   sl.registerFactory<CategoriesBloc>(
     () =>
         CategoriesBloc(getCategoriesUseCase: sl(), createCategoryUseCase: sl()),
+  );
+
+  sl.registerFactory<NotificationBloc>(
+    () => NotificationBloc(
+      getNotifications: sl(),
+      markNotificationRead: sl(),
+      createGroupNotification: sl(),
+      getUnreadCount: sl(),
+      repository: sl(),
+    ),
   );
 
   // Groups Feature
