@@ -1,16 +1,19 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:monie/core/localization/app_localizations.dart';
+import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/groups/domain/entities/expense_group.dart';
 import 'package:monie/features/groups/domain/entities/group_transaction.dart';
-import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 import 'package:monie/features/groups/presentation/bloc/group_event.dart';
 import 'package:monie/features/groups/presentation/bloc/group_state.dart';
 import 'package:monie/features/groups/presentation/widgets/add_member_dialog.dart';
 import 'package:monie/features/groups/presentation/widgets/group_transaction_card.dart';
-import 'package:monie/core/network/supabase_client.dart';
 
 class GroupDetailPage extends StatefulWidget {
   final String groupId;
@@ -26,6 +29,8 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   late TabController _tabController;
   bool _isLoading = false;
   bool _dataLoaded = false;
+  String?
+  _lastShownMessage; // Track the last shown message to prevent duplicates
 
   @override
   void initState() {
@@ -47,7 +52,9 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   void _loadAllData() {
     if (_isLoading) return; // Prevent multiple simultaneous loads
 
-    _isLoading = true;
+    setState(() {
+      _isLoading = true;
+    });
 
     // Load group details
     context.read<GroupBloc>().add(GetGroupByIdEvent(groupId: widget.groupId));
@@ -58,14 +65,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     // Mark as loaded
     _dataLoaded = true;
 
-    // Reset loading flag after a delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    });
+    // The loading flag will be reset in the listener when data arrives
   }
 
   void _loadDataForCurrentTab({bool forceRefresh = false}) {
@@ -73,19 +73,15 @@ class _GroupDetailPageState extends State<GroupDetailPage>
       return; // Prevent multiple simultaneous loads
     }
 
-    _isLoading = true;
+    setState(() {
+      _isLoading = true;
+    });
 
     // Check current state
     final currentState = context.read<GroupBloc>().state;
     final bool hasCorrectGroupData =
         currentState is SingleGroupLoaded &&
         currentState.group.id == widget.groupId;
-
-    // Don't reload if we already have the data and not forcing refresh
-    if (hasCorrectGroupData && !forceRefresh) {
-      _isLoading = false;
-      return;
-    }
 
     // Load specific data based on the current tab
     switch (_tabController.index) {
@@ -102,12 +98,13 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         }
         break;
       case 1: // Members tab
-        // Just reload the group if needed
+        // Load group data if needed
         if (!hasCorrectGroupData) {
           context.read<GroupBloc>().add(
             GetGroupByIdEvent(groupId: widget.groupId),
           );
         }
+        // No need to load separate members data since we use group.members
         break;
       case 2: // Debts tab
         // Just reload the group if needed
@@ -119,14 +116,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         break;
     }
 
-    // Reset loading flag after a delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    });
+    // The loading flag will be reset in the listener when data arrives
   }
 
   @override
@@ -195,32 +185,78 @@ class _GroupDetailPageState extends State<GroupDetailPage>
       body: BlocConsumer<GroupBloc, GroupState>(
         listener: (context, state) {
           if (state is GroupError) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
+            if (_lastShownMessage != state.message) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
+              _lastShownMessage = state.message;
+
+              // Reset after 3 seconds to allow the same message to be shown again if needed
+              Timer(Duration(seconds: 3), () {
+                if (mounted) {
+                  setState(() {
+                    _lastShownMessage = null;
+                  });
+                }
+              });
+            }
 
             // Reset loading flag on error
-            _isLoading = false;
+            setState(() {
+              _isLoading = false;
+            });
           } else if (state is GroupOperationSuccess) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
+            // Only show snackbars for operations relevant to group details
+            if (state.message.contains('Member added') ||
+                state.message.contains('Member removed') ||
+                state.message.contains('Member role updated') ||
+                state.message.contains('Group settled') ||
+                state.message.contains('Transaction approved') ||
+                state.message.contains('Transaction rejected')) {
+              if (_lastShownMessage != state.message) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
+                _lastShownMessage = state.message;
 
-            // Refresh group data after successful operation, but only if not already loading
-            if (!_isLoading) {
-              _loadDataForCurrentTab(forceRefresh: true);
+                // Reset after 3 seconds to allow the same message to be shown again if needed
+                Timer(Duration(seconds: 3), () {
+                  if (mounted) {
+                    setState(() {
+                      _lastShownMessage = null;
+                    });
+                  }
+                });
+              }
             }
+
+            // Reset loading flag after successful operation
+            setState(() {
+              _isLoading = false;
+            });
+
+            // The bloc will automatically refresh data, so we don't need to manually trigger it here
+          } else if (state is SingleGroupLoaded &&
+              state.group.id == widget.groupId) {
+            // Reset loading flag when we receive updated group data
+            setState(() {
+              _isLoading = false;
+              _dataLoaded = true;
+            });
+          } else if (state is GroupMembersLoaded) {
+            // Reset loading flag when we receive members data
+            setState(() {
+              _isLoading = false;
+            });
           }
         },
         builder: (context, state) {
-          if (state is GroupLoading && state is! SingleGroupLoaded) {
-            // Only show loading indicator if we don't have group data
+          if (state is GroupLoading && !_dataLoaded) {
+            // Only show loading indicator if we don't have any data yet
             return const Center(child: CircularProgressIndicator());
           } else if (state is SingleGroupLoaded &&
               state.group.id == widget.groupId) {
-            // Show tab view only if we have the correct group data
-            _dataLoaded = true; // Mark as loaded since we have data
-
+            // Show tab view when we have the correct group data
             return TabBarView(
               controller: _tabController,
               children: [
@@ -232,7 +268,9 @@ class _GroupDetailPageState extends State<GroupDetailPage>
           } else if (state is SingleGroupLoaded) {
             // If we have group data but for a different group, reload correct data
             if (!_isLoading) {
-              _isLoading = true;
+              setState(() {
+                _isLoading = true;
+              });
               // Use Future.microtask to avoid calling setState during build
               Future.microtask(() {
                 if (context.mounted) {
@@ -240,21 +278,15 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                     GetGroupByIdEvent(groupId: widget.groupId),
                   );
                 }
-                // Reset loading flag after a delay
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  if (mounted) {
-                    setState(() {
-                      _isLoading = false;
-                    });
-                  }
-                });
               });
             }
             return const Center(child: CircularProgressIndicator());
           } else {
             // If we have no valid state, trigger data loading (only if not already loading)
             if (!_isLoading && !_dataLoaded) {
-              _isLoading = true;
+              setState(() {
+                _isLoading = true;
+              });
               // Use Future.microtask to avoid calling setState during build
               Future.microtask(() {
                 _loadAllData();
@@ -273,12 +305,14 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               onPressed: () {
                 if (_tabController.index == 1) {
                   _showAddMemberDialog(context, widget.groupId);
-                } else if (_tabController.index == 0) {
+                } else if (_tabController.index == 0 ||
+                    _tabController.index == 2) {
+                  // Add expense for both overview and debts tabs
                   Navigator.pushNamed(
                     context,
                     '/add-group-expense',
                     arguments: widget.groupId,
-                  ).then((_) => _loadDataForCurrentTab(forceRefresh: true));
+                  );
                 }
               },
               backgroundColor: AppColors.primary,
@@ -298,11 +332,46 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
-    // Get the current bloc state to access transactions
-    final currentState = context.watch<GroupBloc>().state;
-    final transactions =
-        currentState is SingleGroupLoaded ? currentState.transactions : null;
+    return BlocBuilder<GroupBloc, GroupState>(
+      buildWhen: (previous, current) {
+        // Only rebuild if we have new transaction data for this group
+        if (current is SingleGroupLoaded &&
+            current.group.id == widget.groupId) {
+          if (previous is SingleGroupLoaded &&
+              previous.group.id == widget.groupId) {
+            // Check if transactions actually changed
+            return previous.transactions != current.transactions ||
+                previous.group.totalAmount != current.group.totalAmount ||
+                previous.group.isSettled != current.group.isSettled;
+          }
+          return true; // First time loading this group
+        }
+        return false; // Don't rebuild for other states
+      },
+      builder: (context, state) {
+        final transactions =
+            state is SingleGroupLoaded && state.group.id == widget.groupId
+                ? state.transactions
+                : null;
 
+        return _buildOverviewContent(
+          context,
+          group,
+          transactions,
+          isDarkMode,
+          textTheme,
+        );
+      },
+    );
+  }
+
+  Widget _buildOverviewContent(
+    BuildContext context,
+    ExpenseGroup group,
+    List<dynamic>? transactions,
+    bool isDarkMode,
+    TextTheme textTheme,
+  ) {
     // Group transactions by date
     final Map<String, List<dynamic>> groupedTransactions = {};
 
@@ -403,6 +472,50 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                 ),
               ],
             ),
+            // Actions section
+            if (!group.isSettled) const SizedBox(height: 24),
+
+            if (!group.isSettled)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: Text(context.tr('groups_settle_group')),
+                            content: Text(context.tr('groups_settle_confirm')),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text(context.tr('common_cancel')),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  context.read<GroupBloc>().add(
+                                    SettleGroupEvent(groupId: group.id),
+                                  );
+                                },
+                                child: Text(context.tr('confirm')),
+                              ),
+                            ],
+                          ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(context.tr('groups_settle_group')),
+                ),
+              ),
+
             if (group.isSettled)
               Container(
                 margin: const EdgeInsets.only(top: 16),
@@ -575,27 +688,11 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                   transaction['users']['display_name'] != null) {
                 paidByName = transaction['users']['display_name'];
               } else {
-                // Try to find the member who paid
-                for (var member in group.members) {
-                  if (member.contains(transaction.paidBy)) {
-                    paidByName = member;
-                    break;
-                  }
-                }
-
-                // If we couldn't find a match, use the ID as a fallback
-                if (paidByName == null) {
-                  final supabase = SupabaseClientManager.instance.client;
-                  final currentUserId = supabase.auth.currentUser?.id;
-
-                  // If the current user is the one who paid
-                  if (transaction.paidBy == currentUserId) {
-                    paidByName = context.tr('common_user'); // "You" or "User"
-                  } else {
-                    // Just use a generic label if we can't determine the name
-                    paidByName = context.tr('groups_members');
-                  }
-                }
+                // Use the helper method to get the display name
+                paidByName = _getDisplayNameForUserId(
+                  transaction.paidBy,
+                  group,
+                );
               }
             }
 
@@ -625,52 +722,6 @@ class _GroupDetailPageState extends State<GroupDetailPage>
       }
     }
 
-    // Actions section
-    if (!group.isSettled) {
-      children.addAll([
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder:
-                    (context) => AlertDialog(
-                      title: Text(context.tr('groups_settle_group')),
-                      content: Text(context.tr('groups_settle_confirm')),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(context.tr('common_cancel')),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            context.read<GroupBloc>().add(
-                              SettleGroupEvent(groupId: group.id),
-                            );
-                          },
-                          child: Text(context.tr('confirm')),
-                        ),
-                      ],
-                    ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(context.tr('groups_settle_group')),
-          ),
-        ),
-      ]);
-    }
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -684,11 +735,48 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
+    // Use the group members data directly instead of requiring a separate state
+    // Parse the members from the group.members list
+    final List<Map<String, String>> parsedMembers = [];
+
+    for (var member in group.members) {
+      // Extract user ID from member string if it contains it (format: "Name (userId)")
+      final match = RegExp(r'^(.+?)\s*\(([^)]+)\)$').firstMatch(member);
+      if (match != null) {
+        final displayName = match.group(1)?.trim() ?? member;
+        final userId = match.group(2);
+        if (userId != null) {
+          parsedMembers.add({
+            'displayName': displayName,
+            'userId': userId,
+            'role': userId == group.adminId ? 'admin' : 'member',
+          });
+        }
+      } else {
+        // If no ID in parentheses, use the member string as both ID and name
+        parsedMembers.add({
+          'displayName': member,
+          'userId': member,
+          'role': member == group.adminId ? 'admin' : 'member',
+        });
+      }
+    }
+
+    final isCurrentUserAdmin = _isUserAdmin(group);
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: group.members.length,
+      itemCount: parsedMembers.length,
       itemBuilder: (context, index) {
-        final member = group.members[index];
+        final member = parsedMembers[index];
+        final displayName = member['displayName']!;
+        final userId = member['userId']!;
+        final role = member['role']!;
+
+        final isCurrentUser = _isCurrentUser(userId);
+        final canManageMember = isCurrentUserAdmin && !isCurrentUser;
+        final isAdmin = role == 'admin' || group.adminId == userId;
+
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
@@ -711,7 +799,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               CircleAvatar(
                 backgroundColor: AppColors.primary.withValues(alpha: 0.2),
                 child: Text(
-                  member.substring(0, 1).toUpperCase(),
+                  displayName.substring(0, 1).toUpperCase(),
                   style: TextStyle(
                     color: isDarkMode ? Colors.white : AppColors.primary,
                   ),
@@ -719,36 +807,135 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               ),
               const SizedBox(width: 16),
               Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          displayName,
+                          style: textTheme.titleMedium?.copyWith(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        if (isCurrentUser) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.blue.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              'You',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isAdmin
+                          ? context.tr('groups_admin')
+                          : context.tr('groups_member'),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Show role badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (isAdmin ? AppColors.primary : Colors.grey).withValues(
+                    alpha: 0.1,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: (isAdmin ? AppColors.primary : Colors.grey)
+                        .withValues(alpha: 0.5),
+                  ),
+                ),
                 child: Text(
-                  member,
-                  style: textTheme.titleMedium?.copyWith(
-                    color: isDarkMode ? Colors.white : Colors.black87,
+                  isAdmin
+                      ? context.tr('groups_admin')
+                      : context.tr('groups_member'),
+                  style: TextStyle(
+                    color: isAdmin ? AppColors.primary : Colors.grey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              // Show admin badge if this member is the admin
-              if (member.contains(group.adminId))
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Text(
-                    context.tr('groups_admin'),
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+              // Show management options for admins
+              if (canManageMember) ...[
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'edit_role') {
+                      _showSimpleEditRoleDialog(
+                        context,
+                        displayName,
+                        userId,
+                        isAdmin,
+                      );
+                    } else if (value == 'remove') {
+                      _showSimpleRemoveMemberDialog(
+                        context,
+                        displayName,
+                        userId,
+                      );
+                    }
+                  },
+                  itemBuilder:
+                      (context) => [
+                        PopupMenuItem(
+                          value: 'edit_role',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.edit, size: 16),
+                              const SizedBox(width: 8),
+                              Text(context.tr('groups_edit_role')),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'remove',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.remove_circle,
+                                size: 16,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                context.tr('groups_remove_member'),
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                  child: Icon(
+                    Icons.more_vert,
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
                   ),
                 ),
+              ],
             ],
           ),
         );
@@ -758,30 +945,14 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
   // Helper method to check if the current user is an admin of the group
   bool _isUserAdmin(ExpenseGroup group) {
-    // Get the current bloc state to check the user's role
-    final state = context.read<GroupBloc>().state;
+    final supabase = SupabaseClientManager.instance.client;
+    final currentUserId = supabase.auth.currentUser?.id;
 
-    if (state is SingleGroupLoaded) {
-      // Look through members to find current user's role
-      final supabase = SupabaseClientManager.instance.client;
-      final currentUserId = supabase.auth.currentUser?.id;
+    // If we can't determine current user, we assume they're not admin
+    if (currentUserId == null) return false;
 
-      // If we can't determine current user, we assume they're not admin
-      if (currentUserId == null) return false;
-
-      // Check if user is the group's admin
-      if (group.adminId == currentUserId) return true;
-
-      // We'd ideally check the user's role in group_members, but that requires
-      // getting the full member objects with roles, not just names
-      // For now, we'll rely on UI restrictions based on the server-side checks
-      // and return true to enable admin UI for all members
-      // In a real app, you would check the actual role from the member list
-      return true;
-    }
-
-    // Default to not admin if we can't determine
-    return false;
+    // Check if user is the group's admin
+    return group.adminId == currentUserId;
   }
 
   // Helper method to approve or reject a transaction
@@ -998,62 +1169,87 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
-    // Get the current bloc state to access transactions
-    final currentState = context.watch<GroupBloc>().state;
-    final transactions =
-        currentState is SingleGroupLoaded ? currentState.transactions : null;
+    return BlocBuilder<GroupBloc, GroupState>(
+      buildWhen: (previous, current) {
+        // Only rebuild if we have new transaction data for this group
+        if (current is SingleGroupLoaded &&
+            current.group.id == widget.groupId) {
+          if (previous is SingleGroupLoaded &&
+              previous.group.id == widget.groupId) {
+            return previous.transactions != current.transactions ||
+                previous.group.isSettled != current.group.isSettled;
+          }
+          return true;
+        }
+        return false;
+      },
+      builder: (context, state) {
+        final transactions =
+            state is SingleGroupLoaded && state.group.id == widget.groupId
+                ? state.transactions
+                : null;
 
-    // Calculate debts between members
-    Map<String, Map<String, double>> debts = {};
-    Map<String, String> memberNames = {};
+        return _buildDebtsContent(
+          context,
+          group,
+          transactions,
+          isDarkMode,
+          textTheme,
+        );
+      },
+    );
+  }
 
-    // Create a map of user IDs to display names
-    // This is a simplification - in a real app, you'd have a more robust way to map IDs to names
-    for (var member in group.members) {
-      // For simplicity, we'll just use the member name as is
-      // In a real app, you'd extract the actual user ID
-      memberNames[member] = member;
-      debts[member] = {};
+  Widget _buildDebtsContent(
+    BuildContext context,
+    ExpenseGroup group,
+    List<dynamic>? transactions,
+    bool isDarkMode,
+    TextTheme textTheme,
+  ) {
+    // Calculate optimized debts between members
+    Map<String, double> netBalances =
+        {}; // Positive = owed money, Negative = owes money
 
-      // Initialize debts to each other member as 0
-      for (var otherMember in group.members) {
-        if (member != otherMember) {
-          debts[member]![otherMember] = 0;
+    // Create user ID to name mapping using the helper method
+    final userIdToName = _createUserIdToNameMapping(group);
+
+    // Initialize net balances for all known users
+    for (var userId in userIdToName.keys) {
+      netBalances[userId] = 0.0;
+    }
+
+    // If we don't have proper user ID mapping, try to build it from transactions
+    if (transactions != null && transactions.isNotEmpty) {
+      for (var transaction in transactions) {
+        final payerId = transaction.paidBy;
+        if (payerId != null && !userIdToName.containsKey(payerId)) {
+          final displayName = _getDisplayNameForUserId(payerId, group);
+          userIdToName[payerId] = displayName;
+          netBalances[payerId] = 0.0;
         }
       }
     }
 
-    // Calculate debts based on transactions
+    // Calculate net balances based on approved transactions
     if (transactions != null && transactions.isNotEmpty) {
       for (var transaction in transactions) {
-        if (transaction.approvalStatus == 'approved' ||
-            transaction.approvalStatus == 'settled') {
-          // Find the payer's name
-          String payerName = "";
-          for (var member in group.members) {
-            if (member.contains(transaction.paidBy)) {
-              payerName = member;
-              break;
-            }
-          }
+        if (transaction.approvalStatus == 'approved') {
+          final payerId = transaction.paidBy;
+          final amount = transaction.amount; // Use the actual signed amount
+          final memberCount = userIdToName.length;
 
-          // If we couldn't find the payer, skip this transaction
-          if (payerName.isEmpty) continue;
+          if (memberCount > 0 && userIdToName.containsKey(payerId)) {
+            final amountPerPerson = amount / memberCount;
 
-          double amount = transaction.amount;
-
-          // For simplicity, we'll split evenly among all members
-          // In a real app, you might have specific split rules
-          int memberCount = group.members.length;
-          if (memberCount > 0) {
-            double amountPerPerson = amount / memberCount;
-
-            // Each member owes the payer their share (except the payer)
-            for (var member in group.members) {
-              if (member != payerName) {
-                // Increase what member owes to payer
-                debts[member]![payerName] =
-                    (debts[member]![payerName] ?? 0) + amountPerPerson;
+            // For both income and expenses, the logic is the same:
+            // The payer gets credit for the full amount, others get their share deducted
+            netBalances[payerId] =
+                (netBalances[payerId] ?? 0) + amount - amountPerPerson;
+            for (var userId in userIdToName.keys) {
+              if (userId != payerId) {
+                netBalances[userId] =
+                    (netBalances[userId] ?? 0) - amountPerPerson;
               }
             }
           }
@@ -1061,21 +1257,68 @@ class _GroupDetailPageState extends State<GroupDetailPage>
       }
     }
 
-    // Simplify debts (if A owes B $10 and B owes A $5, then A just owes B $5)
-    for (var debtor in debts.keys) {
-      for (var creditor in debts[debtor]!.keys) {
-        if (debts[debtor]![creditor]! > 0 && debts[creditor]![debtor]! > 0) {
-          // Offset the debts
-          if (debts[debtor]![creditor]! >= debts[creditor]![debtor]!) {
-            debts[debtor]![creditor] =
-                debts[debtor]![creditor]! - debts[creditor]![debtor]!;
-            debts[creditor]![debtor] = 0;
-          } else {
-            debts[creditor]![debtor] =
-                debts[creditor]![debtor]! - debts[debtor]![creditor]!;
-            debts[debtor]![creditor] = 0;
-          }
-        }
+    // Create optimized debt settlements using a greedy algorithm
+    List<Map<String, dynamic>> optimizedDebts = [];
+
+    // Separate creditors (positive balance) and debtors (negative balance)
+    List<MapEntry<String, double>> creditors = [];
+    List<MapEntry<String, double>> debtors = [];
+
+    for (var entry in netBalances.entries) {
+      if (entry.value > 0.01) {
+        // Small threshold to avoid floating point issues
+        creditors.add(entry);
+      } else if (entry.value < -0.01) {
+        debtors.add(
+          MapEntry(entry.key, -entry.value),
+        ); // Make positive for easier calculation
+      }
+    }
+
+    // Sort creditors and debtors by amount (largest first)
+    creditors.sort((a, b) => b.value.compareTo(a.value));
+    debtors.sort((a, b) => b.value.compareTo(a.value));
+
+    // Greedy algorithm to minimize number of transactions
+    int creditorIndex = 0;
+    int debtorIndex = 0;
+
+    while (creditorIndex < creditors.length && debtorIndex < debtors.length) {
+      final creditor = creditors[creditorIndex];
+      final debtor = debtors[debtorIndex];
+
+      final creditorAmount = creditor.value;
+      final debtorAmount = debtor.value;
+
+      final settlementAmount = math.min(creditorAmount, debtorAmount);
+
+      if (settlementAmount > 0.01) {
+        // Only add meaningful debts
+        optimizedDebts.add({
+          'debtorId': debtor.key,
+          'debtorName': userIdToName[debtor.key] ?? debtor.key,
+          'creditorId': creditor.key,
+          'creditorName': userIdToName[creditor.key] ?? creditor.key,
+          'amount': settlementAmount,
+        });
+      }
+
+      // Update remaining amounts
+      creditors[creditorIndex] = MapEntry(
+        creditor.key,
+        creditorAmount - settlementAmount,
+      );
+      debtors[debtorIndex] = MapEntry(
+        debtor.key,
+        debtorAmount - settlementAmount,
+      );
+
+      // Move to next creditor or debtor if current one is settled
+      if (creditors[creditorIndex].value <= 0.01) {
+        creditorIndex++;
+      }
+      if (debtors[debtorIndex].value <= 0.01) {
+        debtorIndex++;
       }
     }
 
@@ -1095,6 +1338,53 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         ),
       ),
     );
+
+    // Add optimization summary
+    if (optimizedDebts.isNotEmpty) {
+      final totalDebtAmount = optimizedDebts.fold<double>(
+        0.0,
+        (sum, debt) => sum + debt['amount'],
+      );
+
+      debtWidgets.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDarkMode ? AppColors.cardDark : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow:
+                !isDarkMode
+                    ? [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(13),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                    : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                context.tr('groups_debt_total_amount'),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
+              ),
+              Text(
+                '\$${totalDebtAmount.toStringAsFixed(2)}',
+                style: textTheme.titleMedium?.copyWith(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     // If the group is settled, show a message
     if (group.isSettled) {
@@ -1139,61 +1429,65 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         ),
       );
     } else {
-      // Show all debts between members
-      bool hasDebts = false;
+      // Show all optimized debts
+      bool hasDebts = optimizedDebts.isNotEmpty;
 
-      for (var debtor in debts.keys) {
-        for (var creditor in debts[debtor]!.keys) {
-          double amount = debts[debtor]![creditor]!;
+      for (var debt in optimizedDebts) {
+        final debtorName = debt['debtorName'];
+        final creditorName = debt['creditorName'];
+        final amount = debt['amount'];
 
-          if (amount > 0) {
-            hasDebts = true;
-
-            // Show the debt card
-            debtWidgets.add(
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDarkMode ? AppColors.cardDark : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow:
-                      !isDarkMode
-                          ? [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(13),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ]
-                          : null,
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: AppColors.expense.withValues(alpha: 0.2),
-                      child: Text(
-                        debtor.substring(0, 1).toUpperCase(),
-                        style: TextStyle(color: AppColors.expense),
-                      ),
+        // Show the debt card
+        debtWidgets.add(
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDarkMode ? AppColors.cardDark : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow:
+                  !isDarkMode
+                      ? [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(13),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                      : null,
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.expense.withValues(alpha: 0.2),
+                  child: Text(
+                    debtorName.substring(0, 1).toUpperCase(),
+                    style: TextStyle(
+                      color: AppColors.expense,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: RichText(
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
                         text: TextSpan(
-                          style: textTheme.bodyMedium?.copyWith(
+                          style: textTheme.bodyLarge?.copyWith(
                             color: isDarkMode ? Colors.white : Colors.black87,
                           ),
                           children: [
                             TextSpan(
-                              text: _getShortName(debtor),
+                              text: _getShortName(debtorName),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             TextSpan(text: ' ${context.tr('groups_owes')} '),
                             TextSpan(
-                              text: _getShortName(creditor),
+                              text: _getShortName(creditorName),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1201,20 +1495,26 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                           ],
                         ),
                       ),
-                    ),
-                    Text(
-                      '\$${amount.toStringAsFixed(2)}',
-                      style: textTheme.titleMedium?.copyWith(
-                        color: AppColors.expense,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 4),
+                      Text(
+                        '\$${amount.toStringAsFixed(2)}',
+                        style: textTheme.titleLarge?.copyWith(
+                          color: AppColors.expense,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }
-        }
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: isDarkMode ? Colors.white38 : Colors.grey.shade400,
+                ),
+              ],
+            ),
+          ),
+        );
       }
 
       // If no debts, show a message
@@ -1278,10 +1578,188 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
   // Helper method to get a shorter display name
   String _getShortName(String fullName) {
-    final parts = fullName.split(' ');
-    if (parts.length > 1) {
-      return '${parts.first} ${parts.last.substring(0, 1)}.';
+    // Handle the "You" case
+    if (fullName == 'You') {
+      return 'You';
     }
+
+    // For other names, use first name only if it's long enough
+    final parts = fullName.split(' ');
+    if (parts.length > 1 && parts.first.length > 2) {
+      return parts.first;
+    }
+
+    // If name is short or single word, return as is
     return fullName;
+  }
+
+  // Helper method to show edit role dialog
+  void _showSimpleEditRoleDialog(
+    BuildContext context,
+    String displayName,
+    String userId,
+    bool isAdmin,
+  ) {
+    String selectedRole = isAdmin ? 'admin' : 'member';
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(context.tr('groups_edit_role')),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${context.tr('groups_member')}: $displayName',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                StatefulBuilder(
+                  builder: (context, setState) {
+                    return Column(
+                      children: [
+                        RadioListTile<String>(
+                          title: Text(context.tr('groups_admin')),
+                          value: 'admin',
+                          groupValue: selectedRole,
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                selectedRole = value;
+                              });
+                            }
+                          },
+                          activeColor: AppColors.primary,
+                        ),
+                        RadioListTile<String>(
+                          title: Text(context.tr('groups_member')),
+                          value: 'member',
+                          groupValue: selectedRole,
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                selectedRole = value;
+                              });
+                            }
+                          },
+                          activeColor: AppColors.primary,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(context.tr('common_cancel')),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  if (selectedRole != (isAdmin ? 'admin' : 'member')) {
+                    context.read<GroupBloc>().add(
+                      UpdateMemberRoleEvent(
+                        groupId: widget.groupId,
+                        userId: userId,
+                        role: selectedRole,
+                      ),
+                    );
+                  }
+                },
+                child: Text(context.tr('common_save')),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // Helper method to show remove member dialog
+  void _showSimpleRemoveMemberDialog(
+    BuildContext context,
+    String displayName,
+    String userId,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(context.tr('groups_remove_member')),
+            content: Text(
+              '${context.tr('groups_remove_member_confirm')} $displayName?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(context.tr('common_cancel')),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.read<GroupBloc>().add(
+                    RemoveMemberEvent(groupId: widget.groupId, userId: userId),
+                  );
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: Text(context.tr('common_remove')),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // Helper method to check if the current user is the member
+  bool _isCurrentUser(String userId) {
+    final supabase = SupabaseClientManager.instance.client;
+    final currentUserId = supabase.auth.currentUser?.id;
+    return currentUserId == userId;
+  }
+
+  // Helper method to parse group members and create user ID to name mapping
+  Map<String, String> _createUserIdToNameMapping(ExpenseGroup group) {
+    Map<String, String> userIdToName = {};
+
+    for (var member in group.members) {
+      // Extract user ID from member string if it contains it (format: "Name (userId)")
+      final match = RegExp(r'^(.+?)\s*\(([^)]+)\)$').firstMatch(member);
+      if (match != null) {
+        final displayName = match.group(1)?.trim() ?? member;
+        final userId = match.group(2);
+        if (userId != null) {
+          userIdToName[userId] = displayName;
+        }
+      } else {
+        // If no ID in parentheses, the member string might be the display name
+        // In this case, we'll store it but it might not match transaction user IDs
+        userIdToName[member] = member;
+      }
+    }
+
+    return userIdToName;
+  }
+
+  // Helper method to get display name for a user ID
+  String _getDisplayNameForUserId(String userId, ExpenseGroup group) {
+    final userIdToName = _createUserIdToNameMapping(group);
+
+    // First try the mapping
+    String? displayName = userIdToName[userId];
+
+    if (displayName != null) {
+      return displayName;
+    }
+
+    // Check if it's the current user
+    final supabase = SupabaseClientManager.instance.client;
+    final currentUserId = supabase.auth.currentUser?.id;
+
+    if (userId == currentUserId) {
+      return 'You';
+    }
+
+    // Last resort: use a shortened user ID
+    return 'User ${userId.substring(0, 8)}...';
   }
 }

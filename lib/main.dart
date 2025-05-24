@@ -18,6 +18,7 @@ import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 import 'package:monie/features/home/presentation/pages/home_page.dart';
 import 'package:monie/core/widgets/main_screen.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
@@ -104,6 +105,9 @@ class MyApp extends StatelessWidget {
               (context) => sl<SettingsBloc>()..add(const LoadSettingsEvent()),
         ),
         BlocProvider<GroupBloc>(create: (context) => sl<GroupBloc>()),
+        BlocProvider<NotificationBloc>(
+          create: (context) => sl<NotificationBloc>(),
+        ),
       ],
       child: BlocBuilder<SettingsBloc, SettingsState>(
         builder: (context, state) {

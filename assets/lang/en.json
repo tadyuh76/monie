@@ -59,6 +59,9 @@
   "transactions_deleted_success": "Transaction deleted successfully",
   "transactions_error": "Error",
 
+  "transaction_expense": "Expense",
+  "transaction_income": "Income",
+
   "category_breakdown": "Category Breakdown",
   "no_transactions_this_month": "No transactions this month",
   "no_expenses_this_month": "No expenses this month",
@@ -190,6 +193,13 @@
   "groups_role_viewer": "Viewer",
   "groups_role_admin": "Admin",
   "groups_no_groups_yet": "No groups yet",
+  "groups_edit_role": "Edit Role",
+  "groups_remove_member": "Remove Member",
+  "groups_remove_member_confirm": "Are you sure you want to remove",
+  "groups_member": "Member",
+
+  "groups_debt_total_amount": "Total Amount",
+  "groups_debt_optimized_transactions": "Optimized Transactions",
 
   "category": "Category",
   "select_category": "Select Category",
@@ -328,5 +338,24 @@
   "monthly_summary_net": "Net",
   "monthly_summary_vs_last_month": "vs last month",
   "monthly_summary_no_data": "No data available",
-  "monthly_summary_top_categories": "Top Categories"
+  "monthly_summary_top_categories": "Top Categories",
+
+  "notifications_title": "Notifications",
+  "notifications_mark_all_read": "Mark all as read",
+  "notifications_empty_title": "No notifications",
+  "notifications_empty_subtitle": "You're all caught up! New notifications will appear here.",
+  "notifications_delete_title": "Delete Notification",
+  "notifications_delete_message": "Are you sure you want to delete this notification?",
+  "notifications_deleted_success": "Notification deleted successfully",
+
+  "groups_add_income": "Add Income",
+  "groups_income_title": "Income Title",
+  "groups_income_title_hint": "Enter a title for this income",
+  "groups_income_title_required": "Please enter an income title",
+  "groups_income_amount": "Amount",
+  "groups_income_amount_required": "Please enter an amount",
+  "groups_income_description": "Description",
+  "groups_income_description_hint": "Add details about this income (optional)",
+  "groups_income_received_by": "Received By",
+  "groups_amount_invalid": "Please enter a valid amount greater than 0"
 }

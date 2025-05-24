@@ -58,6 +58,9 @@
   "transactions_deleted_success": "Xóa giao dịch thành công",
   "transactions_error": "Lỗi",
 
+  "transaction_expense": "Chi tiêu",
+  "transaction_income": "Thu nhập",
+
   "category_breakdown": "Phân tích theo danh mục",
   "no_transactions_this_month": "Không có giao dịch nào trong tháng này",
   "no_expenses_this_month": "Không có khoản chi nào trong tháng này",
@@ -190,6 +193,14 @@
   "groups_role_admin": "Quản Trị Viên",
   "groups_no_groups_yet": "Chưa có nhóm nào",
 
+  "notifications_title": "Thông báo",
+  "notifications_mark_all_read": "Đánh dấu tất cả đã đọc",
+  "notifications_empty_title": "Không có thông báo",
+  "notifications_empty_subtitle": "Bạn đã xem hết! Thông báo mới sẽ xuất hiện ở đây.",
+  "notifications_delete_title": "Xóa thông báo",
+  "notifications_delete_message": "Bạn có chắc chắn muốn xóa thông báo này?",
+  "notifications_deleted_success": "Đã xóa thông báo thành công",
+
   "category": "Danh mục",
   "select_category": "Chọn danh mục",
   "please_select_category": "Vui lòng chọn một danh mục",
@@ -302,5 +313,25 @@
   "monthly_summary_net": "Tổng",
   "monthly_summary_vs_last_month": "so với tháng trước",
   "monthly_summary_no_data": "Không có dữ liệu",
-  "monthly_summary_top_categories": "Danh Mục Hàng Đầu"
+  "monthly_summary_top_categories": "Danh Mục Hàng Đầu",
+
+  "groups_edit_role": "Chỉnh sửa vai trò",
+  "groups_remove_member": "Xóa thành viên",
+  "groups_remove_member_confirm": "Bạn có chắc chắn muốn xóa",
+  "groups_member": "Thành viên",
+  "common_remove": "Xóa",
+
+  "groups_add_income": "Thêm thu nhập",
+  "groups_income_title": "Tiêu đề thu nhập",
+  "groups_income_title_hint": "Nhập tiêu đề cho thu nhập này",
+  "groups_income_title_required": "Vui lòng nhập tiêu đề thu nhập",
+  "groups_income_amount": "Số tiền",
+  "groups_income_amount_required": "Vui lòng nhập số tiền",
+  "groups_income_description": "Mô tả",
+  "groups_income_description_hint": "Thêm chi tiết về thu nhập này (tùy chọn)",
+  "groups_income_received_by": "Người nhận",
+  "groups_amount_invalid": "Vui lòng nhập số tiền hợp lệ lớn hơn 0",
+
+  "groups_debt_total_amount": "Tổng số tiền",
+  "groups_debt_optimized_transactions": "Giao dịch tối ưu"
 }

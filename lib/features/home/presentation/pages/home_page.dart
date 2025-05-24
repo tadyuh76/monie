@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/core/widgets/main_screen.dart';
 import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/account/presentation/bloc/account_event.dart';
@@ -11,6 +12,8 @@ import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
+import 'package:monie/features/budgets/presentation/widgets/budget_card.dart';
+import 'package:monie/features/budgets/presentation/widgets/budget_form.dart';
 import 'package:monie/features/home/presentation/widgets/accounts_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/balance_chart_widget.dart';
 import 'package:monie/features/home/presentation/widgets/category_breakdown_widget.dart';
@@ -20,15 +23,14 @@ import 'package:monie/features/home/presentation/widgets/monthly_summary_widget.
 import 'package:monie/features/home/presentation/widgets/notification_bell_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/spending_forecast_widget.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_event.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 import 'package:monie/features/transactions/presentation/widgets/budget_form_bottom_sheet.dart';
-import 'package:monie/features/budgets/presentation/widgets/budget_card.dart';
-import 'package:monie/features/budgets/presentation/widgets/budget_form.dart';
-import 'package:monie/core/widgets/main_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -71,6 +73,13 @@ class _HomePageState extends State<HomePage> {
       try {
         // Load budgets
         context.read<BudgetsBloc>().add(const LoadBudgets());
+      } catch (e) {
+        // Bloc might be closed, ignore the error
+      }
+
+      try {
+        // Load notifications unread count
+        context.read<NotificationBloc>().add(LoadUnreadCount(userId));
       } catch (e) {
         // Bloc might be closed, ignore the error
       }

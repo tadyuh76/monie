@@ -92,9 +92,13 @@ class _GroupsPageState extends State<GroupsPage>
               context,
             ).showSnackBar(SnackBar(content: Text(state.message)));
           } else if (state is GroupOperationSuccess) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
+            // Only show snackbars for operations relevant to the groups list
+            if (state.message.contains('Group created') ||
+                state.message.contains('Group settled')) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
+            }
             // Only refresh if we need to
             if (context.read<GroupBloc>().state is! GroupsLoaded) {
               _loadGroups();
@@ -306,6 +310,17 @@ class _GroupsPageState extends State<GroupsPage>
     ];
   }
 
+  // Helper method to extract clean display name from member string
+  String _getCleanDisplayName(String member) {
+    // Extract display name from member string if it contains user ID (format: "Name (userId)")
+    final match = RegExp(r'^(.+?)\s*\(([^)]+)\)$').firstMatch(member);
+    if (match != null) {
+      return match.group(1)?.trim() ?? member;
+    }
+    // If no ID in parentheses, return the member string as is
+    return member;
+  }
+
   Widget _buildGroupCard(BuildContext context, ExpenseGroup group) {
     final textTheme = Theme.of(context).textTheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -435,7 +450,7 @@ class _GroupsPageState extends State<GroupsPage>
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        member,
+                        _getCleanDisplayName(member),
                         style: textTheme.bodyMedium?.copyWith(
                           color: isDarkMode ? Colors.white : Colors.black87,
                         ),
