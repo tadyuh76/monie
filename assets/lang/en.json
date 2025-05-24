@@ -258,9 +258,21 @@
   "budget_date_range_display": "{start} - {end}",
   "budget_days_remaining": "{days} days remaining",
   "budget_progress": "Progress",
-  "budget_period_ends_on": "Period ends on {date}",
-  "home_budget_error": "Error loading budgets",
+  "budget_period_ends_on": "Period ends on {date}",  "home_budget_error": "Error loading budgets",
   "home_no_accounts_desc": "Add an account to start tracking your finances",
   "home_account_error": "Error loading accounts",
-  "home_refresh": "Refresh"
+  "home_refresh": "Refresh",
+
+  "settings_transaction_reminders": "Transaction Reminders",
+  "settings_reminder_description": "Set custom times to remind you to add your daily transactions",
+  "settings_add_reminder": "Add Reminder",
+  "settings_no_reminders": "No reminders set",
+  "settings_add_first_reminder": "Add Your First Reminder",
+  "settings_reminder_enabled": "Active",
+  "settings_reminder_disabled": "Disabled",
+  "settings_edit_time": "Edit Time",
+  "settings_delete_reminder": "Delete",
+  "notification_reminder_title": "Don't forget to track your expenses!",
+  "notification_reminder_body": "Take a moment to add your recent transactions to keep your budget on track.",
+  "notification_reminder_action": "Add Transaction"
 }
