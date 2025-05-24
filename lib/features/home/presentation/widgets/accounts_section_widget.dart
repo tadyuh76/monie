@@ -86,7 +86,7 @@ class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
           } else {
             // Add account button
             return SizedBox(
-              width: 160,
+              width: 220,
               child: Card(
                 child: InkWell(
                   onTap: () {
