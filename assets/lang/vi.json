@@ -310,5 +310,11 @@
   "monthly_summary_net": "Tổng",
   "monthly_summary_vs_last_month": "so với tháng trước",
   "monthly_summary_no_data": "Không có dữ liệu",
-  "monthly_summary_top_categories": "Danh Mục Hàng Đầu"
+  "monthly_summary_top_categories": "Danh Mục Hàng Đầu",
+
+  "groups_edit_role": "Chỉnh sửa vai trò",
+  "groups_remove_member": "Xóa thành viên",
+  "groups_remove_member_confirm": "Bạn có chắc chắn muốn xóa",
+  "groups_member": "Thành viên",
+  "common_remove": "Xóa"
 }

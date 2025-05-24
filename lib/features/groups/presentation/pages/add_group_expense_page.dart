@@ -99,10 +99,13 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
               context,
             ).showSnackBar(SnackBar(content: Text(state.message)));
           } else if (state is GroupOperationSuccess) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
-            Navigator.pop(context); // Return to group details page
+            // Only show snackbars for expense-related operations
+            if (state.message.contains('Expense added')) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
+              Navigator.pop(context); // Return to group details page
+            }
           } else if (state is GroupMembersLoaded) {
             // When members are loaded, update the member data
             setState(() {

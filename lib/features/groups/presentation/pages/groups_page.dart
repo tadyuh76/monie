@@ -92,9 +92,13 @@ class _GroupsPageState extends State<GroupsPage>
               context,
             ).showSnackBar(SnackBar(content: Text(state.message)));
           } else if (state is GroupOperationSuccess) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
+            // Only show snackbars for operations relevant to the groups list
+            if (state.message.contains('Group created') ||
+                state.message.contains('Group settled')) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
+            }
             // Only refresh if we need to
             if (context.read<GroupBloc>().state is! GroupsLoaded) {
               _loadGroups();

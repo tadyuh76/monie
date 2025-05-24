@@ -484,14 +484,17 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
           )
           .eq('group_id', groupId);
 
-      return membersResponse.map((m) {
-        return GroupMemberModel(
-          groupId: m['group_id'],
-          userId: m['user_id'],
-          role: m['role'],
-          displayName: m['users']['display_name'],
-        );
-      }).toList();
+      final members =
+          membersResponse.map((m) {
+            return GroupMemberModel(
+              groupId: m['group_id'],
+              userId: m['user_id'],
+              role: m['role'],
+              displayName: m['users']['display_name'],
+            );
+          }).toList();
+
+      return members;
     } catch (e) {
       throw ServerException(message: e.toString());
     }

@@ -190,6 +190,10 @@
   "groups_role_viewer": "Viewer",
   "groups_role_admin": "Admin",
   "groups_no_groups_yet": "No groups yet",
+  "groups_edit_role": "Edit Role",
+  "groups_remove_member": "Remove Member",
+  "groups_remove_member_confirm": "Are you sure you want to remove",
+  "groups_member": "Member",
 
   "category": "Category",
   "select_category": "Select Category",

@@ -94,6 +94,8 @@ import '../features/transactions/domain/repositories/category_repository.dart';
 import 'package:monie/features/groups/domain/usecases/add_group_expense.dart';
 import 'package:monie/features/groups/domain/usecases/get_group_transactions.dart';
 import 'package:monie/features/groups/domain/usecases/approve_group_transaction.dart';
+import 'package:monie/features/groups/domain/usecases/remove_member.dart';
+import 'package:monie/features/groups/domain/usecases/update_member_role.dart';
 
 final sl = GetIt.instance;
 
@@ -322,6 +324,8 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetGroupTransactions(repository: sl()));
   sl.registerLazySingleton(() => ApproveGroupTransaction(repository: sl()));
   sl.registerLazySingleton(() => get_members.GetGroupMembers(repository: sl()));
+  sl.registerLazySingleton(() => RemoveMember(repository: sl()));
+  sl.registerLazySingleton(() => UpdateMemberRole(repository: sl()));
 
   // Group Bloc
   sl.registerFactory<GroupBloc>(
@@ -336,6 +340,8 @@ Future<void> configureDependencies() async {
       getGroupTransactions: sl(),
       approveGroupTransaction: sl(),
       getGroupMembers: sl(),
+      removeMember: sl(),
+      updateMemberRole: sl(),
     ),
   );
 

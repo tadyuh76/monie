@@ -3,15 +3,23 @@ import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/groups/data/datasources/group_remote_datasource.dart';
 import 'package:monie/features/groups/data/repositories/group_repository_impl.dart';
 import 'package:monie/features/groups/domain/repositories/group_repository.dart';
+import 'package:monie/features/groups/domain/usecases/add_group_expense.dart';
 import 'package:monie/features/groups/domain/usecases/add_member.dart';
+import 'package:monie/features/groups/domain/usecases/approve_group_transaction.dart';
 import 'package:monie/features/groups/domain/usecases/calculate_debts.dart'
     as calc;
 import 'package:monie/features/groups/domain/usecases/create_group.dart';
 import 'package:monie/features/groups/domain/usecases/get_group_by_id.dart'
     as get_group;
+import 'package:monie/features/groups/domain/usecases/get_group_members.dart'
+    as get_members;
+import 'package:monie/features/groups/domain/usecases/get_group_transactions.dart'
+    as get_transactions;
 import 'package:monie/features/groups/domain/usecases/get_groups.dart';
+import 'package:monie/features/groups/domain/usecases/remove_member.dart';
 import 'package:monie/features/groups/domain/usecases/settle_group.dart'
     as settle;
+import 'package:monie/features/groups/domain/usecases/update_member_role.dart';
 import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 
 // Notification imports
@@ -76,6 +84,8 @@ void _setupGroupsFeature() {
       getGroupTransactions: sl(),
       approveGroupTransaction: sl(),
       getGroupMembers: sl(),
+      removeMember: sl(),
+      updateMemberRole: sl(),
     ),
   );
 
@@ -86,6 +96,14 @@ void _setupGroupsFeature() {
   sl.registerLazySingleton(() => AddMember(repository: sl()));
   sl.registerLazySingleton(() => calc.CalculateDebts(repository: sl()));
   sl.registerLazySingleton(() => settle.SettleGroup(repository: sl()));
+  sl.registerLazySingleton(() => get_members.GetGroupMembers(repository: sl()));
+  sl.registerLazySingleton(
+    () => get_transactions.GetGroupTransactions(repository: sl()),
+  );
+  sl.registerLazySingleton(() => ApproveGroupTransaction(repository: sl()));
+  sl.registerLazySingleton(() => AddGroupExpense(repository: sl()));
+  sl.registerLazySingleton(() => RemoveMember(repository: sl()));
+  sl.registerLazySingleton(() => UpdateMemberRole(repository: sl()));
 
   // Repository
   sl.registerLazySingleton<GroupRepository>(
