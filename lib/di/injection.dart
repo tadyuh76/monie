@@ -2,6 +2,9 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
+import 'package:monie/core/services/firebase_notification_service.dart';
+import 'package:monie/core/services/local_notification_service.dart';
+import 'package:monie/core/services/push_notification_manager.dart';
 import 'package:monie/features/account/data/datasources/account_remote_data_source.dart';
 import 'package:monie/features/account/data/repositories/account_repository_impl.dart';
 import 'package:monie/features/account/domain/repositories/account_repository.dart';
@@ -125,6 +128,11 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => FirebaseMessaging.instance);
   sl.registerLazySingleton(() => FlutterLocalNotificationsPlugin());
   sl.registerLazySingleton(() => http.Client());
+  
+  // Notification Services
+  sl.registerLazySingleton<FirebaseNotificationService>(() => FirebaseNotificationService());
+  sl.registerLazySingleton<LocalNotificationService>(() => LocalNotificationService());
+  sl.registerLazySingleton<PushNotificationManager>(() => PushNotificationManager());
 
   // Authentication
   sl.registerLazySingleton<AuthRemoteDataSource>(

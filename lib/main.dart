@@ -1,29 +1,18 @@
-import 'dart:io';
-
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:monie/core/localization/app_localizations.dart';
-import 'package:monie/core/network/supabase_client.dart';
-import 'package:monie/core/services/app_lifecycle_service.dart';
 import 'package:monie/core/themes/app_theme.dart';
-// import 'package:monie/core/themes/color_extensions.dart';
+import 'package:monie/core/utils/app_initializer.dart';
 import 'package:monie/di/injection.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
-import 'package:monie/features/notifications/presentation/bloc/notification_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/authentication/presentation/pages/auth_wrapper.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
-import 'package:monie/features/budgets/presentation/pages/budgets_page.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
-import 'package:monie/features/home/presentation/pages/home_page.dart';
 import 'package:monie/core/widgets/main_screen.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
@@ -33,186 +22,24 @@ import 'package:monie/features/settings/presentation/pages/settings_page.dart';
 import 'package:monie/features/transactions/presentation/bloc/categories_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
-import 'package:monie/features/transactions/presentation/pages/transactions_page.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-
-// Register background message handler at the top level
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // This is needed to handle messages in the background
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  
-  debugPrint("Handling a background message: ${message.messageId}");
-  debugPrint("Message data: ${message.data}");
-  debugPrint("Message notification: ${message.notification?.title} - ${message.notification?.body}");
-  
-  // Initialize local notifications if needed
-  final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
-  
-  // Check if this is a transaction reminder
-  if (message.data['type'] == 'transaction_reminder' || message.data['type'] == 'transaction_reminder_data') {
-    debugPrint("Processing transaction reminder in background");
-    
-    // Show local notification for better terminated app handling
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'high_importance_channel',
-      'High Importance Notifications',
-      channelDescription: 'High priority notifications for reminders and critical updates',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-      enableVibration: true,
-      playSound: true,
-      enableLights: true,
-      ledColor: Color(0xFF4CAF50),
-      ledOnMs: 1000,
-      ledOffMs: 500,
-      category: AndroidNotificationCategory.reminder,
-      visibility: NotificationVisibility.public,
-      fullScreenIntent: true, // This helps wake up terminated apps
-    );
-    
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidDetails,
-    );
-    
-    // Extract title and body from data if notification is null (data-only message)
-    final title = message.notification?.title ?? message.data['title'] ?? "Don't forget to track your expenses!";
-    final body = message.notification?.body ?? message.data['body'] ?? 'Take a moment to add your recent transactions.';
-    
-    await localNotifications.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      platformChannelSpecifics,
-      payload: message.data.isNotEmpty ? message.data.toString() : null,
-    );
-    
-    debugPrint("Local notification shown for transaction reminder");
-  }
-}
+import 'package:monie/features/home/presentation/pages/home_page.dart';
 
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
-
-  // Initialize Firebase
-  Future<void> _showNotification(RemoteNotification notification) async {
-  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-    'default_channel_id',
-    'Notification',
-    importance: Importance.max,
-    priority: Priority.high,
-  );
-
-  const NotificationDetails notificationDetails =
-      NotificationDetails(android: androidDetails);
-
-  await flutterLocalNotificationsPlugin.show(
-    0,
-    notification.title,
-    notification.body,
-    notificationDetails,
-  );
-}
-
-  // Initialize local notifications
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Initialize the app and all services
+  await AppInitializer.initialize();
   
-  // Request iOS permissions
-  if (Platform.isIOS) {
-    await FirebaseMessaging.instance.getAPNSToken();
+  // Initialize notification system and get FCM token
+  final fcmToken = await AppInitializer.initializeNotifications();
+  
+  if (fcmToken != null) {
+    debugPrint('🚀 App started successfully with notifications enabled');
+  } else {
+    debugPrint('🚀 App started successfully (notifications disabled)');
   }
-  
-  // Get and log the FCM token
-  String? fcmToken = await FirebaseMessaging.instance.getToken();
-  debugPrint('FCM Token: $fcmToken');
-    
-  // Request permissions
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
-  NotificationSettings settings = await messaging.requestPermission(
-    alert: true,
-    announcement: false,
-    badge: true,
-    carPlay: false,
-    criticalAlert: false,
-    provisional: false,
-    sound: true,
-  );
-  
-  debugPrint('User granted permission: ${settings.authorizationStatus}');
-  await FirebaseMessaging.instance.setAutoInitEnabled(true);
-  
-  // Set up foreground message handler (there should only be one)
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    debugPrint('Received foreground message: ${message.notification?.title}');
-    debugPrint('Message data: ${message.data}');
-    
-    if (message.notification != null) {
-      _showNotification(message.notification!);
-    }
-  });
-  
-  // Set background message handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  // Lock orientation to portrait
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-
-  // Configure system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Colors.black,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
-
-  // Initialize Supabase client
-  await SupabaseClientManager.initialize();
-
-  // Setup dependency injection
-  await configureDependencies();
-  
-  // Initialize notification system
-  final notificationBloc = sl<NotificationBloc>();
-  notificationBloc.add(RegisterDeviceEvent());
-  debugPrint('Device registration initiated');
-  notificationBloc.add(SetupNotificationListenersEvent());
-  debugPrint('Notification listeners setup initiated');
-  
-  // Give time for the operations to complete
-  await Future.delayed(const Duration(milliseconds: 500));
-  
-  // Initialize app lifecycle service to track app state changes
-  final appLifecycleService = sl<AppLifecycleService>();
-  
-  // Delay slightly to ensure everything is initialized
-  await Future.delayed(const Duration(milliseconds: 500));
-  
-  // Send initial app state notification as 'foreground'
-  debugPrint('Sending initial foreground state to server');
-  notificationBloc.add(const SendAppStateChangeEvent(state: 'foreground'));
 
   runApp(const MyApp());
 }
