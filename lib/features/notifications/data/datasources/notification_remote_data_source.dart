@@ -157,6 +157,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
       );
       
       // Store notification in local storage if needed
+      // ignore: unused_local_variable
       final notificationModel = NotificationModel(
         id: const Uuid().v4(), 
         title: notification.title ?? 'New Notification',

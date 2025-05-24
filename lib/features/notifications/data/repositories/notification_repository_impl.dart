@@ -3,7 +3,6 @@ import 'package:monie/core/errors/exceptions.dart';
 import 'package:monie/core/errors/failures.dart';
 import 'package:monie/features/notifications/data/datasources/notification_local_data_source.dart';
 import 'package:monie/features/notifications/data/datasources/notification_remote_data_source.dart';
-import 'package:monie/features/notifications/data/models/notification_model.dart';
 import 'package:monie/features/notifications/domain/entities/notification.dart';
 import 'package:monie/features/notifications/domain/repositories/notification_repository.dart';
 

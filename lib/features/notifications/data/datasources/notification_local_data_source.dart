@@ -24,7 +24,7 @@ abstract class NotificationLocalDataSource {
   Future<void> deleteNotification(String notificationId);
 }
 
-const CACHED_NOTIFICATIONS_KEY = 'CACHED_NOTIFICATIONS';
+const cachedNotificationsKey = 'CACHED_NOTIFICATIONS';
 
 class NotificationLocalDataSourceImpl implements NotificationLocalDataSource {
   final SharedPreferences sharedPreferences;
@@ -33,7 +33,7 @@ class NotificationLocalDataSourceImpl implements NotificationLocalDataSource {
 
   @override
   Future<List<NotificationModel>> getCachedNotifications() async {
-    final jsonString = sharedPreferences.getString(CACHED_NOTIFICATIONS_KEY);
+    final jsonString = sharedPreferences.getString(cachedNotificationsKey);
     if (jsonString == null) {
       return [];
     }
@@ -50,9 +50,8 @@ class NotificationLocalDataSourceImpl implements NotificationLocalDataSource {
 
   @override
   Future<void> cacheNotifications(List<NotificationModel> notifications) async {
-    final jsonList = notifications.map((note) => note.toJson()).toList();
-    await sharedPreferences.setString(
-      CACHED_NOTIFICATIONS_KEY,
+    final jsonList = notifications.map((note) => note.toJson()).toList();    await sharedPreferences.setString(
+      cachedNotificationsKey,
       json.encode(jsonList),
     );
   }

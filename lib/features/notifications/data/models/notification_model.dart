@@ -2,20 +2,13 @@ import 'package:monie/features/notifications/domain/entities/notification.dart';
 
 class NotificationModel extends Notification {
   const NotificationModel({
-    required String id,
-    required String title,
-    required String body,
-    required DateTime timestamp,
-    bool isRead = false,
-    Map<String, dynamic>? data,
-  }) : super(
-          id: id,
-          title: title,
-          body: body,
-          timestamp: timestamp,
-          isRead: isRead,
-          data: data,
-        );
+    required super.id,
+    required super.title,
+    required super.body,
+    required super.timestamp,
+    super.isRead = false,
+    super.data,
+  });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(

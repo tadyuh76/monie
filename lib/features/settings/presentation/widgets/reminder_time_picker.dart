@@ -6,12 +6,11 @@ import 'package:monie/core/localization/app_localizations.dart';
 class ReminderTimePicker extends StatefulWidget {
   final List<ReminderTime> initialReminders;
   final Function(List<ReminderTime>) onRemindersChanged;
-
   const ReminderTimePicker({
-    Key? key,
+    super.key,
     required this.initialReminders,
     required this.onRemindersChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<ReminderTimePicker> createState() => _ReminderTimePickerState();
@@ -117,9 +116,8 @@ class _ReminderTimePickerState extends State<ReminderTimePicker> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            context.tr('settings_reminder_description'),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+            context.tr('settings_reminder_description'),            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
             ),
           ),
         ),
@@ -134,15 +132,14 @@ class _ReminderTimePickerState extends State<ReminderTimePicker> {
               child: Column(
                 children: [
                   Icon(
-                    Icons.notifications_off_outlined,
-                    size: 48,
-                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
+                    Icons.notifications_off_outlined,                    size: 48,
+                    color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     context.tr('settings_no_reminders'),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                      color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -166,7 +163,7 @@ class _ReminderTimePickerState extends State<ReminderTimePicker> {
             itemCount: _reminders.length,
             separatorBuilder: (context, index) => Divider(
               height: 1,
-              color: isDark ? AppColors.divider : Colors.black.withOpacity(0.05),
+              color: isDark ? AppColors.divider : Colors.black.withValues(alpha: 0.05),
             ),
             itemBuilder: (context, index) {
               final reminder = _reminders[index];
@@ -176,11 +173,10 @@ class _ReminderTimePickerState extends State<ReminderTimePicker> {
                   color: reminder.enabled ? AppColors.primary : Colors.grey,
                 ),
                 title: Text(
-                  reminder.formattedTime,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  reminder.formattedTime,                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: reminder.enabled 
                         ? Theme.of(context).textTheme.bodyLarge?.color
-                        : Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.5),
+                        : Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
                   ),
                 ),
                 subtitle: Text(
