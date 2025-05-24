@@ -95,7 +95,10 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
 
         enrichedGroups.add(
           group.copyWith(
-            members: members.map((m) => m.displayName ?? m.userId).toList(),
+            members:
+                members
+                    .map((m) => '${m.displayName ?? 'Unknown'} (${m.userId})')
+                    .toList(),
             totalAmount: totalAmount,
             isSettled: group.isSettled,
           ),
@@ -123,7 +126,10 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
       final totalAmount = await getGroupTotalAmount(groupId);
 
       return group.copyWith(
-        members: members.map((m) => m.displayName ?? m.userId).toList(),
+        members:
+            members
+                .map((m) => '${m.displayName ?? 'Unknown'} (${m.userId})')
+                .toList(),
         totalAmount: totalAmount,
         isSettled: group.isSettled,
       );
@@ -167,9 +173,19 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         'role': 'admin',
       });
 
+      // Get the user's display name for proper member format
+      final userData =
+          await supabase
+              .from('users')
+              .select('display_name')
+              .eq('user_id', userId)
+              .single();
+
+      final displayName = userData['display_name'] ?? 'Unknown';
+
       // Return the newly created group
       return group.copyWith(
-        members: [userId],
+        members: ['$displayName ($userId)'],
         totalAmount: 0,
         isSettled: false,
       );

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -687,27 +688,11 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                   transaction['users']['display_name'] != null) {
                 paidByName = transaction['users']['display_name'];
               } else {
-                // Try to find the member who paid
-                for (var member in group.members) {
-                  if (member.contains(transaction.paidBy)) {
-                    paidByName = member;
-                    break;
-                  }
-                }
-
-                // If we couldn't find a match, use the ID as a fallback
-                if (paidByName == null) {
-                  final supabase = SupabaseClientManager.instance.client;
-                  final currentUserId = supabase.auth.currentUser?.id;
-
-                  // If the current user is the one who paid
-                  if (transaction.paidBy == currentUserId) {
-                    paidByName = context.tr('common_user'); // "You" or "User"
-                  } else {
-                    // Just use a generic label if we can't determine the name
-                    paidByName = context.tr('groups_members');
-                  }
-                }
+                // Use the helper method to get the display name
+                paidByName = _getDisplayNameForUserId(
+                  transaction.paidBy,
+                  group,
+                );
               }
             }
 
@@ -1222,52 +1207,65 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     bool isDarkMode,
     TextTheme textTheme,
   ) {
-    // Calculate debts between members
-    Map<String, Map<String, double>> debts = {};
-    Map<String, String> userIdToName = {};
+    // Calculate optimized debts between members
+    Map<String, double> netBalances =
+        {}; // Positive = owed money, Negative = owes money
 
-    // Create a map of user IDs to display names from group members
-    for (var member in group.members) {
-      // Extract user ID from member string if it contains it (format: "Name (userId)")
-      final match = RegExp(r'^(.+?)\s*\(([^)]+)\)$').firstMatch(member);
-      if (match != null) {
-        final displayName = match.group(1)?.trim() ?? member;
-        final userId = match.group(2);
-        if (userId != null) {
-          userIdToName[userId] = displayName;
-        }
-      } else {
-        // If no ID in parentheses, use the member string as both ID and name
-        userIdToName[member] = member;
-      }
-    }
+    // Create user ID to name mapping using the helper method
+    final userIdToName = _createUserIdToNameMapping(group);
 
-    // Initialize debts map
+    // Initialize net balances for all known users
     for (var userId in userIdToName.keys) {
-      debts[userId] = {};
-      for (var otherUserId in userIdToName.keys) {
-        if (userId != otherUserId) {
-          debts[userId]![otherUserId] = 0;
+      netBalances[userId] = 0.0;
+    }
+
+    // If we don't have proper user ID mapping, try to build it from transactions
+    if (transactions != null && transactions.isNotEmpty) {
+      for (var transaction in transactions) {
+        final payerId = transaction.paidBy;
+        if (payerId != null && !userIdToName.containsKey(payerId)) {
+          final displayName = _getDisplayNameForUserId(payerId, group);
+          userIdToName[payerId] = displayName;
+          netBalances[payerId] = 0.0;
         }
       }
     }
 
-    // Calculate debts based on approved transactions
+    // Calculate net balances based on approved transactions
     if (transactions != null && transactions.isNotEmpty) {
       for (var transaction in transactions) {
         if (transaction.approvalStatus == 'approved') {
           final payerId = transaction.paidBy;
-          final amount = transaction.amount;
+          final amount = transaction.amount.abs(); // Use absolute value
           final memberCount = userIdToName.length;
 
           if (memberCount > 0 && userIdToName.containsKey(payerId)) {
             final amountPerPerson = amount / memberCount;
 
-            // Each member owes the payer their share (except the payer)
-            for (var userId in userIdToName.keys) {
-              if (userId != payerId) {
-                debts[userId]![payerId] =
-                    (debts[userId]![payerId] ?? 0) + amountPerPerson;
+            // Handle both expenses and income
+            bool isIncome =
+                transaction.title.startsWith('Income:') ||
+                transaction.amount < 0;
+
+            if (isIncome) {
+              // For income: the receiver gets positive balance, others get negative
+              netBalances[payerId] =
+                  (netBalances[payerId] ?? 0) + amount - amountPerPerson;
+              for (var userId in userIdToName.keys) {
+                if (userId != payerId) {
+                  netBalances[userId] =
+                      (netBalances[userId] ?? 0) - amountPerPerson;
+                }
+              }
+            } else {
+              // For expenses: the payer gets positive balance, others get negative
+              netBalances[payerId] =
+                  (netBalances[payerId] ?? 0) + amount - amountPerPerson;
+              for (var userId in userIdToName.keys) {
+                if (userId != payerId) {
+                  netBalances[userId] =
+                      (netBalances[userId] ?? 0) - amountPerPerson;
+                }
               }
             }
           }
@@ -1275,24 +1273,68 @@ class _GroupDetailPageState extends State<GroupDetailPage>
       }
     }
 
-    // Simplify debts (net out mutual debts)
-    for (var debtor in debts.keys) {
-      for (var creditor in debts[debtor]!.keys) {
-        if (debts[debtor]![creditor]! > 0 &&
-            debts[creditor] != null &&
-            debts[creditor]![debtor] != null &&
-            debts[creditor]![debtor]! > 0) {
-          // Offset the debts
-          if (debts[debtor]![creditor]! >= debts[creditor]![debtor]!) {
-            debts[debtor]![creditor] =
-                debts[debtor]![creditor]! - debts[creditor]![debtor]!;
-            debts[creditor]![debtor] = 0;
-          } else {
-            debts[creditor]![debtor] =
-                debts[creditor]![debtor]! - debts[debtor]![creditor]!;
-            debts[debtor]![creditor] = 0;
-          }
-        }
+    // Create optimized debt settlements using a greedy algorithm
+    List<Map<String, dynamic>> optimizedDebts = [];
+
+    // Separate creditors (positive balance) and debtors (negative balance)
+    List<MapEntry<String, double>> creditors = [];
+    List<MapEntry<String, double>> debtors = [];
+
+    for (var entry in netBalances.entries) {
+      if (entry.value > 0.01) {
+        // Small threshold to avoid floating point issues
+        creditors.add(entry);
+      } else if (entry.value < -0.01) {
+        debtors.add(
+          MapEntry(entry.key, -entry.value),
+        ); // Make positive for easier calculation
+      }
+    }
+
+    // Sort creditors and debtors by amount (largest first)
+    creditors.sort((a, b) => b.value.compareTo(a.value));
+    debtors.sort((a, b) => b.value.compareTo(a.value));
+
+    // Greedy algorithm to minimize number of transactions
+    int creditorIndex = 0;
+    int debtorIndex = 0;
+
+    while (creditorIndex < creditors.length && debtorIndex < debtors.length) {
+      final creditor = creditors[creditorIndex];
+      final debtor = debtors[debtorIndex];
+
+      final creditorAmount = creditor.value;
+      final debtorAmount = debtor.value;
+
+      final settlementAmount = math.min(creditorAmount, debtorAmount);
+
+      if (settlementAmount > 0.01) {
+        // Only add meaningful debts
+        optimizedDebts.add({
+          'debtorId': debtor.key,
+          'debtorName': userIdToName[debtor.key] ?? debtor.key,
+          'creditorId': creditor.key,
+          'creditorName': userIdToName[creditor.key] ?? creditor.key,
+          'amount': settlementAmount,
+        });
+      }
+
+      // Update remaining amounts
+      creditors[creditorIndex] = MapEntry(
+        creditor.key,
+        creditorAmount - settlementAmount,
+      );
+      debtors[debtorIndex] = MapEntry(
+        debtor.key,
+        debtorAmount - settlementAmount,
+      );
+
+      // Move to next creditor or debtor if current one is settled
+      if (creditors[creditorIndex].value <= 0.01) {
+        creditorIndex++;
+      }
+      if (debtors[debtorIndex].value <= 0.01) {
+        debtorIndex++;
       }
     }
 
@@ -1312,6 +1354,53 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         ),
       ),
     );
+
+    // Add optimization summary
+    if (optimizedDebts.isNotEmpty) {
+      final totalDebtAmount = optimizedDebts.fold<double>(
+        0.0,
+        (sum, debt) => sum + debt['amount'],
+      );
+
+      debtWidgets.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDarkMode ? AppColors.cardDark : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow:
+                !isDarkMode
+                    ? [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(13),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                    : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                context.tr('groups_debt_total_amount'),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
+              ),
+              Text(
+                '\$${totalDebtAmount.toStringAsFixed(2)}',
+                style: textTheme.titleMedium?.copyWith(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     // If the group is settled, show a message
     if (group.isSettled) {
@@ -1356,53 +1445,53 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         ),
       );
     } else {
-      // Show all debts between members
-      bool hasDebts = false;
+      // Show all optimized debts
+      bool hasDebts = optimizedDebts.isNotEmpty;
 
-      for (var debtorId in debts.keys) {
-        for (var creditorId in debts[debtorId]!.keys) {
-          double amount = debts[debtorId]![creditorId]!;
+      for (var debt in optimizedDebts) {
+        final debtorName = debt['debtorName'];
+        final creditorName = debt['creditorName'];
+        final amount = debt['amount'];
 
-          if (amount > 0.01) {
-            // Use small threshold to avoid floating point issues
-            hasDebts = true;
-
-            final debtorName = userIdToName[debtorId] ?? debtorId;
-            final creditorName = userIdToName[creditorId] ?? creditorId;
-
-            // Show the debt card
-            debtWidgets.add(
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDarkMode ? AppColors.cardDark : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow:
-                      !isDarkMode
-                          ? [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(13),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ]
-                          : null,
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: AppColors.expense.withValues(alpha: 0.2),
-                      child: Text(
-                        debtorName.substring(0, 1).toUpperCase(),
-                        style: TextStyle(color: AppColors.expense),
-                      ),
+        // Show the debt card
+        debtWidgets.add(
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDarkMode ? AppColors.cardDark : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow:
+                  !isDarkMode
+                      ? [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(13),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                      : null,
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.expense.withValues(alpha: 0.2),
+                  child: Text(
+                    debtorName.substring(0, 1).toUpperCase(),
+                    style: TextStyle(
+                      color: AppColors.expense,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: RichText(
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
                         text: TextSpan(
-                          style: textTheme.bodyMedium?.copyWith(
+                          style: textTheme.bodyLarge?.copyWith(
                             color: isDarkMode ? Colors.white : Colors.black87,
                           ),
                           children: [
@@ -1422,20 +1511,26 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                           ],
                         ),
                       ),
-                    ),
-                    Text(
-                      '\$${amount.toStringAsFixed(2)}',
-                      style: textTheme.titleMedium?.copyWith(
-                        color: AppColors.expense,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 4),
+                      Text(
+                        '\$${amount.toStringAsFixed(2)}',
+                        style: textTheme.titleLarge?.copyWith(
+                          color: AppColors.expense,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }
-        }
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: isDarkMode ? Colors.white38 : Colors.grey.shade400,
+                ),
+              ],
+            ),
+          ),
+        );
       }
 
       // If no debts, show a message
@@ -1499,10 +1594,18 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
   // Helper method to get a shorter display name
   String _getShortName(String fullName) {
-    final parts = fullName.split(' ');
-    if (parts.length > 1) {
-      return '${parts.first} ${parts.last.substring(0, 1)}.';
+    // Handle the "You" case
+    if (fullName == 'You') {
+      return 'You';
     }
+
+    // For other names, use first name only if it's long enough
+    final parts = fullName.split(' ');
+    if (parts.length > 1 && parts.first.length > 2) {
+      return parts.first;
+    }
+
+    // If name is short or single word, return as is
     return fullName;
   }
 
@@ -1628,5 +1731,51 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     final supabase = SupabaseClientManager.instance.client;
     final currentUserId = supabase.auth.currentUser?.id;
     return currentUserId == userId;
+  }
+
+  // Helper method to parse group members and create user ID to name mapping
+  Map<String, String> _createUserIdToNameMapping(ExpenseGroup group) {
+    Map<String, String> userIdToName = {};
+
+    for (var member in group.members) {
+      // Extract user ID from member string if it contains it (format: "Name (userId)")
+      final match = RegExp(r'^(.+?)\s*\(([^)]+)\)$').firstMatch(member);
+      if (match != null) {
+        final displayName = match.group(1)?.trim() ?? member;
+        final userId = match.group(2);
+        if (userId != null) {
+          userIdToName[userId] = displayName;
+        }
+      } else {
+        // If no ID in parentheses, the member string might be the display name
+        // In this case, we'll store it but it might not match transaction user IDs
+        userIdToName[member] = member;
+      }
+    }
+
+    return userIdToName;
+  }
+
+  // Helper method to get display name for a user ID
+  String _getDisplayNameForUserId(String userId, ExpenseGroup group) {
+    final userIdToName = _createUserIdToNameMapping(group);
+
+    // First try the mapping
+    String? displayName = userIdToName[userId];
+
+    if (displayName != null) {
+      return displayName;
+    }
+
+    // Check if it's the current user
+    final supabase = SupabaseClientManager.instance.client;
+    final currentUserId = supabase.auth.currentUser?.id;
+
+    if (userId == currentUserId) {
+      return 'You';
+    }
+
+    // Last resort: use a shortened user ID
+    return 'User ${userId.substring(0, 8)}...';
   }
 }

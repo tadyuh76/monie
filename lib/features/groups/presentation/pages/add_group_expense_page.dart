@@ -29,6 +29,7 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
   String _paidBy = ''; // User ID of the payer
   DateTime _date = DateTime.now();
   Map<String, dynamic>? _selectedCategory; // Added for category selection
+  bool _isExpense = true; // New: Track if this is an expense or income
 
   // Map of user IDs to display names for the UI
   Map<String, String> _memberDisplayNames = {};
@@ -42,10 +43,7 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
     super.initState();
 
     // Set default category to 'Group'
-    _selectedCategory = TransactionCategories.expenseCategories.firstWhere(
-      (category) => category['name'] == 'Group',
-      orElse: () => TransactionCategories.expenseCategories.first,
-    );
+    _updateDefaultCategory();
 
     // Load group details and member list
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -54,6 +52,18 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
         GetGroupMembersEvent(groupId: widget.groupId),
       );
     });
+  }
+
+  void _updateDefaultCategory() {
+    final categories =
+        _isExpense
+            ? TransactionCategories.expenseCategories
+            : TransactionCategories.incomeCategories;
+
+    _selectedCategory = categories.firstWhere(
+      (category) => category['name'] == 'Group',
+      orElse: () => categories.first,
+    );
   }
 
   @override
@@ -85,7 +95,9 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
           color: isDarkMode ? Colors.white : Colors.black87,
         ),
         title: Text(
-          context.tr('groups_add_expense'),
+          _isExpense
+              ? context.tr('groups_add_expense')
+              : context.tr('groups_add_income'),
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             color: isDarkMode ? Colors.white : Colors.black87,
             fontWeight: FontWeight.bold,
@@ -165,19 +177,109 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Expense title
+          // Transaction Type Toggle
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isDarkMode ? AppColors.cardDark : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      if (!_isExpense) {
+                        setState(() {
+                          _isExpense = true;
+                          _updateDefaultCategory();
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color:
+                            _isExpense ? AppColors.expense : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        context.tr('transaction_expense'),
+                        textAlign: TextAlign.center,
+                        style: textTheme.titleMedium?.copyWith(
+                          color:
+                              _isExpense
+                                  ? Colors.white
+                                  : (isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54),
+                          fontWeight:
+                              _isExpense ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      if (_isExpense) {
+                        setState(() {
+                          _isExpense = false;
+                          _updateDefaultCategory();
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color:
+                            !_isExpense ? AppColors.income : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        context.tr('transaction_income'),
+                        textAlign: TextAlign.center,
+                        style: textTheme.titleMedium?.copyWith(
+                          color:
+                              !_isExpense
+                                  ? Colors.white
+                                  : (isDarkMode
+                                      ? Colors.white70
+                                      : Colors.black54),
+                          fontWeight:
+                              !_isExpense ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Transaction title
           TextFormField(
             controller: _titleController,
             decoration: InputDecoration(
-              labelText: context.tr('groups_expense_title'),
-              hintText: context.tr('groups_expense_title_hint'),
+              labelText:
+                  _isExpense
+                      ? context.tr('groups_expense_title')
+                      : context.tr('groups_income_title'),
+              hintText:
+                  _isExpense
+                      ? context.tr('groups_expense_title_hint')
+                      : context.tr('groups_income_title_hint'),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return context.tr('groups_expense_title_required');
+                return _isExpense
+                    ? context.tr('groups_expense_title_required')
+                    : context.tr('groups_income_title_required');
               }
               return null;
             },
@@ -188,7 +290,10 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
           TextFormField(
             controller: _amountController,
             decoration: InputDecoration(
-              labelText: context.tr('groups_expense_amount'),
+              labelText:
+                  _isExpense
+                      ? context.tr('groups_expense_amount')
+                      : context.tr('groups_income_amount'),
               hintText: '0.00',
               prefixText: '\$ ',
               border: OutlineInputBorder(
@@ -198,15 +303,13 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return context.tr('groups_expense_amount_required');
+                return _isExpense
+                    ? context.tr('groups_expense_amount_required')
+                    : context.tr('groups_income_amount_required');
               }
-              try {
-                final amount = double.parse(value);
-                if (amount <= 0) {
-                  return context.tr('groups_expense_amount_positive');
-                }
-              } catch (e) {
-                return context.tr('groups_expense_amount_valid');
+              final amount = double.tryParse(value);
+              if (amount == null || amount <= 0) {
+                return context.tr('groups_amount_invalid');
               }
               return null;
             },
@@ -306,8 +409,14 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
           TextFormField(
             controller: _descriptionController,
             decoration: InputDecoration(
-              labelText: context.tr('groups_expense_description'),
-              hintText: context.tr('groups_expense_description_hint'),
+              labelText:
+                  _isExpense
+                      ? context.tr('groups_expense_description')
+                      : context.tr('groups_income_description'),
+              hintText:
+                  _isExpense
+                      ? context.tr('groups_expense_description_hint')
+                      : context.tr('groups_income_description_hint'),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -316,9 +425,11 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
           ),
           const SizedBox(height: 24),
 
-          // Paid by section
+          // Paid by / Received by section
           Text(
-            context.tr('groups_expense_paid_by'),
+            _isExpense
+                ? context.tr('groups_expense_paid_by')
+                : context.tr('groups_income_received_by'),
             style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDarkMode ? Colors.white : Colors.black87,
@@ -369,17 +480,23 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _submitExpense,
+              onPressed: _submitTransaction,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor:
+                    _isExpense ? AppColors.expense : AppColors.income,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
               child: Text(
-                context.tr('groups_add_expense'),
-                style: const TextStyle(fontSize: 16),
+                _isExpense
+                    ? context.tr('groups_add_expense')
+                    : context.tr('groups_add_income'),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -391,7 +508,10 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
   // Category selector widget
   Widget _buildCategorySelector() {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final categories = TransactionCategories.expenseCategories;
+    final categories =
+        _isExpense
+            ? TransactionCategories.expenseCategories
+            : TransactionCategories.incomeCategories;
 
     return Scaffold(
       backgroundColor: isDarkMode ? AppColors.background : Colors.white,
@@ -495,11 +615,17 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
     );
   }
 
-  void _submitExpense() {
+  void _submitTransaction() {
     if (_formKey.currentState?.validate() ?? false) {
       if (_paidBy.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('groups_expense_select_payer'))),
+          SnackBar(
+            content: Text(
+              _isExpense
+                  ? context.tr('groups_expense_select_payer')
+                  : context.tr('groups_income_received_by'),
+            ),
+          ),
         );
         return;
       }
@@ -511,7 +637,7 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
         return;
       }
 
-      // Create expense data
+      // Create transaction data
       final title = _titleController.text.trim();
       final amount = double.parse(_amountController.text.trim());
       final description = _descriptionController.text.trim();
@@ -522,12 +648,13 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
         _selectedCategory!['svgName'],
       );
 
-      // Add expense using GroupBloc
+      // For now, we'll use the existing expense system for both types
+      // In the future, this should be updated to support proper income transactions
       context.read<GroupBloc>().add(
         AddGroupExpenseEvent(
           groupId: widget.groupId,
-          title: title,
-          amount: amount,
+          title: _isExpense ? title : "Income: $title",
+          amount: _isExpense ? amount : -amount, // Negative amount for income
           description: description,
           date: _date,
           paidBy: _paidBy, // This is the user ID, not display name

@@ -58,6 +58,9 @@
   "transactions_deleted_success": "Xóa giao dịch thành công",
   "transactions_error": "Lỗi",
 
+  "transaction_expense": "Chi tiêu",
+  "transaction_income": "Thu nhập",
+
   "category_breakdown": "Phân tích theo danh mục",
   "no_transactions_this_month": "Không có giao dịch nào trong tháng này",
   "no_expenses_this_month": "Không có khoản chi nào trong tháng này",
@@ -316,5 +319,19 @@
   "groups_remove_member": "Xóa thành viên",
   "groups_remove_member_confirm": "Bạn có chắc chắn muốn xóa",
   "groups_member": "Thành viên",
-  "common_remove": "Xóa"
+  "common_remove": "Xóa",
+
+  "groups_add_income": "Thêm thu nhập",
+  "groups_income_title": "Tiêu đề thu nhập",
+  "groups_income_title_hint": "Nhập tiêu đề cho thu nhập này",
+  "groups_income_title_required": "Vui lòng nhập tiêu đề thu nhập",
+  "groups_income_amount": "Số tiền",
+  "groups_income_amount_required": "Vui lòng nhập số tiền",
+  "groups_income_description": "Mô tả",
+  "groups_income_description_hint": "Thêm chi tiết về thu nhập này (tùy chọn)",
+  "groups_income_received_by": "Người nhận",
+  "groups_amount_invalid": "Vui lòng nhập số tiền hợp lệ lớn hơn 0",
+
+  "groups_debt_total_amount": "Tổng số tiền",
+  "groups_debt_optimized_transactions": "Giao dịch tối ưu"
 }
