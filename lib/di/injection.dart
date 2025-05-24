@@ -86,6 +86,11 @@ import 'package:monie/features/notifications/domain/usecases/register_device_use
 import 'package:monie/features/notifications/domain/usecases/send_app_state_change_notification_usecase.dart';
 import 'package:monie/features/notifications/domain/usecases/setup_notification_listeners_usecase.dart';
 import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
+import 'package:monie/features/notifications/data/datasources/reminder_remote_data_source.dart';
+import 'package:monie/features/notifications/data/repositories/reminder_repository_impl.dart';
+import 'package:monie/features/notifications/domain/repositories/reminder_repository.dart';
+import 'package:monie/features/notifications/domain/usecases/save_reminder_settings_usecase.dart';
+import 'package:monie/features/notifications/domain/usecases/get_reminder_settings_usecase.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -178,13 +183,26 @@ Future<void> configureDependencies() async {
       firebaseMessaging: sl(),
       flutterLocalNotificationsPlugin: sl(),
       client: sl(),
-      baseUrl: 'http://localhost:4000', // Local server URL
+      baseUrl: 'http://10.0.2.2:4000', // Android emulator URL
     ),
   );
   sl.registerLazySingleton<NotificationRepository>(
     () => NotificationRepositoryImpl(
       remoteDataSource: sl(),
       localDataSource: sl(),
+    ),
+  );
+
+  // Reminder repositories and data sources
+  sl.registerLazySingleton<ReminderRemoteDataSource>(
+    () => ReminderRemoteDataSourceImpl(
+      client: sl(),
+      baseUrl: 'http://10.0.2.2:4000', // Android emulator URL
+    ),
+  );
+  sl.registerLazySingleton<ReminderRepository>(
+    () => ReminderRepositoryImpl(
+      remoteDataSource: sl(),
     ),
   );
 
@@ -239,6 +257,10 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => RegisterDeviceUseCase(sl()));
   sl.registerLazySingleton(() => SetupNotificationListenersUseCase(sl()));
   sl.registerLazySingleton(() => SendAppStateChangeNotificationUseCase(sl()));
+
+  // Reminder use cases
+  sl.registerLazySingleton(() => SaveReminderSettingsUseCase(sl()));
+  sl.registerLazySingleton(() => GetReminderSettingsUseCase(sl()));
 
   // BLoCs
   sl.registerFactory<AuthBloc>(
@@ -370,6 +392,8 @@ Future<void> configureDependencies() async {
       updateUserProfile: sl(),
       changePassword: sl(),
       uploadAvatar: sl(),
+      saveReminderSettingsUseCase: sl(),
+      getReminderSettingsUseCase: sl(),
     ),
   );
   

@@ -42,7 +42,55 @@ import 'firebase_options.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // This is needed to handle messages in the background
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
   debugPrint("Handling a background message: ${message.messageId}");
+  debugPrint("Message data: ${message.data}");
+  debugPrint("Message notification: ${message.notification?.title} - ${message.notification?.body}");
+  
+  // Initialize local notifications if needed
+  final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
+  
+  // Check if this is a transaction reminder
+  if (message.data['type'] == 'transaction_reminder' || message.data['type'] == 'transaction_reminder_data') {
+    debugPrint("Processing transaction reminder in background");
+    
+    // Show local notification for better terminated app handling
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'high_importance_channel',
+      'High Importance Notifications',
+      channelDescription: 'High priority notifications for reminders and critical updates',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      enableVibration: true,
+      playSound: true,
+      enableLights: true,
+      ledColor: Color(0xFF4CAF50),
+      ledOnMs: 1000,
+      ledOffMs: 500,
+      category: AndroidNotificationCategory.reminder,
+      visibility: NotificationVisibility.public,
+      fullScreenIntent: true, // This helps wake up terminated apps
+    );
+    
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidDetails,
+    );
+    
+    // Extract title and body from data if notification is null (data-only message)
+    final title = message.notification?.title ?? message.data['title'] ?? "Don't forget to track your expenses!";
+    final body = message.notification?.body ?? message.data['body'] ?? 'Take a moment to add your recent transactions.';
+    
+    await localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      platformChannelSpecifics,
+      payload: message.data.isNotEmpty ? message.data.toString() : null,
+    );
+    
+    debugPrint("Local notification shown for transaction reminder");
+  }
 }
 
 // Global key for ScaffoldMessenger to manage snackbars app-wide
