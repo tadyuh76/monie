@@ -57,4 +57,10 @@ class ChangePasswordEvent extends SettingsEvent {
     required this.currentPassword,
     required this.newPassword,
   });
-} 
+}
+
+class UpdateTransactionRemindersEvent extends SettingsEvent {
+  final List<ReminderTime> reminders;
+  
+  const UpdateTransactionRemindersEvent({required this.reminders});
+}

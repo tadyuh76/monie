@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/domain/models/user_profile.dart';
@@ -17,8 +18,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
   }) : _supabaseClient = supabaseClient,
        _preferences = preferences;
 
-  // App Settings
-  @override
+  // App Settings  @override
   Future<AppSettings> getAppSettings() async {
     try {
       // Load settings from SharedPreferences
@@ -28,18 +28,36 @@ class SettingsRepositoryImpl implements SettingsRepository {
           _preferences.getInt('themeMode') ?? ThemeMode.dark.index;
       final languageIndex =
           _preferences.getInt('language') ?? AppLanguage.english.index;
+      
+      // Load transaction reminders
+      final remindersJson = _preferences.getString('transactionReminders');
+      List<ReminderTime> reminders = const [
+        ReminderTime(hour: 9, minute: 0),
+        ReminderTime(hour: 21, minute: 0),
+      ];
+      
+      if (remindersJson != null) {
+        try {
+          final List<dynamic> remindersList = json.decode(remindersJson);
+          reminders = remindersList
+              .map((r) => ReminderTime.fromJson(r as Map<String, dynamic>))
+              .toList();
+        } catch (e) {
+          // Use default if parsing fails
+        }
+      }
 
       return AppSettings(
         notificationsEnabled: notificationsEnabled,
         themeMode: ThemeMode.values[themeModeIndex],
         language: AppLanguage.values[languageIndex],
+        transactionReminders: reminders,
       );
     } catch (e) {
       // Return default settings on error
       return const AppSettings();
     }
   }
-
   @override
   Future<bool> saveAppSettings(AppSettings settings) async {
     try {
@@ -49,6 +67,13 @@ class SettingsRepositoryImpl implements SettingsRepository {
       );
       await _preferences.setInt('themeMode', settings.themeMode.index);
       await _preferences.setInt('language', settings.language.index);
+      
+      // Save transaction reminders
+      final remindersJson = json.encode(
+        settings.transactionReminders.map((r) => r.toJson()).toList(),
+      );
+      await _preferences.setString('transactionReminders', remindersJson);
+      
       return true;
     } catch (e) {
       return false;

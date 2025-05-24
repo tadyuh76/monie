@@ -15,6 +15,7 @@ import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_state.dart';
 import 'package:monie/features/settings/presentation/widgets/settings_section_widget.dart';
+import 'package:monie/features/settings/presentation/widgets/reminder_time_picker.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -286,8 +287,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                             ]
                             : null,
-                  ),
-                  child: Column(
+                  ),                  child: Column(
                     children: [
                       _buildThemeSelector(state),
                       const SizedBox(height: 16),
@@ -295,6 +295,34 @@ class _SettingsPageState extends State<SettingsPage> {
                       const SizedBox(height: 16),
                       _buildNotificationsToggle(state),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Transaction Reminders Section
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.surface
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: Theme.of(context).brightness == Brightness.light
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: ReminderTimePicker(
+                    initialReminders: _getCurrentReminders(state),
+                    onRemindersChanged: (reminders) {
+                      context.read<SettingsBloc>().add(
+                        UpdateTransactionRemindersEvent(reminders: reminders),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -937,7 +965,6 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-
   String _getLanguageName(AppLanguage language) {
     switch (language) {
       case AppLanguage.english:
@@ -945,6 +972,19 @@ class _SettingsPageState extends State<SettingsPage> {
       case AppLanguage.vietnamese:
         return context.tr('settings_language_vietnamese');
     }
+  }
+
+  List<ReminderTime> _getCurrentReminders(SettingsState state) {
+    final settings = state is ProfileLoaded
+        ? state.settings
+        : state is SettingsLoaded
+            ? state.settings
+            : state is SettingsUpdateSuccess
+                ? state.settings
+                : state is ProfileUpdateSuccess
+                    ? state.settings
+                    : const AppSettings();
+    return settings.transactionReminders;
   }
 
   // New method to handle profile updates

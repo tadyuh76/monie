@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/settings/domain/usecases/get_app_settings.dart';
@@ -12,6 +13,8 @@ import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/domain/models/user_profile.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_state.dart';
+import 'package:monie/features/notifications/domain/usecases/save_reminder_settings_usecase.dart';
+import 'package:monie/features/notifications/domain/usecases/get_reminder_settings_usecase.dart';
 
 class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   final GetAppSettings getAppSettings;
@@ -20,6 +23,8 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   final UpdateUserProfile updateUserProfile;
   final ChangePassword changePassword;
   final UploadAvatar uploadAvatar;
+  final SaveReminderSettingsUseCase saveReminderSettingsUseCase;
+  final GetReminderSettingsUseCase getReminderSettingsUseCase;
   final AuthBloc? _authBloc;
   AppSettings _currentSettings = const AppSettings();
   UserProfile? _currentProfile;
@@ -31,6 +36,8 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     required this.updateUserProfile,
     required this.changePassword,
     required this.uploadAvatar,
+    required this.saveReminderSettingsUseCase,
+    required this.getReminderSettingsUseCase,
     AuthBloc? authBloc,
   }) : _authBloc = authBloc,
        super(const SettingsInitial()) {
@@ -39,10 +46,10 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<UpdateNotificationsEvent>(_onUpdateNotifications);
     on<UpdateThemeModeEvent>(_onUpdateThemeMode);
     on<UpdateLanguageEvent>(_onUpdateLanguage);
-    on<UpdateDisplayNameEvent>(_onUpdateDisplayName);
-    on<UpdateAvatarEvent>(_onUpdateAvatar);
+    on<UpdateDisplayNameEvent>(_onUpdateDisplayName);    on<UpdateAvatarEvent>(_onUpdateAvatar);
     on<UpdatePhoneNumberEvent>(_onUpdatePhoneNumber);
     on<ChangePasswordEvent>(_onChangePassword);
+    on<UpdateTransactionRemindersEvent>(_onUpdateTransactionReminders);
   }
 
   Future<void> _onLoadSettings(
@@ -57,7 +64,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       emit(SettingsError('Failed to load settings: ${e.toString()}'));
     }
   }
-
   Future<void> _onLoadUserProfile(
     LoadUserProfileEvent event,
     Emitter<SettingsState> emit,
@@ -67,6 +73,33 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       final profile = await getUserProfile();
       if (profile != null) {
         _currentProfile = profile;
+        
+        // Load reminder settings from server if available
+        try {
+          final serverRemindersResult = await getReminderSettingsUseCase(
+            GetReminderSettingsParams(userId: profile.id),
+          );
+          
+          serverRemindersResult.fold(
+            (failure) {
+              // Server failed, use local reminders
+              print('Failed to load reminders from server: ${failure.message}');
+            },
+            (serverReminders) {
+              // Update local settings with server reminders if they exist
+              if (serverReminders.isNotEmpty) {
+                _currentSettings = _currentSettings.copyWith(
+                  transactionReminders: serverReminders,
+                );
+                // Save updated settings locally
+                saveAppSettings(_currentSettings);
+              }
+            },
+          );
+        } catch (e) {
+          print('Error loading reminder settings from server: $e');
+        }
+        
         emit(ProfileLoaded(profile: profile, settings: _currentSettings));
         if (profile.displayName == 'User' || profile.displayName.isEmpty) {
           try {
@@ -323,9 +356,82 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         errorMessage = 'Current password is incorrect';
       } else if (e.toString().contains('network')) {
         errorMessage = 'Network error, please check your connection';
+      }      emit(SettingsError('$errorMessage: ${e.toString()}'));
+    }
+  }
+  Future<void> _onUpdateTransactionReminders(
+    UpdateTransactionRemindersEvent event,
+    Emitter<SettingsState> emit,
+  ) async {
+    try {
+      // Save settings locally first
+      final newSettings = _currentSettings.copyWith(
+        transactionReminders: event.reminders,
+      );
+      final localSuccess = await saveAppSettings(newSettings);
+      
+      if (localSuccess) {
+        _currentSettings = newSettings;
+          // Get user ID from current profile
+        if (_currentProfile?.id != null) {
+          try {
+            // Get FCM token for push notifications
+            final fcmToken = await FirebaseMessaging.instance.getToken();
+            
+            if (fcmToken != null) {
+              // Save reminder settings to server
+              final serverResult = await saveReminderSettingsUseCase(
+                SaveReminderSettingsParams(
+                  userId: _currentProfile!.id,
+                  reminders: event.reminders,
+                  fcmToken: fcmToken,
+                ),
+              );
+                serverResult.fold(
+                (failure) {
+                  // Server save failed, but local save succeeded
+                  print('Failed to save reminders to server: ${failure.message}');
+                  print('Full error details: $failure');
+                  emit(const SettingsError('Failed to sync reminders with server. Changes saved locally.'));
+                },
+                (success) {
+                  // Both local and server saves succeeded
+                  if (_currentProfile != null) {
+                    emit(
+                      ProfileLoaded(
+                        profile: _currentProfile!,
+                        settings: _currentSettings,
+                      ),
+                    );
+                  } else {
+                    emit(
+                      SettingsUpdateSuccess(
+                        message: 'Transaction reminders updated successfully',
+                        settings: _currentSettings,
+                      ),
+                    );
+                  }
+                },
+              );
+            } else {
+              // Could not get FCM token
+              print('Could not get FCM token for push notifications');
+              emit(const SettingsError('Could not enable push notifications. Please check notification permissions.'));
+            }
+          } catch (serverError) {
+            // Server communication failed, but local save succeeded
+            print('Server error while saving reminders: $serverError');
+            emit(const SettingsError('Failed to sync reminders with server. Changes saved locally.'));
+          }
+        } else {
+          // No user profile available
+          emit(const SettingsError('User profile not available. Please sign in again.'));
+        }
+      } else {
+        emit(const SettingsError('Failed to update transaction reminders'));
       }
-
-      emit(SettingsError('$errorMessage: ${e.toString()}'));
+    } catch (e) {
+      emit(SettingsError('Error updating reminders: ${e.toString()}'));
     }
   }
 }
