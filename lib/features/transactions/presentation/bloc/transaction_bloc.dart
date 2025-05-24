@@ -198,10 +198,12 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       final isExpenseBudget = !budget.isSaving;
       final isIncomeBudget = budget.isSaving;
 
-      if (isExpenseBudget && transaction.amount >= 0)
+      if (isExpenseBudget && transaction.amount >= 0) {
         return; // Skip positive amounts for expense budgets
-      if (isIncomeBudget && transaction.amount < 0)
+      }
+      if (isIncomeBudget && transaction.amount < 0) {
         return; // Skip negative amounts for income budgets
+      }
 
       // Calculate current spending/earning for this budget
       final spentAmount = budget.spentAmount;
@@ -220,7 +222,6 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     } catch (e) {
       // Don't fail the transaction if budget notification fails
       // Just log the error silently
-      print('Budget notification error: $e');
     }
   }
 }

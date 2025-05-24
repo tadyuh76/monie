@@ -405,8 +405,7 @@ class ForecastChartPainter extends CustomPainter {
     }
 
     // Vertical grid lines (one for each month)
-    final totalDataPoints = actualData.length + predictedData.length;
-    for (int i = 0; i < totalDataPoints; i++) {
+    for (int i = 0; i < totalMonths; i++) {
       final x = i * xStep;
       canvas.drawLine(Offset(x, 0), Offset(x, height), gridPaint);
     }
@@ -450,47 +449,31 @@ class ForecastChartPainter extends CustomPainter {
 
       // Draw dashed prediction line
       for (int i = 0; i < predictedData.length; i++) {
-        final x = (actualData.length - 1 + i) * xStep;
+        final x = (actualData.length + i) * xStep;
         final y =
             height - ((predictedData[i] - minValue) / valueRange * height);
 
         if (i == 0) {
           // Connect to the last actual data point
-          canvas.drawLine(
+          _drawDashedLine(
+            canvas,
             Offset(startX, startY),
             Offset(x, y),
             predictionPaint,
           );
         } else {
-          final prevX = (actualData.length - 1 + i - 1) * xStep;
+          final prevX = (actualData.length + i - 1) * xStep;
           final prevY =
               height -
               ((predictedData[i - 1] - minValue) / valueRange * height);
 
-          // Draw dashed line
-          final dashWidth = 5.0;
-          final dashSpace = 5.0;
-          final distance = math.sqrt(
-            math.pow(x - prevX, 2) + math.pow(y - prevY, 2),
+          // Draw dashed line between predicted points
+          _drawDashedLine(
+            canvas,
+            Offset(prevX, prevY),
+            Offset(x, y),
+            predictionPaint,
           );
-          final dashCount = distance / (dashWidth + dashSpace);
-
-          for (int j = 0; j < dashCount.floor(); j++) {
-            final startFraction = j * (dashWidth + dashSpace) / distance;
-            final endFraction =
-                (j * (dashWidth + dashSpace) + dashWidth) / distance;
-
-            final dashStartX = prevX + (x - prevX) * startFraction;
-            final dashStartY = prevY + (y - prevY) * startFraction;
-            final dashEndX = prevX + (x - prevX) * endFraction;
-            final dashEndY = prevY + (y - prevY) * endFraction;
-
-            canvas.drawLine(
-              Offset(dashStartX, dashStartY),
-              Offset(dashEndX, dashEndY),
-              predictionPaint,
-            );
-          }
         }
       }
     }
@@ -523,11 +506,41 @@ class ForecastChartPainter extends CustomPainter {
           ..strokeWidth = 2;
 
     for (int i = 0; i < predictedData.length; i++) {
-      final x = (actualData.length - 1 + i) * xStep;
+      // Start predicted points from the next position after actual data
+      final x = (actualData.length + i) * xStep;
       final y = height - ((predictedData[i] - minValue) / valueRange * height);
 
       canvas.drawCircle(Offset(x, y), 5, pointPaint);
       canvas.drawCircle(Offset(x, y), 5, predictPointStrokePaint);
+    }
+  }
+
+  void _drawDashedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
+    final double width = end.dx - start.dx;
+    final double height = end.dy - start.dy;
+    final double distance = math.sqrt(width * width + height * height);
+
+    if (distance == 0) return;
+
+    final double dashWidth = 5.0;
+    final double dashSpace = 5.0;
+    final double dashCount = distance / (dashWidth + dashSpace);
+
+    for (int i = 0; i < dashCount.floor(); i++) {
+      final double startFraction = i * (dashWidth + dashSpace) / distance;
+      final double endFraction =
+          (i * (dashWidth + dashSpace) + dashWidth) / distance;
+
+      final double dashStartX = start.dx + width * startFraction;
+      final double dashStartY = start.dy + height * startFraction;
+      final double dashEndX = start.dx + width * endFraction;
+      final double dashEndY = start.dy + height * endFraction;
+
+      canvas.drawLine(
+        Offset(dashStartX, dashStartY),
+        Offset(dashEndX, dashEndY),
+        paint,
+      );
     }
   }
 
