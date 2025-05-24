@@ -97,7 +97,8 @@ CREATE TABLE notifications (
    type VARCHAR(30) NOT NULL,
    title VARCHAR(100) NOT NULL,
    message TEXT,
-   is_read BOOLEAN DEFAULT FALSE
+   is_read BOOLEAN DEFAULT FALSE,
+   created_at timestamptz DEFAULT NOW()
 );
 
 

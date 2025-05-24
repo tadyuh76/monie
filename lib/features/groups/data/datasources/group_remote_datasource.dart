@@ -428,6 +428,46 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
           .update({'status': 'settled'})
           .eq('group_id', groupId);
 
+      // Get group name for notification
+      final groupData =
+          await supabase
+              .from('groups')
+              .select('name')
+              .eq('group_id', groupId)
+              .single();
+
+      final groupName = groupData['name'];
+
+      // Get all group members
+      final membersResponse = await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', groupId);
+
+      final List<String> memberIds =
+          (membersResponse as List)
+              .map((member) => member['user_id'] as String)
+              .toList();
+
+      // Create settlement notifications for all members
+      final notifications =
+          memberIds
+              .map(
+                (userId) => {
+                  'user_id': userId,
+                  'type': 'group_settlement',
+                  'title': 'Group Settled',
+                  'message': 'The group "$groupName" has been settled.',
+                  'is_read': false,
+                  'created_at': DateTime.now().toIso8601String(),
+                },
+              )
+              .toList();
+
+      if (notifications.isNotEmpty) {
+        await supabase.from('notifications').insert(notifications);
+      }
+
       return true;
     } catch (e) {
       throw ServerException(message: e.toString());
@@ -509,15 +549,16 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         throw ServerException(message: 'User not authenticated');
       }
 
-      // Get the group admin ID
+      // Get the group admin ID and name
       final groupData =
           await supabase
               .from('groups')
-              .select('admin_id')
+              .select('admin_id, name')
               .eq('group_id', groupId)
               .single();
 
       final adminId = groupData['admin_id'];
+      final groupName = groupData['name'];
 
       // Get the user's role in the group
       final memberData =
@@ -570,25 +611,64 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
       };
       await supabase.from('group_transactions').insert(groupTransactionInsert);
 
-      // If this requires approval, notify group admins
-      if (approvalStatus == 'pending') {
-        // Get all admin members of the group
+      // Create notifications for group members
+      if (approvalStatus == 'approved') {
+        // If auto-approved, notify all members about the new transaction
+        final membersResponse = await supabase
+            .from('group_members')
+            .select('user_id')
+            .eq('group_id', groupId);
+
+        final List<String> memberIds =
+            (membersResponse as List)
+                .map((member) => member['user_id'] as String)
+                .toList();
+
+        final notifications =
+            memberIds
+                .map(
+                  (userId) => {
+                    'user_id': userId,
+                    'amount': amount,
+                    'type': 'group_transaction',
+                    'title': 'New Group Expense',
+                    'message':
+                        '$title in "$groupName" - \$${amount.toStringAsFixed(2)}',
+                    'is_read': false,
+                    'created_at': DateTime.now().toIso8601String(),
+                  },
+                )
+                .toList();
+
+        if (notifications.isNotEmpty) {
+          await supabase.from('notifications').insert(notifications);
+        }
+      } else {
+        // If requires approval, notify group admins
         final adminMembers = await supabase
             .from('group_members')
             .select('user_id')
             .eq('group_id', groupId)
             .eq('role', 'admin');
 
-        // Send notifications to all admins
-        for (var admin in adminMembers) {
-          await supabase.from('notifications').insert({
-            'user_id': admin['user_id'],
-            'type': 'expense_approval',
-            'title': 'New Expense Requires Approval',
-            'message': '$title - \$${amount.toStringAsFixed(2)}',
-            'reference_id': transactionId,
-            'created_at': DateTime.now().toIso8601String(),
-          });
+        final notifications =
+            (adminMembers as List)
+                .map(
+                  (admin) => {
+                    'user_id': admin['user_id'],
+                    'amount': amount,
+                    'type': 'group_transaction',
+                    'title': 'Expense Needs Approval',
+                    'message':
+                        '$title in "$groupName" - \$${amount.toStringAsFixed(2)}',
+                    'is_read': false,
+                    'created_at': DateTime.now().toIso8601String(),
+                  },
+                )
+                .toList();
+
+        if (notifications.isNotEmpty) {
+          await supabase.from('notifications').insert(notifications);
         }
       }
 
@@ -676,64 +756,26 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
     required bool approved,
   }) async {
     try {
-      // Get current user
-      final currentUserId = supabase.auth.currentUser?.id;
-      if (currentUserId == null) {
-        throw ServerException(message: 'User not authenticated');
-      }
-
-      // Get the transaction details to find the group
+      // Get the group ID first
       final groupTransactionData =
           await supabase
               .from('group_transactions')
-              .select('group_id, status')
+              .select('group_id')
               .eq('transaction_id', transactionId)
               .single();
 
       final groupId = groupTransactionData['group_id'];
-      final currentStatus = groupTransactionData['status'];
 
-      // Don't allow re-approving or re-rejecting
-      if (currentStatus != 'pending') {
-        throw ServerException(
-          message: 'This transaction has already been processed',
-        );
-      }
-
-      // Check if user is an admin of the group
-      final adminCheck = await supabase
-          .from('groups')
-          .select('admin_id')
-          .eq('group_id', groupId)
-          .eq('admin_id', currentUserId);
-
-      final memberCheck = await supabase
-          .from('group_members')
-          .select('role')
-          .eq('group_id', groupId)
-          .eq('user_id', currentUserId)
-          .eq('role', 'admin');
-
-      // If not admin, cannot approve/reject
-      if (adminCheck.isEmpty && memberCheck.isEmpty) {
-        throw ServerException(
-          message: 'Only admins can approve or reject expenses',
-        );
-      }
-
-      // Update the transaction status and approved_at in group_transactions table
-      final status = approved ? 'approved' : 'rejected';
-      final updateData = {
-        'status': status,
-        'approved_at': approved ? DateTime.now().toIso8601String() : null,
-      };
-
+      // Update the transaction status
       await supabase
           .from('group_transactions')
-          .update(updateData)
+          .update({
+            'status': approved ? 'approved' : 'rejected',
+            'approved_at': approved ? DateTime.now().toIso8601String() : null,
+          })
           .eq('transaction_id', transactionId);
 
-      // Notify the transaction creator
+      // Get transaction and group details for notifications
       final transaction =
           await supabase
               .from('transactions')
@@ -741,35 +783,48 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
               .eq('transaction_id', transactionId)
               .single();
 
+      final groupData =
+          await supabase
+              .from('groups')
+              .select('name')
+              .eq('group_id', groupId)
+              .single();
+
       final title = transaction['title'];
       final amount = transaction['amount'];
       final creatorId = transaction['user_id'];
+      final groupName = groupData['name'];
 
-      // Send notification to the transaction creator
-      await supabase.from('notifications').insert({
-        'user_id': creatorId,
-        'type': 'expense_status',
-        'title': approved ? 'Expense Approved' : 'Expense Rejected',
-        'message': '$title - \$${amount.toStringAsFixed(2)}',
-        'reference_id': transactionId,
-        'created_at': DateTime.now().toIso8601String(),
-      });
+      // Get all group members
+      final membersResponse = await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', groupId);
 
-      // Also notify all other group members
-      final groupMembers = await getGroupMembers(groupId);
-      for (var member in groupMembers) {
-        if (member.userId != creatorId) {
-          // Don't notify creator twice
-          await supabase.from('notifications').insert({
-            'user_id': member.userId,
-            'type': 'expense_status',
-            'title':
-                approved ? 'Group Expense Approved' : 'Group Expense Rejected',
-            'message': '$title - \$${amount.toStringAsFixed(2)}',
-            'reference_id': transactionId,
-            'created_at': DateTime.now().toIso8601String(),
-          });
-        }
+      final List<String> memberIds =
+          (membersResponse as List)
+              .map((member) => member['user_id'] as String)
+              .toList();
+
+      // Create notifications for all members
+      final notifications =
+          memberIds
+              .map(
+                (userId) => {
+                  'user_id': userId,
+                  'amount': amount,
+                  'type': 'group_transaction',
+                  'title': approved ? 'Expense Approved' : 'Expense Rejected',
+                  'message':
+                      '$title in "$groupName" - \$${amount.toStringAsFixed(2)}',
+                  'is_read': false,
+                  'created_at': DateTime.now().toIso8601String(),
+                },
+              )
+              .toList();
+
+      if (notifications.isNotEmpty) {
+        await supabase.from('notifications').insert(notifications);
       }
 
       return true;

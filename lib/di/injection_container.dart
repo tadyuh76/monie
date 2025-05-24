@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/groups/data/datasources/group_remote_datasource.dart';
 import 'package:monie/features/groups/data/repositories/group_repository_impl.dart';
 import 'package:monie/features/groups/domain/repositories/group_repository.dart';
@@ -13,12 +14,23 @@ import 'package:monie/features/groups/domain/usecases/settle_group.dart'
     as settle;
 import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 
+// Notification imports
+import 'package:monie/features/notifications/data/datasources/notification_datasource.dart';
+import 'package:monie/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:monie/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:monie/features/notifications/domain/usecases/create_budget_notification.dart';
+import 'package:monie/features/notifications/domain/usecases/create_group_notification.dart';
+import 'package:monie/features/notifications/domain/usecases/get_notifications.dart';
+import 'package:monie/features/notifications/domain/usecases/get_unread_count.dart';
+import 'package:monie/features/notifications/domain/usecases/mark_notification_read.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
+
 // Service locator instance
 final sl = GetIt.instance;
 
 void setup() {
   // External
-  // ... existing external dependencies ...
+  sl.registerLazySingleton(() => SupabaseClientManager.instance);
 
   // Features
   _setupAuthFeature();
@@ -26,6 +38,7 @@ void setup() {
   _setupBudgetsFeature();
   _setupSettingsFeature();
   _setupGroupsFeature();
+  _setupNotificationsFeature();
 }
 
 // Auth Feature
@@ -82,6 +95,37 @@ void _setupGroupsFeature() {
   // Data sources
   sl.registerLazySingleton<GroupRemoteDataSource>(
     () => GroupRemoteDataSourceImpl(supabase: sl()),
+  );
+}
+
+// Notifications Feature
+void _setupNotificationsFeature() {
+  // Bloc
+  sl.registerFactory(
+    () => NotificationBloc(
+      getNotifications: sl(),
+      markNotificationRead: sl(),
+      createGroupNotification: sl(),
+      getUnreadCount: sl(),
+      repository: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetNotifications(sl()));
+  sl.registerLazySingleton(() => MarkNotificationRead(sl()));
+  sl.registerLazySingleton(() => CreateGroupNotification(sl()));
+  sl.registerLazySingleton(() => CreateBudgetNotification(sl()));
+  sl.registerLazySingleton(() => GetUnreadCount(sl()));
+
+  // Repository
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(sl()),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<NotificationDataSource>(
+    () => NotificationDataSourceImpl(sl()),
   );
 }
 

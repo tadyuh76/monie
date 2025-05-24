@@ -190,6 +190,13 @@
   "groups_role_admin": "Quản Trị Viên",
   "groups_no_groups_yet": "Chưa có nhóm nào",
 
+  "notifications_title": "Thông báo",
+  "notifications_mark_all_read": "Đánh dấu tất cả đã đọc",
+  "notifications_empty_title": "Không có thông báo",
+  "notifications_empty_subtitle": "Bạn đã xem hết! Thông báo mới sẽ xuất hiện ở đây.",
+  "notifications_delete_title": "Xóa thông báo",
+  "notifications_delete_message": "Bạn có chắc chắn muốn xóa thông báo này?",
+
   "category": "Danh mục",
   "select_category": "Chọn danh mục",
   "please_select_category": "Vui lòng chọn một danh mục",
