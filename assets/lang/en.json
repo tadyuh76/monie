@@ -272,7 +272,7 @@
   "settings_reminder_disabled": "Disabled",
   "settings_edit_time": "Edit Time",
   "settings_delete_reminder": "Delete",
-  "notification_reminder_title": "Don't forget to track your expenses!",
-  "notification_reminder_body": "Take a moment to add your recent transactions to keep your budget on track.",
+  "notification_reminder_title": "Don't forget to add your expenses!",
+  "notification_reminder_body": "Take a moment to add your recent transactions to keep you on track.",
   "notification_reminder_action": "Add Transaction"
 }
