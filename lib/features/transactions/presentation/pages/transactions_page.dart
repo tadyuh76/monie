@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/core/widgets/transaction_card_widget.dart';
@@ -75,55 +76,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
         month: _selectedMonth,
       ),
     );
-  }
-
-  void _showAddTransactionForm() {
-    final authState = context.read<AuthBloc>().state;
-    if (authState is Authenticated) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        builder:
-            (context) => BlocProvider.value(
-              value: BlocProvider.of<BudgetsBloc>(context),
-              child: AddTransactionForm(
-                onSubmit: (transactionData) {
-                  // Create the transaction
-                  final transactionBloc = context.read<TransactionBloc>();
-                  final accountBloc = context.read<AccountBloc>();
-                  final amount = transactionData['amount'] as double;
-                  final accountId = transactionData['account_id'] as String?;
-                  final budgetId = transactionData['budget_id'] as String?;
-
-                  // First create the transaction
-                  transactionBloc.add(
-                    CreateTransactionEvent(
-                      Transaction(
-                        userId: authState.user.id,
-                        amount: amount,
-                        title: transactionData['title'],
-                        date: DateTime.parse(transactionData['date']),
-                        description: transactionData['description'],
-                        categoryName: transactionData['category_name'],
-                        color: transactionData['category_color'],
-                        accountId: accountId,
-                        budgetId: budgetId,
-                      ),
-                    ),
-                  );
-
-                  // Recalculate the account balance if an account is selected
-                  if (accountId != null) {
-                    accountBloc.add(RecalculateAccountBalanceEvent(accountId));
-                  }
-
-                  Navigator.pop(context);
-                  _loadTransactions();
-                },
-              ),
-            ),
-      );
-    }
   }
 
   void _showEditTransactionForm(Transaction transaction) {
@@ -206,7 +158,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
     // If we can't find the transaction, don't continue
     if (transactionToDelete == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: Transaction not found')),
+        SnackBar(
+          content: Text(
+            '${context.tr('transactions_error')}: Transaction not found',
+          ),
+        ),
       );
       return;
     }
@@ -215,14 +171,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Delete Transaction'),
-            content: const Text(
-              'Are you sure you want to delete this transaction?',
-            ),
+            title: Text(context.tr('transactions_delete')),
+            content: Text(context.tr('transactions_delete_confirm')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(context.tr('common_cancel')),
               ),
               TextButton(
                 onPressed: () {
@@ -241,9 +195,9 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   Navigator.pop(context);
                   _loadTransactions();
                 },
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
+                child: Text(
+                  context.tr('common_delete'),
+                  style: const TextStyle(color: Colors.red),
                 ),
               ),
             ],
@@ -258,252 +212,304 @@ class _TransactionsPageState extends State<TransactionsPage> {
         if (authState is! Authenticated) {
           return const Center(child: CircularProgressIndicator());
         }
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Transactions'),
-            actions: [
-              PopupMenuButton<String>(
-                onSelected: _changeType,
-                initialValue: _selectedType,
-                itemBuilder:
-                    (context) => [
-                      const PopupMenuItem(value: 'all', child: Text('All')),
-                      const PopupMenuItem(
-                        value: 'expense',
-                        child: Text('Expenses'),
+        return MultiBlocListener(
+          listeners: [
+            BlocListener<TransactionBloc, TransactionState>(
+              listener: (context, state) {
+                if (state is TransactionCreated) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(context.tr('transactions_created_success')),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  _loadTransactions();
+                } else if (state is TransactionUpdated) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(context.tr('transactions_updated_success')),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  _loadTransactions();
+                } else if (state is TransactionDeleted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(context.tr('transactions_deleted_success')),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  _loadTransactions();
+                } else if (state is TransactionError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${context.tr('transactions_error')}: ${state.message}',
                       ),
-                      const PopupMenuItem(
-                        value: 'income',
-                        child: Text('Income'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(context.tr('transactions_title')),
+              actions: [
+                PopupMenuButton<String>(
+                  onSelected: _changeType,
+                  initialValue: _selectedType,
+                  itemBuilder:
+                      (context) => [
+                        PopupMenuItem(
+                          value: 'all',
+                          child: Text(context.tr('transactions_all')),
+                        ),
+                        PopupMenuItem(
+                          value: 'expense',
+                          child: Text(context.tr('transactions_expense')),
+                        ),
+                        PopupMenuItem(
+                          value: 'income',
+                          child: Text(context.tr('transactions_income')),
+                        ),
+                      ],
+                  icon: const Icon(Icons.filter_list),
+                ),
+              ],
+            ),
+            body: Column(
+              children: [
+                // Month selector
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: () => _changeMonth(-1),
+                      ),
+                      Text(
+                        DateFormat('MMMM yyyy').format(_selectedMonth),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () => _changeMonth(1),
                       ),
                     ],
-                icon: const Icon(Icons.filter_list),
-              ),
-            ],
-          ),
-          body: Column(
-            children: [
-              // Month selector
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8.0,
-                  horizontal: 16.0,
+                  ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: () => _changeMonth(-1),
-                    ),
-                    Text(
-                      DateFormat('MMMM yyyy').format(_selectedMonth),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: () => _changeMonth(1),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: BlocBuilder<TransactionBloc, TransactionState>(
-                  builder: (context, state) {
-                    if (state is TransactionLoading) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (state is TransactionsLoaded) {
-                      // Filter by month and type in UI for now
-                      final transactions =
-                          state.transactions.where((t) {
-                            final isSameMonth =
-                                t.date.year == _selectedMonth.year &&
-                                t.date.month == _selectedMonth.month;
-                            final isType =
-                                _selectedType == 'all' ||
-                                (_selectedType == 'expense' && t.amount < 0) ||
-                                (_selectedType == 'income' && t.amount >= 0);
-                            return isSameMonth && isType;
-                          }).toList();
-                      if (transactions.isEmpty) {
-                        return const Center(
-                          child: Text('No transactions found.'),
-                        );
-                      }
-                      // Group transactions by date
-                      final Map<String, List<Transaction>> groupedTransactions =
-                          {};
-
-                      for (var transaction in transactions) {
-                        final dateString = Formatters.formatFullDate(
-                          transaction.date,
-                        );
-                        if (!groupedTransactions.containsKey(dateString)) {
-                          groupedTransactions[dateString] = [];
-                        }
-                        groupedTransactions[dateString]!.add(transaction);
-                      }
-
-                      // Sort the grouped dates with newest first
-                      final sortedDates =
-                          groupedTransactions.keys.toList()..sort((a, b) {
-                            // Since transactions are already sorted by date,
-                            // we can use the first transaction's date in each group for comparison
-                            final dateA = groupedTransactions[a]!.first.date;
-                            final dateB = groupedTransactions[b]!.first.date;
-                            return dateB.compareTo(dateA); // Newest first
-                          });
-
-                      return ListView.builder(
-                        itemCount: sortedDates.length,
-                        itemBuilder: (context, dateIndex) {
-                          final dateString = sortedDates[dateIndex];
-                          final transactionsForDay =
-                              groupedTransactions[dateString]!;
-                          final totalForDay = transactionsForDay.fold<double>(
-                            0,
-                            (sum, transaction) =>
-                                sum +
-                                (transaction.amount < 0
-                                    ? -transaction.amount
-                                    : transaction.amount),
-                          );
-
-                          // Create a list to hold all widgets for this date section
-                          List<Widget> sectionWidgets = [];
-
-                          // Add the date header
-                          sectionWidgets.add(
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 16.0,
-                                right: 16.0,
-                                top: 16.0,
-                                bottom: 8.0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    dateString,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.copyWith(
-                                      color:
-                                          Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? AppColors.textSecondary
-                                              : Colors.black54,
-                                    ),
-                                  ),
-                                  Text(
-                                    Formatters.formatCurrency(totalForDay),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.copyWith(
-                                      color:
-                                          Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.white
-                                              : Colors.black87,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                Expanded(
+                  child: BlocBuilder<TransactionBloc, TransactionState>(
+                    builder: (context, state) {
+                      if (state is TransactionLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (state is TransactionsLoaded) {
+                        // Filter by month and type in UI for now
+                        final transactions =
+                            state.transactions.where((t) {
+                              final isSameMonth =
+                                  t.date.year == _selectedMonth.year &&
+                                  t.date.month == _selectedMonth.month;
+                              final isType =
+                                  _selectedType == 'all' ||
+                                  (_selectedType == 'expense' &&
+                                      t.amount < 0) ||
+                                  (_selectedType == 'income' && t.amount >= 0);
+                              return isSameMonth && isType;
+                            }).toList();
+                        if (transactions.isEmpty) {
+                          return Center(
+                            child: Text(
+                              context.tr('transactions_no_transactions'),
                             ),
                           );
+                        }
+                        // Group transactions by date
+                        final Map<String, List<Transaction>>
+                        groupedTransactions = {};
 
-                          // Add all transactions for this date
-                          for (var transaction in transactionsForDay) {
-                            // Get account name if available
-                            String? accountName;
-                            if (transaction.accountId != null) {
-                              final accountState =
-                                  context.watch<AccountBloc>().state;
-                              if (accountState is AccountsLoaded) {
-                                final account = accountState.accounts
-                                    .firstWhere(
-                                      (a) =>
-                                          a.accountId == transaction.accountId,
-                                      orElse:
-                                          () => AccountModel(
-                                            accountId: '',
-                                            userId: '',
-                                            name: 'Unknown Account',
-                                            type: 'Other',
-                                          ),
-                                    );
-                                accountName = account.name;
-                              }
-                            }
+                        for (var transaction in transactions) {
+                          final dateString = Formatters.formatFullDate(
+                            transaction.date,
+                          );
+                          if (!groupedTransactions.containsKey(dateString)) {
+                            groupedTransactions[dateString] = [];
+                          }
+                          groupedTransactions[dateString]!.add(transaction);
+                        }
 
-                            // Get budget name if available
-                            String? budgetName;
-                            if (transaction.budgetId != null) {
-                              final budgetState =
-                                  context.watch<BudgetsBloc>().state;
-                              if (budgetState is BudgetsLoaded) {
-                                final budget = budgetState.budgets.firstWhere(
-                                  (b) => b.budgetId == transaction.budgetId,
-                                  orElse:
-                                      () => BudgetModel(
-                                        budgetId: '',
-                                        userId: '',
-                                        name: 'Unknown Budget',
-                                        amount: 0,
-                                        startDate: DateTime.now(),
-                                      ),
-                                );
-                                budgetName = budget.name;
-                              }
-                            }
+                        // Sort the grouped dates with newest first
+                        final sortedDates =
+                            groupedTransactions.keys.toList()..sort((a, b) {
+                              // Since transactions are already sorted by date,
+                              // we can use the first transaction's date in each group for comparison
+                              final dateA = groupedTransactions[a]!.first.date;
+                              final dateB = groupedTransactions[b]!.first.date;
+                              return dateB.compareTo(dateA); // Newest first
+                            });
 
+                        return ListView.builder(
+                          itemCount: sortedDates.length,
+                          itemBuilder: (context, dateIndex) {
+                            final dateString = sortedDates[dateIndex];
+                            final transactionsForDay =
+                                groupedTransactions[dateString]!;
+                            final totalForDay = transactionsForDay.fold<double>(
+                              0,
+                              (sum, transaction) =>
+                                  sum +
+                                  (transaction.amount < 0
+                                      ? -transaction.amount
+                                      : transaction.amount),
+                            );
+
+                            // Create a list to hold all widgets for this date section
+                            List<Widget> sectionWidgets = [];
+
+                            // Add the date header
                             sectionWidgets.add(
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                  vertical: 4.0,
+                                padding: const EdgeInsets.only(
+                                  left: 16.0,
+                                  right: 16.0,
+                                  top: 16.0,
+                                  bottom: 8.0,
                                 ),
-                                child: TransactionCardWidget(
-                                  transaction: transaction,
-                                  accountName: accountName,
-                                  budgetName: budgetName,
-                                  onTap:
-                                      () =>
-                                          _showEditTransactionForm(transaction),
-                                  onDelete: _confirmDeleteTransaction,
-                                  showDate:
-                                      false, // Date is shown in the section header
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      dateString,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.copyWith(
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? AppColors.textSecondary
+                                                : Colors.black54,
+                                      ),
+                                    ),
+                                    Text(
+                                      Formatters.formatCurrency(totalForDay),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.copyWith(
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? Colors.white
+                                                : Colors.black87,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );
-                          }
 
-                          // Return a column with all widgets for this date
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: sectionWidgets,
-                          );
-                        },
+                            // Add all transactions for this date
+                            for (var transaction in transactionsForDay) {
+                              // Get account name if available
+                              String? accountName;
+                              if (transaction.accountId != null) {
+                                final accountState =
+                                    context.watch<AccountBloc>().state;
+                                if (accountState is AccountsLoaded) {
+                                  final account = accountState.accounts
+                                      .firstWhere(
+                                        (a) =>
+                                            a.accountId ==
+                                            transaction.accountId,
+                                        orElse:
+                                            () => AccountModel(
+                                              accountId: '',
+                                              userId: '',
+                                              name: 'Unknown Account',
+                                              type: 'Other',
+                                            ),
+                                      );
+                                  accountName = account.name;
+                                }
+                              }
+
+                              // Get budget name if available
+                              String? budgetName;
+                              if (transaction.budgetId != null) {
+                                final budgetState =
+                                    context.watch<BudgetsBloc>().state;
+                                if (budgetState is BudgetsLoaded) {
+                                  final budget = budgetState.budgets.firstWhere(
+                                    (b) => b.budgetId == transaction.budgetId,
+                                    orElse:
+                                        () => BudgetModel(
+                                          budgetId: '',
+                                          userId: '',
+                                          name: 'Unknown Budget',
+                                          amount: 0,
+                                          startDate: DateTime.now(),
+                                        ),
+                                  );
+                                  budgetName = budget.name;
+                                }
+                              }
+
+                              sectionWidgets.add(
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                    vertical: 4.0,
+                                  ),
+                                  child: TransactionCardWidget(
+                                    transaction: transaction,
+                                    accountName: accountName,
+                                    budgetName: budgetName,
+                                    onTap:
+                                        () => _showEditTransactionForm(
+                                          transaction,
+                                        ),
+                                    onDelete: _confirmDeleteTransaction,
+                                    showDate:
+                                        false, // Date is shown in the section header
+                                  ),
+                                ),
+                              );
+                            }
+
+                            // Return a column with all widgets for this date
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: sectionWidgets,
+                            );
+                          },
+                        );
+                      } else if (state is TransactionCreated ||
+                          state is TransactionUpdated ||
+                          state is TransactionDeleted) {
+                        // Show loading indicator while reloading transactions
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (state is TransactionError) {
+                        return Center(child: Text(state.message));
+                      }
+                      return Center(
+                        child: Text(context.tr('transactions_no_transactions')),
                       );
-                    } else if (state is TransactionError) {
-                      return Center(child: Text(state.message));
-                    }
-                    return const SizedBox();
-                  },
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: _showAddTransactionForm,
-            heroTag: 'transactionAddFab',
-            child: const Icon(Icons.add),
+              ],
+            ),
           ),
         );
       },

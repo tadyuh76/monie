@@ -6,7 +6,7 @@ import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 
-class BalanceChartWidget extends StatelessWidget {
+class BalanceChartWidget extends StatefulWidget {
   final List<Transaction> transactions;
   final int daysToShow;
 
@@ -17,6 +17,27 @@ class BalanceChartWidget extends StatelessWidget {
   });
 
   @override
+  State<BalanceChartWidget> createState() => _BalanceChartWidgetState();
+}
+
+class _BalanceChartWidgetState extends State<BalanceChartWidget> {
+  static const int _visibleDays = 12; // Show 12 days at a time
+  double _scrollOffset = 0.0;
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -24,9 +45,11 @@ class BalanceChartWidget extends StatelessWidget {
     try {
       // Filter transactions for the last X days
       final DateTime today = DateTime.now();
-      final DateTime startDate = today.subtract(Duration(days: daysToShow));
+      final DateTime startDate = today.subtract(
+        Duration(days: widget.daysToShow),
+      );
       final filteredTransactions =
-          transactions
+          widget.transactions
               .where(
                 (t) =>
                     t.date.isAfter(startDate) ||
@@ -49,13 +72,16 @@ class BalanceChartWidget extends StatelessWidget {
       }
 
       // Generate a list of all dates in the range
-      final List<DateTime> dateRange = List.generate(daysToShow + 1, (index) {
+      final List<DateTime> dateRange = List.generate(widget.daysToShow + 1, (
+        index,
+      ) {
         return DateTime(startDate.year, startDate.month, startDate.day + index);
       });
 
-      // Calculate cumulative balance
+      // Calculate cumulative balance and optimize data points
       double cumulativeBalance = 0;
-      final List<FlSpot> balanceSpots = [];
+      final List<FlSpot> allBalanceSpots = [];
+      final List<DateTime> allDates = [];
 
       for (int i = 0; i < dateRange.length; i++) {
         final date = dateRange[i];
@@ -67,33 +93,61 @@ class BalanceChartWidget extends StatelessWidget {
         );
 
         cumulativeBalance += dailyBalance;
-        balanceSpots.add(FlSpot(i.toDouble(), cumulativeBalance));
+
+        // Only add points when balance changes or at key intervals
+        if (allBalanceSpots.isEmpty ||
+            allBalanceSpots.last.y != cumulativeBalance ||
+            i == dateRange.length - 1 ||
+            i % 3 == 0) {
+          // Add point every 3 days to maintain chart shape
+          allBalanceSpots.add(
+            FlSpot(allBalanceSpots.length.toDouble(), cumulativeBalance),
+          );
+          allDates.add(date);
+        }
       }
 
-      // Special handling for cases where the first transaction is an expense
-      if (balanceSpots.isNotEmpty && balanceSpots.length > 1) {
-        // If first non-zero balance is negative, add an extra point with same value to prevent spike
-        int firstNonZeroIndex = balanceSpots.indexWhere((spot) => spot.y != 0);
-        if (firstNonZeroIndex > 0 && balanceSpots[firstNonZeroIndex].y < 0) {
-          // Replace the point just before the drop with the same negative value
-          balanceSpots[firstNonZeroIndex - 1] = FlSpot(
-            balanceSpots[firstNonZeroIndex - 1].x,
-            balanceSpots[firstNonZeroIndex].y,
-          );
+      // Calculate visible range
+      final int maxStartIndex = (allBalanceSpots.length - _visibleDays).clamp(
+        0,
+        allBalanceSpots.length,
+      );
+      final int startIndex = (_scrollOffset * maxStartIndex / 100)
+          .round()
+          .clamp(0, maxStartIndex);
+      final int endIndex = (startIndex + _visibleDays).clamp(
+        _visibleDays,
+        allBalanceSpots.length,
+      );
+
+      // Get visible data points
+      final List<FlSpot> visibleSpots = [];
+      final List<DateTime> visibleDates = [];
+
+      for (
+        int i = startIndex;
+        i < endIndex && i < allBalanceSpots.length;
+        i++
+      ) {
+        visibleSpots.add(
+          FlSpot((i - startIndex).toDouble(), allBalanceSpots[i].y),
+        );
+        if (i < allDates.length) {
+          visibleDates.add(allDates[i]);
         }
       }
 
       // Find minimum and maximum values for scaling
       double minY =
-          balanceSpots.isEmpty
+          visibleSpots.isEmpty
               ? -100
-              : balanceSpots
+              : visibleSpots
                   .map((spot) => spot.y)
                   .reduce((a, b) => a < b ? a : b);
       double maxY =
-          balanceSpots.isEmpty
+          visibleSpots.isEmpty
               ? 100
-              : balanceSpots
+              : visibleSpots
                   .map((spot) => spot.y)
                   .reduce((a, b) => a > b ? a : b);
 
@@ -116,7 +170,7 @@ class BalanceChartWidget extends StatelessWidget {
 
       // Format dates for x-axis
       List<String> dateLabels =
-          dateRange.map((date) => DateFormat('d').format(date)).toList();
+          visibleDates.map((date) => DateFormat('MMM d').format(date)).toList();
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,13 +225,43 @@ class BalanceChartWidget extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
-                // Chart
+                // Scroll indicator
+                if (allBalanceSpots.length > _visibleDays) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.swipe_left,
+                        size: 16,
+                        color: isDarkMode ? Colors.white54 : Colors.black45,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Swipe to see more data',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDarkMode ? Colors.white54 : Colors.black45,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${startIndex + 1}-$endIndex of ${allBalanceSpots.length} points',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDarkMode ? Colors.white54 : Colors.black45,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // Chart with horizontal scroll
                 SizedBox(
                   height: 220,
                   child:
-                      transactions.isEmpty
+                      widget.transactions.isEmpty
                           ? Center(
                             child: Text(
                               context.tr('home_no_transactions_to_show'),
@@ -189,169 +273,285 @@ class BalanceChartWidget extends StatelessWidget {
                               ),
                             ),
                           )
-                          : LineChart(
-                            LineChartData(
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: true,
-                                horizontalInterval: safeInterval,
-                                verticalInterval: 7,
-                                getDrawingHorizontalLine: (value) {
-                                  // Highlight the zero line
-                                  if (value == 0) {
+                          : GestureDetector(
+                            onPanUpdate: (details) {
+                              if (allBalanceSpots.length > _visibleDays) {
+                                setState(() {
+                                  _scrollOffset = (_scrollOffset -
+                                          details.delta.dx * 2)
+                                      .clamp(0.0, 100.0);
+                                });
+                              }
+                            },
+                            child: LineChart(
+                              LineChartData(
+                                gridData: FlGridData(
+                                  show: true,
+                                  drawVerticalLine: true,
+                                  horizontalInterval: safeInterval,
+                                  verticalInterval: 1,
+                                  getDrawingHorizontalLine: (value) {
+                                    // Highlight the zero line with a more prominent style
+                                    if (value == 0) {
+                                      return FlLine(
+                                        color:
+                                            isDarkMode
+                                                ? Colors.white.withValues(
+                                                  alpha: 0.3,
+                                                )
+                                                : Colors.black.withValues(
+                                                  alpha: 0.3,
+                                                ),
+                                        strokeWidth: 1.5,
+                                        dashArray: [8, 4],
+                                      );
+                                    }
+                                    // Make other grid lines more subtle
                                     return FlLine(
                                       color:
                                           isDarkMode
-                                              ? Colors.white24
-                                              : Colors.black26,
-                                      strokeWidth: 2,
-                                      dashArray: [5, 5],
+                                              ? Colors.white.withValues(
+                                                alpha: 0.08,
+                                              )
+                                              : Colors.black.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                      strokeWidth: 0.8,
                                     );
-                                  }
-                                  return FlLine(
-                                    color:
-                                        isDarkMode
-                                            ? Colors.white10
-                                            : Colors.black12,
-                                    strokeWidth: 1,
-                                  );
-                                },
-                                getDrawingVerticalLine: (value) {
-                                  return FlLine(
-                                    color:
-                                        isDarkMode
-                                            ? Colors.white10
-                                            : Colors.black12,
-                                    strokeWidth: 1,
-                                  );
-                                },
-                              ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                rightTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
+                                  },
+                                  getDrawingVerticalLine: (value) {
+                                    return FlLine(
+                                      color:
+                                          isDarkMode
+                                              ? Colors.white.withValues(
+                                                alpha: 0.06,
+                                              )
+                                              : Colors.black.withValues(
+                                                alpha: 0.06,
+                                              ),
+                                      strokeWidth: 0.8,
+                                    );
+                                  },
                                 ),
-                                topTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 30,
-                                    interval: 7,
-                                    getTitlesWidget: (value, meta) {
-                                      // Show only weekly labels
-                                      if (value.toInt() % 7 != 0 &&
-                                          value.toInt() !=
-                                              dateRange.length - 1) {
+                                titlesData: FlTitlesData(
+                                  show: true,
+                                  rightTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
+                                  ),
+                                  topTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
+                                  ),
+                                  bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      reservedSize: 30,
+                                      interval: 1,
+                                      getTitlesWidget: (value, meta) {
+                                        final int index = value.toInt();
+                                        if (index >= 0 &&
+                                            index < dateLabels.length) {
+                                          // Show every 2nd or 3rd label to avoid crowding
+                                          if (index % 2 == 0 ||
+                                              index == dateLabels.length - 1) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 8.0,
+                                              ),
+                                              child: Text(
+                                                dateLabels[index],
+                                                style: TextStyle(
+                                                  color:
+                                                      isDarkMode
+                                                          ? Colors.white70
+                                                          : Colors.black54,
+                                                  fontSize: 10,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
                                         return const SizedBox();
-                                      }
-
-                                      final int index = value.toInt();
-                                      if (index >= 0 &&
-                                          index < dateLabels.length) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 8.0,
+                                      },
+                                    ),
+                                  ),
+                                  leftTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      interval: (maxY - minY) / 5,
+                                      reservedSize: 42,
+                                      getTitlesWidget: (value, meta) {
+                                        return Text(
+                                          _formatCompactCurrency(value),
+                                          style: TextStyle(
+                                            color:
+                                                isDarkMode
+                                                    ? Colors.white70
+                                                    : Colors.black54,
+                                            fontSize: 10,
                                           ),
-                                          child: Text(
-                                            dateLabels[index],
-                                            style: TextStyle(
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                borderData: FlBorderData(show: false),
+                                minX: 0,
+                                maxX: (visibleSpots.length - 1).toDouble(),
+                                minY: minY,
+                                maxY: maxY,
+                                lineTouchData: LineTouchData(
+                                  enabled: true,
+                                  touchTooltipData: LineTouchTooltipData(
+                                    tooltipBorderRadius: BorderRadius.circular(
+                                      12,
+                                    ),
+                                    tooltipPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    getTooltipItems: (touchedSpots) {
+                                      if (touchedSpots.isEmpty) return [];
+                                      final spot = touchedSpots.first;
+                                      final int index = spot.x.toInt();
+                                      if (index >= 0 &&
+                                          index < visibleDates.length) {
+                                        final DateTime date =
+                                            visibleDates[index];
+                                        final bool isPositive = spot.y >= 0;
+                                        return [
+                                          LineTooltipItem(
+                                            '${DateFormat.yMMMd().format(date)}\n',
+                                            TextStyle(
                                               color:
                                                   isDarkMode
                                                       ? Colors.white70
                                                       : Colors.black54,
-                                              fontSize: 10,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
                                             ),
+                                            children: [
+                                              TextSpan(
+                                                text: Formatters.formatCurrency(
+                                                  spot.y,
+                                                ),
+                                                style: TextStyle(
+                                                  color:
+                                                      isPositive
+                                                          ? AppColors.income
+                                                          : AppColors.expense,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        );
+                                        ];
                                       }
-                                      return const SizedBox();
+                                      return [];
                                     },
                                   ),
                                 ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: (maxY - minY) / 5,
-                                    reservedSize: 42,
-                                    getTitlesWidget: (value, meta) {
-                                      return Text(
-                                        _formatCompactCurrency(value),
-                                        style: TextStyle(
-                                          color:
-                                              isDarkMode
-                                                  ? Colors.white70
-                                                  : Colors.black54,
-                                          fontSize: 10,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                              borderData: FlBorderData(show: false),
-                              minX: 0,
-                              maxX: dateRange.length.toDouble() - 1,
-                              minY: minY,
-                              maxY: maxY,
-                              lineTouchData: LineTouchData(
-                                touchTooltipData: LineTouchTooltipData(
-                                  tooltipBorderRadius: BorderRadius.circular(8),
-                                  tooltipPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  getTooltipItems: (touchedSpots) {
-                                    if (touchedSpots.isEmpty) return [];
-                                    final spot = touchedSpots.first;
-                                    final int index = spot.x.toInt();
-                                    final DateTime date = dateRange[index];
-                                    return [
-                                      LineTooltipItem(
-                                        '${DateFormat.yMMMd().format(date)}\n${Formatters.formatCurrency(spot.y)}',
-                                        TextStyle(
-                                          color:
-                                              isDarkMode
-                                                  ? Colors.white
-                                                  : Colors.black87,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                lineBarsData: [
+                                  LineChartBarData(
+                                    spots: visibleSpots,
+                                    isCurved: true,
+                                    curveSmoothness: 0.3,
+                                    preventCurveOverShooting: true,
+                                    color:
+                                        cumulativeBalance >= 0
+                                            ? AppColors.primary
+                                            : AppColors.expense,
+                                    barWidth: 3.5,
+                                    isStrokeCapRound: true,
+                                    dotData: FlDotData(
+                                      show: true,
+                                      getDotPainter: (
+                                        spot,
+                                        percent,
+                                        barData,
+                                        index,
+                                      ) {
+                                        return FlDotCirclePainter(
+                                          radius: 4,
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                          strokeColor:
+                                              cumulativeBalance >= 0
+                                                  ? AppColors.primary
+                                                  : AppColors.expense,
+                                        );
+                                      },
+                                    ),
+                                    belowBarData: BarAreaData(
+                                      show: true,
+                                      cutOffY: 0,
+                                      applyCutOffY: true,
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors:
+                                            cumulativeBalance >= 0
+                                                ? [
+                                                  AppColors.primary.withValues(
+                                                    alpha: 0.4,
+                                                  ),
+                                                  AppColors.primary.withValues(
+                                                    alpha: 0.25,
+                                                  ),
+                                                  AppColors.primary.withValues(
+                                                    alpha: 0.1,
+                                                  ),
+                                                  AppColors.primary.withValues(
+                                                    alpha: 0.05,
+                                                  ),
+                                                  Colors.transparent,
+                                                ]
+                                                : [
+                                                  AppColors.expense.withValues(
+                                                    alpha: 0.4,
+                                                  ),
+                                                  AppColors.expense.withValues(
+                                                    alpha: 0.25,
+                                                  ),
+                                                  AppColors.expense.withValues(
+                                                    alpha: 0.1,
+                                                  ),
+                                                  AppColors.expense.withValues(
+                                                    alpha: 0.05,
+                                                  ),
+                                                  Colors.transparent,
+                                                ],
+                                        stops: const [0.0, 0.3, 0.6, 0.8, 1.0],
                                       ),
-                                    ];
-                                  },
-                                ),
-                              ),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: balanceSpots,
-                                  isCurved: true,
-                                  curveSmoothness: 0.2,
-                                  preventCurveOverShooting: true,
-                                  color: AppColors.primary,
-                                  barWidth: 3,
-                                  isStrokeCapRound: true,
-                                  dotData: const FlDotData(show: false),
-                                  belowBarData: BarAreaData(
-                                    show: true,
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.2,
                                     ),
-                                    cutOffY: 0,
-                                    applyCutOffY: true,
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.primary.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        AppColors.primary.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                      ],
+                                    aboveBarData: BarAreaData(
+                                      show: cumulativeBalance < 0,
+                                      cutOffY: 0,
+                                      applyCutOffY: true,
+                                      gradient: LinearGradient(
+                                        begin: Alignment.bottomCenter,
+                                        end: Alignment.topCenter,
+                                        colors: [
+                                          AppColors.expense.withValues(
+                                            alpha: 0.4,
+                                          ),
+                                          AppColors.expense.withValues(
+                                            alpha: 0.25,
+                                          ),
+                                          AppColors.expense.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          AppColors.expense.withValues(
+                                            alpha: 0.05,
+                                          ),
+                                          Colors.transparent,
+                                        ],
+                                        stops: const [0.0, 0.3, 0.6, 0.8, 1.0],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                 ),
