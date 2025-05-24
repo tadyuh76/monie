@@ -14,11 +14,11 @@ class SettingsRepositoryImpl implements SettingsRepository {
 
   SettingsRepositoryImpl({
     required SupabaseClientManager supabaseClient,
-    required SharedPreferences preferences,
-  }) : _supabaseClient = supabaseClient,
+    required SharedPreferences preferences,  }) : _supabaseClient = supabaseClient,
        _preferences = preferences;
 
-  // App Settings  @override
+  // App Settings
+  @override
   Future<AppSettings> getAppSettings() async {
     try {
       // Load settings from SharedPreferences

@@ -83,7 +83,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           serverRemindersResult.fold(
             (failure) {
               // Server failed, use local reminders
-              print('Failed to load reminders from server: ${failure.message}');
+              debugPrint('Failed to load reminders from server: ${failure.message}');
             },
             (serverReminders) {
               // Update local settings with server reminders if they exist
@@ -97,7 +97,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
             },
           );
         } catch (e) {
-          print('Error loading reminder settings from server: $e');
+          debugPrint('Error loading reminder settings from server: $e');
         }
         
         emit(ProfileLoaded(profile: profile, settings: _currentSettings));
@@ -389,9 +389,8 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
               );
                 serverResult.fold(
                 (failure) {
-                  // Server save failed, but local save succeeded
-                  print('Failed to save reminders to server: ${failure.message}');
-                  print('Full error details: $failure');
+                  // Server save failed, but local save succeeded                  debugPrint('Failed to save reminders to server: ${failure.message}');
+                  debugPrint('Full error details: $failure');
                   emit(const SettingsError('Failed to sync reminders with server. Changes saved locally.'));
                 },
                 (success) {
@@ -415,12 +414,12 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
               );
             } else {
               // Could not get FCM token
-              print('Could not get FCM token for push notifications');
+              debugPrint('Could not get FCM token for push notifications');
               emit(const SettingsError('Could not enable push notifications. Please check notification permissions.'));
             }
           } catch (serverError) {
             // Server communication failed, but local save succeeded
-            print('Server error while saving reminders: $serverError');
+            debugPrint('Server error while saving reminders: $serverError');
             emit(const SettingsError('Failed to sync reminders with server. Changes saved locally.'));
           }
         } else {
