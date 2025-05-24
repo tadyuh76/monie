@@ -638,8 +638,8 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
       }
 
       // Create transaction data
-      final title = _titleController.text.trim();
-      final amount = double.parse(_amountController.text.trim());
+      String title = _titleController.text.trim();
+      double amount = double.parse(_amountController.text.trim());
       final description = _descriptionController.text.trim();
 
       // Get the category information
@@ -648,16 +648,28 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
         _selectedCategory!['svgName'],
       );
 
-      // For now, we'll use the existing expense system for both types
-      // In the future, this should be updated to support proper income transactions
+      // For group transactions:
+      // - Expenses: store as negative amounts
+      // - Income: store as positive amounts
+      if (!_isExpense) {
+        // Income: ensure amount is positive
+        amount = amount.abs();
+      } else {
+        // Expense: ensure amount is negative
+        amount = -amount.abs();
+      }
+
+      // No prefix for income anymore
+      // title = _isExpense ? title : 'Income: $title';
+
       context.read<GroupBloc>().add(
         AddGroupExpenseEvent(
           groupId: widget.groupId,
-          title: _isExpense ? title : "Income: $title",
-          amount: _isExpense ? amount : -amount, // Negative amount for income
+          title: title,
+          amount: amount,
           description: description,
           date: _date,
-          paidBy: _paidBy, // This is the user ID, not display name
+          paidBy: _paidBy,
           categoryName: categoryName,
           color: categoryColor,
         ),

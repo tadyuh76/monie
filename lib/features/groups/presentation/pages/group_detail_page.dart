@@ -1236,36 +1236,20 @@ class _GroupDetailPageState extends State<GroupDetailPage>
       for (var transaction in transactions) {
         if (transaction.approvalStatus == 'approved') {
           final payerId = transaction.paidBy;
-          final amount = transaction.amount.abs(); // Use absolute value
+          final amount = transaction.amount; // Use the actual signed amount
           final memberCount = userIdToName.length;
 
           if (memberCount > 0 && userIdToName.containsKey(payerId)) {
             final amountPerPerson = amount / memberCount;
 
-            // Handle both expenses and income
-            bool isIncome =
-                transaction.title.startsWith('Income:') ||
-                transaction.amount < 0;
-
-            if (isIncome) {
-              // For income: the receiver gets positive balance, others get negative
-              netBalances[payerId] =
-                  (netBalances[payerId] ?? 0) + amount - amountPerPerson;
-              for (var userId in userIdToName.keys) {
-                if (userId != payerId) {
-                  netBalances[userId] =
-                      (netBalances[userId] ?? 0) - amountPerPerson;
-                }
-              }
-            } else {
-              // For expenses: the payer gets positive balance, others get negative
-              netBalances[payerId] =
-                  (netBalances[payerId] ?? 0) + amount - amountPerPerson;
-              for (var userId in userIdToName.keys) {
-                if (userId != payerId) {
-                  netBalances[userId] =
-                      (netBalances[userId] ?? 0) - amountPerPerson;
-                }
+            // For both income and expenses, the logic is the same:
+            // The payer gets credit for the full amount, others get their share deducted
+            netBalances[payerId] =
+                (netBalances[payerId] ?? 0) + amount - amountPerPerson;
+            for (var userId in userIdToName.keys) {
+              if (userId != payerId) {
+                netBalances[userId] =
+                    (netBalances[userId] ?? 0) - amountPerPerson;
               }
             }
           }

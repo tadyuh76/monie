@@ -22,9 +22,10 @@ class NotificationCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       elevation: notification.isRead ? 1 : 3,
       color: isDarkMode ? AppColors.surface : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -35,8 +36,8 @@ class NotificationCard extends StatelessWidget {
             children: [
               // Notification icon
               Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: _getNotificationColor(
                     notification.type,
@@ -46,10 +47,10 @@ class NotificationCard extends StatelessWidget {
                 child: Icon(
                   _getNotificationIcon(notification.type),
                   color: _getNotificationColor(notification.type),
-                  size: 24,
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
 
               // Notification content
               Expanded(
@@ -82,8 +83,11 @@ class NotificationCard extends StatelessWidget {
                       ],
                     ),
 
-                    if (notification.message != null) ...[
-                      const SizedBox(height: 4),
+                    // Always add consistent spacing after title
+                    const SizedBox(height: 6),
+
+                    // Message section with consistent spacing
+                    if (notification.message != null)
                       Text(
                         notification.message!,
                         style: textTheme.bodyMedium?.copyWith(
@@ -95,8 +99,8 @@ class NotificationCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ],
 
+                    // Amount section with consistent spacing
                     if (notification.amount != null) ...[
                       const SizedBox(height: 8),
                       Container(
@@ -118,9 +122,12 @@ class NotificationCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
                     ],
 
+                    // Always add consistent spacing before bottom row
+                    const SizedBox(height: 12),
+
+                    // Bottom row with date and delete button
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

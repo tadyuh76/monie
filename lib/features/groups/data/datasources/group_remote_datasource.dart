@@ -519,11 +519,12 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
   @override
   Future<double> getGroupTotalAmount(String groupId) async {
     try {
-      // Get all transactions for this group
+      // Get all approved transactions for this group
       final transactions = await supabase
           .from('group_transactions')
           .select('transaction_id')
-          .eq('group_id', groupId);
+          .eq('group_id', groupId)
+          .eq('status', 'approved'); // Only include approved transactions
 
       if (transactions.isEmpty) {
         return 0;
@@ -538,10 +539,13 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
           .select('amount')
           .inFilter('transaction_id', transactionIds);
 
-      // Sum up the total
+      // Sum up the net total (income - expenses)
+      // Income transactions are positive, expense transactions are negative
       double total = 0;
       for (var transaction in amounts) {
-        total += double.parse(transaction['amount'].toString());
+        final amount = double.parse(transaction['amount'].toString());
+        total +=
+            amount; // Direct sum: positive income adds, negative expenses subtract
       }
 
       return total;
@@ -601,9 +605,15 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
       final approvedAt = approvalStatus == 'approved' ? DateTime.now() : null;
 
       // 1. Create the transaction
+      // Determine if this is an income transaction based on amount sign
+      final isIncomeTransaction = amount > 0;
+
+      // Store the transaction amount as provided (already signed correctly)
+      final transactionAmount = amount;
+
       final transactionData = {
         'title': title,
-        'amount': amount,
+        'amount': transactionAmount,
         'description': description,
         'date': date.toIso8601String(),
         'user_id': paidBy, // This must be a valid UUID!
@@ -643,6 +653,8 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
                 .map((member) => member['user_id'] as String)
                 .toList();
 
+        final notificationTitle =
+            isIncomeTransaction ? 'New Group Income' : 'New Group Expense';
         final notifications =
             memberIds
                 .map(
@@ -650,7 +662,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
                     'user_id': userId,
                     'amount': amount,
                     'type': 'group_transaction',
-                    'title': 'New Group Expense',
+                    'title': notificationTitle,
                     'message':
                         '$title in "$groupName" - \$${amount.toStringAsFixed(2)}',
                     'is_read': false,
@@ -670,6 +682,10 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
             .eq('group_id', groupId)
             .eq('role', 'admin');
 
+        final notificationTitle =
+            isIncomeTransaction
+                ? 'Income Needs Approval'
+                : 'Expense Needs Approval';
         final notifications =
             (adminMembers as List)
                 .map(
@@ -677,7 +693,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
                     'user_id': admin['user_id'],
                     'amount': amount,
                     'type': 'group_transaction',
-                    'title': 'Expense Needs Approval',
+                    'title': notificationTitle,
                     'message':
                         '$title in "$groupName" - \$${amount.toStringAsFixed(2)}',
                     'is_read': false,
@@ -700,11 +716,11 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         id: transactionId,
         groupId: groupId,
         title: title,
-        amount: amount,
+        amount: transactionAmount,
         description: description,
         date: date,
         paidBy: paidBy,
-        splitWith: memberIds, // All members are included in the split
+        splitWith: memberIds,
         approvalStatus: approvalStatus,
         approvedAt: approvedAt,
       );
@@ -813,6 +829,9 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
       final amount = transaction['amount'];
       final groupName = groupData['name'];
 
+      // Determine if this is an income transaction
+      final isIncomeTransaction = amount > 0;
+
       // Get all group members
       final membersResponse = await supabase
           .from('group_members')
@@ -825,6 +844,11 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
               .toList();
 
       // Create notifications for all members
+      final notificationTitle =
+          approved
+              ? (isIncomeTransaction ? 'Income Approved' : 'Expense Approved')
+              : (isIncomeTransaction ? 'Income Rejected' : 'Expense Rejected');
+
       final notifications =
           memberIds
               .map(
@@ -832,7 +856,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
                   'user_id': userId,
                   'amount': amount,
                   'type': 'group_transaction',
-                  'title': approved ? 'Expense Approved' : 'Expense Rejected',
+                  'title': notificationTitle,
                   'message':
                       '$title in "$groupName" - \$${amount.toStringAsFixed(2)}',
                   'is_read': false,
