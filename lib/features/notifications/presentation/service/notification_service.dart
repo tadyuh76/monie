@@ -16,10 +16,9 @@ class NotificationService with WidgetsBindingObserver {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   String? _currentUserId;
   AppLifecycleState? _previousAppState;
-
   // Server URL for localhost testing
-  final String _serverBaseUrl = 'http://10.0.2.2:3000'; // For Android emulator
-  // Use 'http://localhost:3000' for iOS simulator or 'http://<your-computer-ip>:3000' for real devices
+  final String _serverBaseUrl = 'http://10.0.2.2:4000'; // For Android emulator
+  // Use 'http://localhost:4000' for iOS simulator or 'http://<your-computer-ip>:4000' for real devices
 
   // Notification channel details
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
@@ -27,6 +26,18 @@ class NotificationService with WidgetsBindingObserver {
     'Monie Push Notifications',
     description: 'Channel for receiving push notifications in Monie app',
     importance: Importance.high,
+  );
+
+  // High importance channel for reminders that can wake terminated apps
+  static const AndroidNotificationChannel _reminderChannel = AndroidNotificationChannel(
+    'high_importance_channel',
+    'High Importance Notifications',
+    description: 'High priority notifications for reminders and critical updates',
+    importance: Importance.max,
+    playSound: true,
+    enableVibration: true,
+    enableLights: true,
+    ledColor: Color(0xFF4CAF50),
   );
 
   // App state notification channel
@@ -152,13 +163,16 @@ class NotificationService with WidgetsBindingObserver {
     await _localNotifications.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: _onSelectNotification,
-    );
-
-    // Create Android notification channels
+    );    // Create Android notification channels
     await _localNotifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(_channel);
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(_reminderChannel);
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
@@ -231,14 +245,31 @@ class NotificationService with WidgetsBindingObserver {
     );
     notificationBloc.add(NotificationReceivedEvent(notification));
   }
-
   // Handle terminated messages opened
   void _handleTerminatedMessageOpened(RemoteMessage message) {
+    debugPrint('Handling terminated app message: ${message.data}');
+    
     final notification = NotificationModel.fromRemoteMessage(
       message.toMap(),
       message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
     );
-    notificationBloc.add(NotificationReceivedEvent(notification));
+    
+    // If this is a transaction reminder, add specific navigation context
+    if (message.data['type'] == 'transaction_reminder' || message.data['type'] == 'transaction_reminder_data') {
+      debugPrint('Transaction reminder opened from terminated state');
+      
+      // Add special event to navigate to add transaction screen
+      notificationBloc.add(NotificationReceivedEvent(notification));
+      
+      // You can add navigation logic here if needed
+      // For example, navigate to add transaction screen
+      if (message.data['screen'] == 'add_transaction') {
+        debugPrint('Should navigate to add transaction screen');
+        // This could trigger navigation to the specific screen
+      }
+    } else {
+      notificationBloc.add(NotificationReceivedEvent(notification));
+    }
   }
 
   // Show local notification
