@@ -160,4 +160,4 @@ _(Consider adding a few screenshots or a GIF showcasing the main features of you
 
 ---
 
-Built with ❤️ by tadyuh76 - PeanLut - Leonn2285 - ayo-lole - PeanLutHuynh
+Built with ❤️ by tadyuh76 - PeanLut - Leonn2285 - ayo-lole
