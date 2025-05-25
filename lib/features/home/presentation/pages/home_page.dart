@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
+import 'package:monie/core/widgets/main_screen.dart';
 import 'package:monie/features/account/domain/entities/account.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/account/presentation/bloc/account_event.dart';
@@ -11,20 +12,25 @@ import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
+import 'package:monie/features/budgets/presentation/widgets/budget_card.dart';
+import 'package:monie/features/budgets/presentation/widgets/budget_form.dart';
 import 'package:monie/features/home/presentation/widgets/accounts_section_widget.dart';
 import 'package:monie/features/home/presentation/widgets/balance_chart_widget.dart';
+import 'package:monie/features/home/presentation/widgets/category_breakdown_widget.dart';
 import 'package:monie/features/home/presentation/widgets/greeting_widget.dart';
 import 'package:monie/features/home/presentation/widgets/heat_map_section_widget.dart';
+import 'package:monie/features/home/presentation/widgets/monthly_summary_widget.dart';
+import 'package:monie/features/home/presentation/widgets/notification_bell_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
+import 'package:monie/features/home/presentation/widgets/spending_forecast_widget.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
+import 'package:monie/features/notifications/presentation/bloc/notification_event.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_state.dart';
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 import 'package:monie/features/transactions/presentation/widgets/budget_form_bottom_sheet.dart';
-import 'package:monie/features/budgets/presentation/widgets/budget_card.dart';
-import 'package:monie/features/budgets/presentation/widgets/budget_form.dart';
-import 'package:monie/core/widgets/main_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -67,6 +73,13 @@ class _HomePageState extends State<HomePage> {
       try {
         // Load budgets
         context.read<BudgetsBloc>().add(const LoadBudgets());
+      } catch (e) {
+        // Bloc might be closed, ignore the error
+      }
+
+      try {
+        // Load notifications unread count
+        context.read<NotificationBloc>().add(LoadUnreadCount(userId));
       } catch (e) {
         // Bloc might be closed, ignore the error
       }
@@ -185,13 +198,38 @@ class _HomePageState extends State<HomePage> {
               children: [
                 const SizedBox(height: 20),
 
-                // Greeting section
-                GreetingWidget(name: displayName),
+                // Greeting section with notification bell
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: GreetingWidget(name: displayName)),
+                    NotificationBellWidget(userId: userId),
+                  ],
+                ),
 
                 const SizedBox(height: 24),
 
+                // AI Analysis section
+                // const AIAnalysisWidget(),
+
+                // const SizedBox(height: 24),
+
                 // Accounts section
                 _buildAccountsSection(context, userId),
+
+                const SizedBox(height: 24),
+
+                // Monthly Summary section
+                BlocBuilder<TransactionBloc, TransactionState>(
+                  builder: (context, state) {
+                    if (state is TransactionsLoaded) {
+                      return MonthlySummaryWidget(
+                        transactions: state.transactions,
+                      );
+                    }
+                    return const SizedBox();
+                  },
+                ),
 
                 const SizedBox(height: 24),
 
@@ -209,8 +247,23 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 24),
 
+                // Spending Forecast section
+                const SpendingForecastWidget(),
+
+                const SizedBox(height: 24),
+
+                // // Smart Budget Recommendations
+                // const SmartBudgetWidget(),
+
+                // const SizedBox(height: 24),
+
                 // Heat Map section
                 const HeatMapSectionWidget(),
+
+                const SizedBox(height: 24),
+
+                // Category Breakdown section
+                const CategoryBreakdownWidget(),
 
                 const SizedBox(height: 24),
 
@@ -582,7 +635,6 @@ class _HomePageState extends State<HomePage> {
 
     return Container(
       width: double.infinity,
-      height: 150,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDarkMode ? AppColors.cardDark : Colors.white,
@@ -605,57 +657,62 @@ class _HomePageState extends State<HomePage> {
                 ]
                 : null,
       ),
-      child: Row(
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.account_balance_wallet_outlined,
-            size: 28,
-            color: isDarkMode ? Colors.white30 : Colors.black26,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Flexible(
-                  child: Text(
-                    context.tr('home_no_accounts'),
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white70 : Colors.black87,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Flexible(
-                  child: Text(
-                    context.tr('home_no_accounts_desc'),
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white54 : Colors.black54,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () {
-              _showAddAccountModal(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 28,
+                color: isDarkMode ? Colors.white30 : Colors.black26,
               ),
+              const SizedBox(width: 16),              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('home_no_accounts'),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr('home_no_accounts_desc'),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white54 : Colors.black54,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                _showAddAccountModal(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(context.tr('accounts_add_new')),
             ),
-            child: Text(context.tr('accounts_add_new')),
           ),
         ],
       ),

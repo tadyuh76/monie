@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:monie/core/errors/exceptions.dart';
 import 'package:monie/features/notifications/data/models/notification_model.dart';
+import 'package:monie/features/notifications/domain/entities/notification.dart';
 import 'package:uuid/uuid.dart';
 
 abstract class NotificationRemoteDataSource {
@@ -155,14 +156,16 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
         ),
         payload: message.data.toString(),
       );
-      
-      // Store notification in local storage if needed
+        // Store notification in local storage if needed
       // ignore: unused_local_variable
       final notificationModel = NotificationModel(
         id: const Uuid().v4(), 
+        userId: '', // Will be set when storing to local storage
+        type: NotificationType.general, // Default type for push notifications
         title: notification.title ?? 'New Notification',
-        body: notification.body ?? '',
-        timestamp: DateTime.now(),
+        message: notification.body ?? '',
+        isRead: false,
+        createdAt: DateTime.now(),
         data: message.data,
       );
       

@@ -62,7 +62,6 @@ class NotificationLocalDataSourceImpl implements NotificationLocalDataSource {
     notifications.add(notification);
     await cacheNotifications(notifications);
   }
-
   @override
   Future<void> markAsRead(String notificationId) async {
     final notifications = await getCachedNotifications();
@@ -70,10 +69,13 @@ class NotificationLocalDataSourceImpl implements NotificationLocalDataSource {
       if (notification.id == notificationId) {
         return NotificationModel(
           id: notification.id,
+          userId: notification.userId,
+          amount: notification.amount,
+          type: notification.type,
           title: notification.title,
-          body: notification.body,
-          timestamp: notification.timestamp,
+          message: notification.message,
           isRead: true,
+          createdAt: notification.createdAt,
           data: notification.data,
         );
       }
@@ -82,17 +84,19 @@ class NotificationLocalDataSourceImpl implements NotificationLocalDataSource {
     
     await cacheNotifications(updatedNotifications);
   }
-
   @override
   Future<void> markAllAsRead() async {
     final notifications = await getCachedNotifications();
     final updatedNotifications = notifications.map((notification) {
       return NotificationModel(
         id: notification.id,
+        userId: notification.userId,
+        amount: notification.amount,
+        type: notification.type,
         title: notification.title,
-        body: notification.body,
-        timestamp: notification.timestamp,
+        message: notification.message,
         isRead: true,
+        createdAt: notification.createdAt,
         data: notification.data,
       );
     }).toList();

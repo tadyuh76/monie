@@ -76,7 +76,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Color _getDividerColor(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark
         ? AppColors.divider
-        : Colors.black.withValues(alpha: 0.05); // Much lighter for light theme
+        : Colors.black.withOpacity(0.05); // Much lighter for light theme
   }
 
   Future<void> _pickImage() async {
@@ -235,7 +235,7 @@ class _SettingsPageState extends State<SettingsPage> {
             // Show loading overlay when needed
             if (isLoading)
               Container(
-                color: Colors.black.withValues(alpha: 0.5),
+                color: Colors.black.withOpacity(0.5),
                 child: const Center(child: CircularProgressIndicator()),
               ),
           ],
@@ -281,7 +281,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         Theme.of(context).brightness == Brightness.light
                             ? [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
+                                color: Colors.black.withOpacity(0.05),
                                 blurRadius: 10,
                                 offset: const Offset(0, 5),
                               ),
@@ -309,7 +309,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     boxShadow: Theme.of(context).brightness == Brightness.light
                         ? [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
+                              color: Colors.black.withOpacity(0.05),
                               blurRadius: 10,
                               offset: const Offset(0, 5),
                             ),
@@ -472,7 +472,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Theme.of(context).brightness == Brightness.light
                   ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -514,7 +514,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Theme.of(context).brightness == Brightness.light
                   ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -564,7 +564,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Theme.of(context).brightness == Brightness.light
                 ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -1142,8 +1142,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     elevation: 3,
                     disabledBackgroundColor:
                         Theme.of(context).brightness == Brightness.dark
-                            ? AppColors.primary.withValues(alpha: 0.5)
-                            : AppColors.primary.withValues(alpha: 0.3),
+                            ? AppColors.primary.withOpacity(0.5)
+                            : AppColors.primary.withOpacity(0.3),
                   ),
                   child:
                       isSaving
@@ -1173,7 +1173,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildChangePasswordForm() {
-    final errorStyle = TextStyle(
+    final errorStyle = const TextStyle(
       color: Colors.red,
       fontSize: 13.0,
       fontWeight: FontWeight.w500,

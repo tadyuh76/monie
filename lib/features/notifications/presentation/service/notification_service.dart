@@ -222,7 +222,6 @@ class NotificationService with WidgetsBindingObserver {
       _handleTerminatedMessageOpened(initialMessage);
     }
   }
-
   // Handle foreground messages
   void _handleForegroundMessage(RemoteMessage message) {
     // Show the local notification
@@ -230,17 +229,20 @@ class NotificationService with WidgetsBindingObserver {
 
     // Process the notification in the bloc
     final notification = NotificationModel.fromRemoteMessage(
-      message.toMap(),
-      message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      message.notification?.body ?? 'New notification',
+      userId: 'current_user', // TODO: Get actual user ID
+      id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      data: message.data,
     );
     notificationBloc.add(NotificationReceivedEvent(notification));
   }
-
   // Handle background messages opened
   void _handleBackgroundMessageOpened(RemoteMessage message) {
     final notification = NotificationModel.fromRemoteMessage(
-      message.toMap(),
-      message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      message.notification?.body ?? 'Background notification',
+      userId: 'current_user', // TODO: Get actual user ID
+      id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      data: message.data,
     );
     notificationBloc.add(NotificationReceivedEvent(notification));
   }
@@ -249,8 +251,10 @@ class NotificationService with WidgetsBindingObserver {
     debugPrint('Handling terminated app message: ${message.data}');
     
     final notification = NotificationModel.fromRemoteMessage(
-      message.toMap(),
-      message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      message.notification?.body ?? 'Terminated notification',
+      userId: 'current_user', // TODO: Get actual user ID
+      id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      data: message.data,
     );
     
     // If this is a transaction reminder, add specific navigation context

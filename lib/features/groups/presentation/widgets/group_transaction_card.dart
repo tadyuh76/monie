@@ -29,8 +29,10 @@ class GroupTransactionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final colorForType =
-        AppColors.expense; // Group expenses are always expenses
+
+    // Determine if this is an income transaction based on amount sign
+    final bool isIncome = transaction.amount > 0;
+    final colorForType = isIncome ? AppColors.income : AppColors.expense;
 
     // Get the category name from the transaction or use default
     final actualCategoryName = categoryName ?? 'Group';
@@ -132,7 +134,9 @@ class GroupTransactionCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '-${Formatters.formatCurrency(transaction.amount.abs())}',
+                        isIncome
+                            ? '+${Formatters.formatCurrency(transaction.amount)}'
+                            : Formatters.formatCurrency(transaction.amount),
                         style: textTheme.titleMedium?.copyWith(
                           color: colorForType,
                           fontWeight: FontWeight.bold,

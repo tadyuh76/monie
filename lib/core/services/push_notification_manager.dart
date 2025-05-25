@@ -157,13 +157,13 @@ class PushNotificationManager {
       ));
     }
   }
-
   /// Add notification to bloc
   void _addNotificationToBloc(RemoteMessage message) {
-    if (_notificationBloc != null) {
+    if (_notificationBloc != null && _currentUserId != null) {
       final notification = NotificationModel.fromRemoteMessage(
-        message.toMap(),
-        message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        message.notification?.body ?? 'Push notification received',
+        userId: _currentUserId!,
+        id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
       );
       _notificationBloc!.add(NotificationReceivedEvent(notification));
     }

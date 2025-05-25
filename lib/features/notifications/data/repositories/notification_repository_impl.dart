@@ -3,18 +3,81 @@ import 'package:monie/core/errors/exceptions.dart';
 import 'package:monie/core/errors/failures.dart';
 import 'package:monie/features/notifications/data/datasources/notification_local_data_source.dart';
 import 'package:monie/features/notifications/data/datasources/notification_remote_data_source.dart';
+import 'package:monie/features/notifications/data/datasources/notification_datasource.dart';
+import 'package:monie/features/notifications/data/models/notification_model.dart';
 import 'package:monie/features/notifications/domain/entities/notification.dart';
 import 'package:monie/features/notifications/domain/repositories/notification_repository.dart';
 
 class NotificationRepositoryImpl implements NotificationRepository {
   final NotificationRemoteDataSource remoteDataSource;
   final NotificationLocalDataSource localDataSource;
+  final NotificationDataSource dataSource;
 
   NotificationRepositoryImpl({
     required this.remoteDataSource,
     required this.localDataSource,
+    required this.dataSource,
   });
 
+  // Database operations for notifications
+  @override
+  Future<List<Notification>> getUserNotifications(String userId) async {
+    return await dataSource.getUserNotifications(userId);
+  }
+
+  @override
+  Future<void> markAsRead(String notificationId) async {
+    await dataSource.markAsRead(notificationId);
+  }
+
+  @override
+  Future<void> markAllAsRead(String userId) async {
+    await dataSource.markAllAsRead(userId);
+  }
+
+  @override
+  Future<void> createNotification(Notification notification) async {
+    final notificationModel = NotificationModel(
+      id: notification.id,
+      userId: notification.userId,
+      amount: notification.amount,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
+    );
+    await dataSource.createNotification(notificationModel);
+  }
+
+  @override
+  Future<void> createGroupNotifications({
+    required String groupId,
+    required String title,
+    required String message,
+    required NotificationType type,
+    double? amount,
+  }) async {
+    await dataSource.createGroupNotifications(
+      groupId: groupId,
+      title: title,
+      message: message,
+      type: type,
+      amount: amount,
+    );
+  }
+
+  @override
+  Future<void> deleteNotification(String notificationId) async {
+    await dataSource.deleteNotification(notificationId);
+  }
+
+  @override
+  Future<int> getUnreadCount(String userId) async {
+    return await dataSource.getUnreadCount(userId);
+  }
+
+  // Push notification operations with error handling
   @override
   Future<Either<Failure, String>> registerDevice() async {
     try {
@@ -54,7 +117,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> markAsRead(String notificationId) async {
+  Future<Either<Failure, bool>> markNotificationAsRead(String notificationId) async {
     try {
       await localDataSource.markAsRead(notificationId);
       return const Right(true);
@@ -66,7 +129,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> markAllAsRead() async {
+  Future<Either<Failure, bool>> markAllNotificationsAsRead() async {
     try {
       await localDataSource.markAllAsRead();
       return const Right(true);
@@ -78,7 +141,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> deleteNotification(String notificationId) async {
+  Future<Either<Failure, bool>> deleteNotificationWithResult(String notificationId) async {
     try {
       await localDataSource.deleteNotification(notificationId);
       return const Right(true);
@@ -124,4 +187,4 @@ class NotificationRepositoryImpl implements NotificationRepository {
       return Left(ServerFailure(message: e.toString()));
     }
   }
-} 
+}
