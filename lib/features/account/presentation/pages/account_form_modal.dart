@@ -36,7 +36,23 @@ class AccountFormModal extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AccountFormModal(account: account, isEdit: isEdit),
+      builder:
+          (modalContext) => MultiBlocProvider(
+            providers: [
+              // Inherit the AccountBloc from parent context
+              BlocProvider.value(value: BlocProvider.of<AccountBloc>(context)),
+              BlocProvider.value(value: BlocProvider.of<AuthBloc>(context)),
+              BlocProvider.value(value: BlocProvider.of<HomeBloc>(context)),
+              // Create new instances for transaction-related blocs
+              BlocProvider<TransactionBloc>(
+                create: (context) => sl<TransactionBloc>(),
+              ),
+              BlocProvider.value(
+                value: BlocProvider.of<TransactionsBloc>(context),
+              ),
+            ],
+            child: AccountFormModal(account: account, isEdit: isEdit),
+          ),
     );
   }
 }
@@ -342,308 +358,326 @@ class _AccountFormModalState extends State<AccountFormModal> {
                 ),
               ),
 
-              MultiBlocProvider(
-                providers: [
-                  BlocProvider<AccountBloc>(
-                    create: (context) => sl<AccountBloc>(),
+              MultiBlocListener(
+                listeners: [
+                  BlocListener<AccountBloc, AccountState>(
+                    listener: (context, state) {
+                      if (state is AccountCreated) {
+                        // Reset submitting state
+                        setState(() {
+                          _isSubmitting = false;
+                        });
+
+                        // Show success message
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Account created successfully!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+
+                        final authState = context.read<AuthBloc>().state;
+                        if (authState is Authenticated) {
+                          // Always trigger HomeBloc to reload data with the new account
+                          try {
+                            final homeBloc = context.read<HomeBloc>();
+                            homeBloc.add(LoadHomeData(authState.user.id));
+                          } catch (e) {
+                            // If the bloc is closed, ignore the error
+                          }
+
+                          // Also trigger the transactions AccountBloc to update its state
+                          try {
+                            // Use the parent context's AccountBloc to reload accounts
+                            final parentAccountBloc =
+                                context.read<AccountBloc>();
+                            parentAccountBloc.add(
+                              LoadAccountsEvent(authState.user.id),
+                            );
+                          } catch (e) {
+                            // If the bloc is not available in this context, that's okay
+                          }
+
+                          // Create initial balance transaction if balance > 0
+                          final balance =
+                              double.tryParse(_controllers['balance']!.text) ??
+                              0;
+
+                          // Make sure we have a valid account ID before creating a transaction
+                          if (balance > 0 && state.account.accountId != null) {
+                            try {
+                              final transactionBloc =
+                                  context.read<TransactionBloc>();
+
+                              // Create an initial balance transaction
+                              final initialTransaction = Transaction(
+                                userId: authState.user.id,
+                                amount: balance,
+                                title: 'Initial balance',
+                                description: 'Initial account balance',
+                                date: DateTime.now(),
+                                accountId: state.account.accountId!,
+                                categoryName: 'Account Adjustment',
+                                color: CategoryUtils.getCategoryColorHex(
+                                  'Account Adjustment',
+                                  isIncome: true,
+                                ),
+                              );
+
+                              // Add the transaction
+                              transactionBloc.add(
+                                CreateTransactionEvent(initialTransaction),
+                              );
+                            } catch (e) {
+                              // If the bloc is closed, ignore the error and close the modal
+                              Navigator.of(context).pop();
+                            }
+                          } else {
+                            // If no initial balance transaction needed or no accountId,
+                            // close the modal since we've already triggered the home data reload
+                            Navigator.of(context).pop();
+                          }
+                        }
+                      } else if (state is AccountUpdated) {
+                        // Reset submitting state
+                        setState(() {
+                          _isSubmitting = false;
+                        });
+
+                        // Show success message
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Account updated successfully!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+
+                        final authState = context.read<AuthBloc>().state;
+                        if (authState is Authenticated) {
+                          // Reload home data after account update
+                          try {
+                            final homeBloc = context.read<HomeBloc>();
+                            homeBloc.add(LoadHomeData(authState.user.id));
+                          } catch (e) {
+                            // If the bloc is closed, ignore the error
+                          }
+
+                          // Also trigger the transactions AccountBloc to update its state
+                          try {
+                            // Use the parent context's AccountBloc to reload accounts
+                            final parentAccountBloc =
+                                context.read<AccountBloc>();
+                            parentAccountBloc.add(
+                              LoadAccountsEvent(authState.user.id),
+                            );
+                          } catch (e) {
+                            // If the bloc is not available in this context, that's okay
+                          }
+
+                          // Wait a very short moment to ensure state updates are processed
+                          // before closing the modal to make sure UI gets refreshed
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                          });
+                        } else {
+                          Navigator.of(context).pop();
+                        }
+                      } else if (state is AccountError) {
+                        // Reset submitting state on error
+                        setState(() {
+                          _isSubmitting = false;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: ${state.message}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
                   ),
-                  BlocProvider<TransactionBloc>(
-                    create: (context) => sl<TransactionBloc>(),
-                  ),
-                  // Try to get the transactions AccountBloc from context, or create a new one if not available
-                  BlocProvider<AccountBloc>(
-                    create: (context) {
-                      try {
-                        return context.read<AccountBloc>();
-                      } catch (e) {
-                        // If not available, create a new instance
-                        return sl<AccountBloc>();
+                  BlocListener<TransactionBloc, TransactionState>(
+                    listener: (context, state) {
+                      final authState = context.read<AuthBloc>().state;
+                      if (state is TransactionCreated) {
+                        // Reset submitting state
+                        setState(() {
+                          _isSubmitting = false;
+                        });
+
+                        // Transaction created successfully, reload home data
+                        if (authState is Authenticated) {
+                          // Make sure HomeBloc is triggered to reload data with the new transaction
+                          try {
+                            final homeBloc = context.read<HomeBloc>();
+                            homeBloc.add(LoadHomeData(authState.user.id));
+                          } catch (e) {
+                            // If the bloc is closed, ignore the error
+                          }
+
+                          // Also trigger the transactions AccountBloc to update its state
+                          try {
+                            // Use the parent context's AccountBloc to reload accounts
+                            final parentAccountBloc =
+                                context.read<AccountBloc>();
+                            parentAccountBloc.add(
+                              LoadAccountsEvent(authState.user.id),
+                            );
+                          } catch (e) {
+                            // If the bloc is not available in this context, that's okay
+                          }
+
+                          // Also reload transactions list if needed
+                          try {
+                            final transactionsBloc =
+                                context.read<TransactionsBloc>();
+                            transactionsBloc.add(
+                              LoadTransactions(userId: authState.user.id),
+                            );
+                          } catch (e) {
+                            // TransactionsBloc might not be available in this context
+                            // This is fine as HomeBloc will still be updated
+                          }
+                        }
+                        // Close the modal after successful transaction creation
+                        Navigator.of(context).pop();
+                      } else if (state is TransactionError) {
+                        setState(() {
+                          _isSubmitting = false;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Error creating initial transaction: ${state.message}',
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
                       }
                     },
                   ),
                 ],
-                child: MultiBlocListener(
-                  listeners: [
-                    BlocListener<AccountBloc, AccountState>(
-                      listener: (context, state) {
-                        if (state is AccountCreated) {
-                          final authState = context.read<AuthBloc>().state;
-                          if (authState is Authenticated) {
-                            // Always trigger HomeBloc to reload data with the new account
-                            try {
-                              final homeBloc = context.read<HomeBloc>();
-                              homeBloc.add(LoadHomeData(authState.user.id));
-                            } catch (e) {
-                              // If the bloc is closed, ignore the error
-                            }
-
-                            // Also trigger the transactions AccountBloc to update its state
-                            try {
-                              final transactionsAccountBloc =
-                                  context.read<AccountBloc>();
-                              transactionsAccountBloc.add(
-                                LoadAccountsEvent(authState.user.id),
-                              );
-                            } catch (e) {
-                              // If the bloc is not available in this context, that's okay
-                            }
-
-                            // Create initial balance transaction if balance > 0
-                            final balance =
-                                double.tryParse(
-                                  _controllers['balance']!.text,
-                                ) ??
-                                0;
-
-                            // Make sure we have a valid account ID before creating a transaction
-                            if (balance > 0 &&
-                                state.account.accountId != null) {
-                              try {
-                                final transactionBloc =
-                                    context.read<TransactionBloc>();
-
-                                // Create an initial balance transaction
-                                final initialTransaction = Transaction(
-                                  userId: authState.user.id,
-                                  amount: balance,
-                                  title: 'Initial balance',
-                                  description: 'Initial account balance',
-                                  date: DateTime.now(),
-                                  accountId: state.account.accountId!,
-                                  categoryName: 'Account Adjustment',
-                                  color: CategoryUtils.getCategoryColorHex(
-                                    'Account Adjustment',
-                                    isIncome: true,
-                                  ),
-                                );
-
-                                // Add the transaction
-                                transactionBloc.add(
-                                  CreateTransactionEvent(initialTransaction),
-                                );
-                              } catch (e) {
-                                // If the bloc is closed, ignore the error and close the modal
-                                Navigator.of(context).pop();
-                              }
-                            } else {
-                              // If no initial balance transaction needed or no accountId,
-                              // close the modal since we've already triggered the home data reload
-                              Navigator.of(context).pop();
-                            }
-                          }
-                        } else if (state is AccountUpdated) {
-                          final authState = context.read<AuthBloc>().state;
-                          if (authState is Authenticated) {
-                            // Reload home data after account update
-                            try {
-                              final homeBloc = context.read<HomeBloc>();
-                              homeBloc.add(LoadHomeData(authState.user.id));
-                            } catch (e) {
-                              // If the bloc is closed, ignore the error
-                            }
-
-                            // Also trigger the transactions AccountBloc to update its state
-                            try {
-                              final transactionsAccountBloc =
-                                  context.read<AccountBloc>();
-                              transactionsAccountBloc.add(
-                                LoadAccountsEvent(authState.user.id),
-                              );
-                            } catch (e) {
-                              // If the bloc is not available in this context, that's okay
-                            }
-
-                            // Wait a very short moment to ensure state updates are processed
-                            // before closing the modal to make sure UI gets refreshed
-                            Future.delayed(
-                              const Duration(milliseconds: 100),
-                              () {
-                                if (context.mounted) {
-                                  Navigator.of(context).pop();
-                                }
-                              },
-                            );
-                          } else {
-                            Navigator.of(context).pop();
-                          }
-                        } else if (state is Error) {
-                          setState(() {
-                            _isSubmitting = false;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: ${state.toString()}'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    BlocListener<TransactionBloc, TransactionState>(
-                      listener: (context, state) {
-                        final authState = context.read<AuthBloc>().state;
-                        if (state is TransactionCreated) {
-                          // Transaction created successfully, reload home data
-                          if (authState is Authenticated) {
-                            // Make sure HomeBloc is triggered to reload data with the new transaction
-                            try {
-                              final homeBloc = context.read<HomeBloc>();
-                              homeBloc.add(LoadHomeData(authState.user.id));
-                            } catch (e) {
-                              // If the bloc is closed, ignore the error
-                            }
-
-                            // Also trigger the transactions AccountBloc to update its state
-                            try {
-                              final transactionsAccountBloc =
-                                  context.read<AccountBloc>();
-                              transactionsAccountBloc.add(
-                                LoadAccountsEvent(authState.user.id),
-                              );
-                            } catch (e) {
-                              // If the bloc is not available in this context, that's okay
-                            }
-
-                            // Also reload transactions list if needed
-                            try {
-                              final transactionsBloc =
-                                  context.read<TransactionsBloc>();
-                              transactionsBloc.add(
-                                LoadTransactions(userId: authState.user.id),
-                              );
-                            } catch (e) {
-                              // TransactionsBloc might not be available in this context
-                              // This is fine as HomeBloc will still be updated
-                            }
-                          }
-                          // Close the modal after successful transaction creation
-                          Navigator.of(context).pop();
-                        } else if (state is TransactionError) {
-                          setState(() {
-                            _isSubmitting = false;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Error creating initial transaction: ${state.message}',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ],
-                  child: BlocBuilder<AuthBloc, AuthState>(
-                    builder: (context, authState) {
-                      if (authState is Authenticated) {
-                        return BlocBuilder<AccountBloc, AccountState>(
-                          builder: (context, state) {
-                            return SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _selectedColor,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                child: BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, authState) {
+                    if (authState is Authenticated) {
+                      return BlocBuilder<AccountBloc, AccountState>(
+                        builder: (context, state) {
+                          return SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _selectedColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
                                 ),
-                                onPressed:
-                                    _isSubmitting
-                                        ? null
-                                        : () {
-                                          if (_formKey.currentState!
-                                              .validate()) {
-                                            setState(() {
-                                              _isSubmitting = true;
-                                            });
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed:
+                                  _isSubmitting
+                                      ? null
+                                      : () {
+                                        if (_formKey.currentState!.validate()) {
+                                          setState(() {
+                                            _isSubmitting = true;
+                                          });
 
-                                            Account accountRequest = Account(
-                                              accountId:
-                                                  widget.isEdit
-                                                      ? account?.accountId
-                                                      : null,
-                                              userId: authState.user.id,
-                                              name: _controllers['name']!.text,
-                                              type: _accountType,
-                                              balance:
-                                                  double.tryParse(
-                                                    _controllers['balance']!
-                                                        .text,
-                                                  ) ??
-                                                  0,
-                                              currency:
-                                                  _controllers['currency']!
-                                                      .text,
-                                              color: _selectedColorName,
-                                              archived:
-                                                  account?.archived ?? false,
-                                              pinned: account?.pinned ?? false,
-                                            );
-
-                                            if (mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Account saved successfully!',
-                                                  ),
-                                                  backgroundColor: Colors.green,
-                                                ),
-                                              );
-
-                                              // Add the account creation event
-                                              context.read<AccountBloc>().add(
-                                                widget.isEdit == false
-                                                    ? CreateAccountEvent(
-                                                      accountRequest,
-                                                    )
-                                                    : UpdateAccountEvent(
-                                                      accountRequest,
+                                          // Add a timeout to prevent infinite loading
+                                          Future.delayed(
+                                            const Duration(seconds: 10),
+                                            () {
+                                              if (context.mounted &&
+                                                  _isSubmitting) {
+                                                setState(() {
+                                                  _isSubmitting = false;
+                                                });
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Request timed out. Please try again.',
                                                     ),
-                                              );
-                                            }
-                                          } else {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Please fill all required fields',
-                                                ),
-                                                backgroundColor: Colors.red,
-                                              ),
+                                                    backgroundColor:
+                                                        Colors.orange,
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                          );
+
+                                          Account accountRequest = Account(
+                                            accountId:
+                                                widget.isEdit
+                                                    ? account?.accountId
+                                                    : null,
+                                            userId: authState.user.id,
+                                            name: _controllers['name']!.text,
+                                            type: _accountType,
+                                            balance:
+                                                double.tryParse(
+                                                  _controllers['balance']!.text,
+                                                ) ??
+                                                0,
+                                            currency:
+                                                _controllers['currency']!.text,
+                                            color: _selectedColorName,
+                                            archived:
+                                                account?.archived ?? false,
+                                            pinned: account?.pinned ?? false,
+                                          );
+
+                                          if (mounted) {
+                                            // Add the account creation event
+                                            context.read<AccountBloc>().add(
+                                              widget.isEdit == false
+                                                  ? CreateAccountEvent(
+                                                    accountRequest,
+                                                  )
+                                                  : UpdateAccountEvent(
+                                                    accountRequest,
+                                                  ),
                                             );
                                           }
-                                        },
-                                child:
-                                    _isSubmitting
-                                        ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                        : Text(
-                                          widget.isEdit
-                                              ? 'Save Changes'
-                                              : 'Add Account',
+                                        } else {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Please fill all required fields',
+                                              ),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      },
+                              child:
+                                  _isSubmitting
+                                      ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
                                         ),
-                              ),
-                            );
-                          },
-                        );
-                      }
-                      return const Center(child: CircularProgressIndicator());
-                    },
-                  ),
+                                      )
+                                      : Text(
+                                        widget.isEdit
+                                            ? 'Save Changes'
+                                            : 'Add Account',
+                                      ),
+                            ),
+                          );
+                        },
+                      );
+                    }
+                    return const Center(child: CircularProgressIndicator());
+                  },
                 ),
               ),
             ],

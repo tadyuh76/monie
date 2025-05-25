@@ -11,6 +11,8 @@ import 'package:monie/core/utils/category_utils.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/account/presentation/bloc/account_event.dart';
 import 'package:monie/features/account/presentation/bloc/account_state.dart';
+import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
+import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 
 // Extension to add capitalize method to String
@@ -120,9 +122,16 @@ class AddTransactionFormState extends State<AddTransactionForm> {
     // Check if accounts are already loaded
     final state = accountBloc.state;
     if (state is! AccountsLoaded) {
-      // Load accounts for the current user
-      // We'll use a placeholder user ID for now since we don't have the user context here
-      accountBloc.add(const LoadAccountsEvent('current_user'));
+      // Get the authenticated user ID from AuthBloc
+      try {
+        final authBloc = context.read<AuthBloc>();
+        final authState = authBloc.state;
+        if (authState is Authenticated) {
+          accountBloc.add(LoadAccountsEvent(authState.user.id));
+        }
+      } catch (e) {
+        // If AuthBloc is not available, we can't load accounts
+      }
     }
   }
 
@@ -1107,6 +1116,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                 );
               } else {
                 // If there's an error or no accounts loaded, show a message
+                if (state is AccountError) {}
                 return Text(
                   'No accounts available',
                   style: TextStyle(

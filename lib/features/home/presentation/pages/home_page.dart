@@ -125,8 +125,13 @@ class _HomePageState extends State<HomePage> {
                 listener: (context, state) {
                   if (state is AccountCreated ||
                       state is AccountDeleted ||
-                      state is AccountBalanceUpdated) {
+                      state is AccountBalanceUpdated ||
+                      state is AccountUpdated) {
                     if (mounted) {
+                      // Reload accounts after any account operation
+                      context.read<AccountBloc>().add(
+                        LoadAccountsEvent(userId),
+                      );
                       _loadData();
                     }
                   }
@@ -425,8 +430,9 @@ class _HomePageState extends State<HomePage> {
                 _cachedAccounts.isNotEmpty) {
               // Use cached accounts to avoid flickering during loading
               accountsToDisplay = List.from(_cachedAccounts);
-            } else if (accountState is AccountLoading ||
-                transactionState is TransactionLoading) {
+            } else if (accountState is AccountLoading &&
+                transactionState is! TransactionsLoaded) {
+              // Only show loading if accounts are loading and we don't have transactions loaded yet
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 50.0),
@@ -456,9 +462,8 @@ class _HomePageState extends State<HomePage> {
                 ),
               );
             }
-            // Handle successfully loaded states
-            else if (accountState is AccountsLoaded &&
-                transactionState is TransactionsLoaded) {
+            // Handle successfully loaded states - show accounts even if transactions are still loading
+            else if (accountState is AccountsLoaded) {
               // Convert Account entities to Account entities
               accountsToDisplay =
                   accountState.accounts.map((acc) {
@@ -477,6 +482,19 @@ class _HomePageState extends State<HomePage> {
 
               // Update our cached accounts
               _cachedAccounts = List.from(accountsToDisplay);
+            }
+            // Handle AccountCreated and AccountUpdated states - use cached accounts and trigger reload
+            else if (accountState is AccountCreated ||
+                accountState is AccountUpdated) {
+              if (_cachedAccounts.isNotEmpty) {
+                accountsToDisplay = List.from(_cachedAccounts);
+              }
+              // Trigger a reload to get the updated accounts list
+              Future.microtask(() {
+                if (context.mounted) {
+                  context.read<AccountBloc>().add(LoadAccountsEvent(userId));
+                }
+              });
             }
             // Fallback for any other unhandled state combinations - use cached accounts if available
             else if (_cachedAccounts.isNotEmpty) {
