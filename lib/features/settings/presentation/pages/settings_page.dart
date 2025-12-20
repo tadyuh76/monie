@@ -294,6 +294,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       _buildLanguageSelector(state),
                       const SizedBox(height: 16),
                       _buildNotificationsToggle(state),
+                      const SizedBox(height: 8),
+                      _buildDailyReminderTile(state),
                     ],
                   ),
                 ),
@@ -816,6 +818,37 @@ class _SettingsPageState extends State<SettingsPage> {
           'settings_theme_light',
         ); // Default to Light if system is somehow set
     }
+  }
+
+  Widget _buildDailyReminderTile(SettingsState state) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return ListTile(
+      title: Text(
+        'Daily Reminder',
+        style: TextStyle(
+          color: isDarkMode ? Colors.white : Colors.black87,
+        ),
+      ),
+      subtitle: Text(
+        'Set reminder for daily expense check',
+        style: TextStyle(
+          color: isDarkMode ? Colors.white70 : Colors.black54,
+        ),
+      ),
+      leading: Icon(
+        Icons.notifications_active_outlined,
+        color: isDarkMode ? Colors.white : Colors.black87,
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: isDarkMode ? Colors.white54 : Colors.black54,
+      ),
+      onTap: () {
+        Navigator.pushNamed(context, '/daily-reminder');
+      },
+    );
   }
 
   Widget _buildLanguageSelector(SettingsState state) {

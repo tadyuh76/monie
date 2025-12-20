@@ -33,12 +33,28 @@ import 'package:monie/features/notifications/domain/usecases/get_unread_count.da
 import 'package:monie/features/notifications/domain/usecases/mark_notification_read.dart';
 import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
 
+// Daily Reminder imports
+import 'package:monie/core/services/notification_service.dart';
+import 'package:monie/features/daily_reminder/data/datasources/daily_reminder_local_datasource.dart';
+import 'package:monie/features/daily_reminder/data/repositories/daily_reminder_repository_impl.dart';
+import 'package:monie/features/daily_reminder/data/services/daily_reminder_alarm_service.dart';
+import 'package:monie/features/daily_reminder/domain/repositories/daily_reminder_repository.dart';
+import 'package:monie/features/daily_reminder/domain/usecases/add_reminder.dart';
+import 'package:monie/features/daily_reminder/domain/usecases/delete_reminder.dart';
+import 'package:monie/features/daily_reminder/domain/usecases/get_reminder.dart';
+import 'package:monie/features/daily_reminder/domain/usecases/get_all_reminders.dart';
+import 'package:monie/features/daily_reminder/domain/usecases/update_reminder.dart';
+import 'package:monie/features/daily_reminder/presentation/bloc/daily_reminder_bloc.dart';
+
 // Service locator instance
 final sl = GetIt.instance;
 
 void setup() {
   // External
   sl.registerLazySingleton(() => SupabaseClientManager.instance);
+
+  // Core Services
+  sl.registerLazySingleton(() => NotificationService());
 
   // Features
   _setupAuthFeature();
@@ -47,6 +63,7 @@ void setup() {
   _setupSettingsFeature();
   _setupGroupsFeature();
   _setupNotificationsFeature();
+  _setupDailyReminderFeature();
 }
 
 // Auth Feature
@@ -147,10 +164,43 @@ void _setupNotificationsFeature() {
   );
 }
 
-void setupDependencies() {
-  // ... existing code ...
+// Daily Reminder Feature
+void _setupDailyReminderFeature() {
+  // Bloc
+  sl.registerFactory(
+    () => DailyReminderBloc(
+      getReminder: sl(),
+      getAllReminders: sl(),
+      addReminder: sl(),
+      updateReminder: sl(),
+      deleteReminder: sl(),
+    ),
+  );
 
-  _setupGroupsFeature();
+  // Use cases
+  sl.registerLazySingleton(() => GetReminder(repository: sl()));
+  sl.registerLazySingleton(() => GetAllReminders(sl()));
+  sl.registerLazySingleton(() => AddReminder(repository: sl()));
+  sl.registerLazySingleton(() => UpdateReminder(repository: sl()));
+  sl.registerLazySingleton(() => DeleteReminder(repository: sl()));
 
-  // ... existing code ...
+  // Repository
+  sl.registerLazySingleton<DailyReminderRepository>(
+    () => DailyReminderRepositoryImpl(
+      localDataSource: sl(),
+      alarmService: sl(),
+    ),
+  );
+
+  // Services
+  sl.registerLazySingleton(() {
+    final service = DailyReminderAlarmService();
+    service.initialize(); // Initialize timezone
+    return service;
+  });
+
+  // Data sources
+  sl.registerLazySingleton<DailyReminderLocalDataSource>(
+    () => DailyReminderLocalDataSource(),
+  );
 }

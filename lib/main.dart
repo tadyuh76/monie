@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/themes/app_theme.dart';
@@ -29,6 +30,10 @@ import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.d
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/groups/presentation/pages/group_detail_page.dart';
 import 'package:monie/features/groups/presentation/pages/add_group_expense_page.dart';
+import 'package:monie/features/daily_reminder/presentation/bloc/daily_reminder_bloc.dart';
+import 'package:monie/features/daily_reminder/presentation/pages/daily_reminder_page.dart';
+import 'package:monie/core/services/notification_service.dart';
+import 'package:monie/di/injection_container.dart' as di;
 
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -37,6 +42,9 @@ final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
+
+  // Initialize Firebase
+  await Firebase.initializeApp();
 
   // Lock orientation to portrait
   await SystemChrome.setPreferredOrientations([
@@ -59,6 +67,19 @@ void main() async {
 
   // Setup dependency injection
   await configureDependencies();
+
+  // Initialize notification service (FCM)
+  final notificationService = di.sl<NotificationService>();
+  await notificationService.initialize();
+  
+  // Request notification permissions
+  print('🔐 Requesting notification permissions...');
+  final hasPermission = await notificationService.requestPermission();
+  if (hasPermission) {
+    print('✅ Permission granted!');
+  } else {
+    print('❌ Permission denied');
+  }
 
   runApp(const MyApp());
 }
@@ -108,6 +129,9 @@ class MyApp extends StatelessWidget {
         BlocProvider<NotificationBloc>(
           create: (context) => sl<NotificationBloc>(),
         ),
+        BlocProvider<DailyReminderBloc>(
+          create: (context) => sl<DailyReminderBloc>(),
+        ),
       ],
       child: BlocBuilder<SettingsBloc, SettingsState>(
         builder: (context, state) {
@@ -145,6 +169,7 @@ class MyApp extends StatelessWidget {
             routes: {
               '/home': (context) => MainScreen(),
               '/settings': (context) => const SettingsPage(),
+              '/daily-reminder': (context) => const DailyReminderPage(),
               '/group-details':
                   (context) => GroupDetailPage(
                     groupId:
