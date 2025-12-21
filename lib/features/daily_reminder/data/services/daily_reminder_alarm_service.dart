@@ -118,6 +118,11 @@ class DailyReminderAlarmService {
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time, // Repeat daily
         );
+        
+        // Verify the notification was scheduled
+        final pending = await _notifications.pendingNotificationRequests();
+        print('Notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+        print('Total pending notifications: ${pending.length}');
       } catch (e) {
         // Fallback to inexact alarm (Android 12+ compatibility)
         await _notifications.zonedSchedule(
@@ -130,6 +135,11 @@ class DailyReminderAlarmService {
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time, // Repeat daily
         );
+        
+        // Verify the notification was scheduled
+        final pending = await _notifications.pendingNotificationRequests();
+        print('Inexact notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+        print('Total pending notifications: ${pending.length}');
       }
     } catch (e) {
       rethrow;
