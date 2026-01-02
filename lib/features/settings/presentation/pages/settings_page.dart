@@ -47,7 +47,7 @@ class _SettingsPageState extends State<SettingsPage> {
     // First load settings, then the user profile
     context.read<SettingsBloc>().add(const LoadSettingsEvent());
 
-    // Use a small delay to ensure we get the correct sequence of loading
+    // Use a small delay to ensure get the correct sequence of loading
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
         context.read<SettingsBloc>().add(const LoadUserProfileEvent());
@@ -999,7 +999,7 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       }
 
-      // Note: We don't immediately close the form here
+      // Note: don't immediately close the form here
       // Let the BlocListener handle it based on the success state
     } else {}
   }

@@ -106,7 +106,7 @@ final sl = GetIt.instance;
   asExtension: false, // default
 )
 Future<void> configureDependencies() async {
-  // This will be filled in by the injectable build_runner when we run code generation
+  // This will be filled in by the injectable build_runner when run code generation
   // We'll need to run build_runner after setting up our repositories and usecases
   // await init(getIt);
 

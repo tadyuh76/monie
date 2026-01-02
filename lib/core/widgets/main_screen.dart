@@ -170,7 +170,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.group),
-                  label: 'Expense Group',
+                  label: 'Group',
                 ),
               ],
             ),

@@ -86,24 +86,24 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     GetGroupByIdEvent event,
     Emitter<GroupState> emit,
   ) async {
-    // Check if we already have this group's data to avoid flashing loading state
+    // Check if already have group's data to avoid flashing loading state
     bool needsLoading = true;
     SingleGroupLoaded? currentGroupState;
 
     if (state is SingleGroupLoaded) {
       currentGroupState = state as SingleGroupLoaded;
       if (currentGroupState.group.id == event.groupId) {
-        // We already have this group's data with the same ID, don't show loading
+        // Already have this group's data with the same ID, don't show loading
         needsLoading = false;
       }
     }
 
     if (needsLoading && currentGroupState?.group.id != event.groupId) {
-      // Only emit loading if we don't have the correct group data already
+      // Only emit loading if don't have the correct group data already
       emit(const GroupLoading());
     }
 
-    // Always fetch the group data to ensure we have the latest information
+    // Always fetch the group data to ensure have the latest information
     final result = await getGroupById(
       get_group.GroupIdParams(groupId: event.groupId),
     );
@@ -111,35 +111,22 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     result.fold((failure) => emit(GroupError(message: failure.message)), (
       group,
     ) {
-      // Preserve existing transactions and debts if we're refreshing the same group
-      final existingTransactions =
-          currentGroupState?.group.id == event.groupId
-              ? currentGroupState?.transactions
-              : null;
-      final existingDebts =
-          currentGroupState?.group.id == event.groupId
-              ? currentGroupState?.debts
-              : null;
-
-      // Emit the new group data with preserved transactions/debts if available
+      // Don't preserve any existing data - always start fresh
+      // This prevents race conditions when manually refreshing
       emit(
         SingleGroupLoaded(
           group: group,
-          transactions: existingTransactions,
-          debts: existingDebts,
+          transactions: null,
+          debts: null,
+          members: null,
         ),
       );
 
-      // Only load transactions and debts if we don't have them or if this is a new group
-      if (existingTransactions == null ||
-          currentGroupState?.group.id != event.groupId) {
-        add(GetGroupTransactionsEvent(groupId: event.groupId));
-      }
-
-      if (existingDebts == null ||
-          currentGroupState?.group.id != event.groupId) {
-        add(CalculateDebtsEvent(groupId: event.groupId));
-      }
+      // After emitting the group state, automatically load missing data
+      // This ensures data loads in the correct sequence: group first, then related data
+      add(GetGroupTransactionsEvent(groupId: event.groupId));
+      add(CalculateDebtsEvent(groupId: event.groupId));
+      add(GetGroupMembersEvent(groupId: event.groupId));
     });
   }
 
@@ -163,8 +150,8 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     AddMemberEvent event,
     Emitter<GroupState> emit,
   ) async {
-    emit(const GroupLoading()); // Indicate operation started
-
+    final currentState = state;
+    
     final result = await addMember(
       AddMemberParams(
         groupId: event.groupId,
@@ -176,14 +163,12 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     result.fold((failure) => emit(GroupError(message: failure.message)), (
       success,
     ) {
-      emit(GroupOperationSuccess(message: 'Member added successfully'));
-
-      // Immediately refresh the group data to show the new member
-      // Use a microtask to ensure the success message is shown first
-      Future.microtask(() {
-        add(GetGroupByIdEvent(groupId: event.groupId));
-        add(const GetGroupsEvent()); // Refresh the list of groups
-      });
+      // If have SingleGroupLoaded, emit it with a success message
+      if (currentState is SingleGroupLoaded) {
+        emit(currentState.copyWith(successMessage: 'Member added successfully'));
+      }
+      // Then refresh members
+      add(GetGroupMembersEvent(groupId: event.groupId));
     });
   }
 
@@ -191,55 +176,32 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     CalculateDebtsEvent event,
     Emitter<GroupState> emit,
   ) async {
-    // Keep current state if it's SingleGroupLoaded
-    SingleGroupLoaded? currentGroupState;
-    if (state is SingleGroupLoaded) {
-      currentGroupState = state as SingleGroupLoaded;
-    } else {
+    // Check initial state but don't store it - we'll check again before emitting
+    final initialHasState = state is SingleGroupLoaded;
+    
+    if (!initialHasState) {
       emit(const GroupLoading());
     }
 
-    // First get the group if we don't already have it
-    final groupResult =
-        currentGroupState != null && currentGroupState.group.id == event.groupId
-            ? null // Skip loading group if we already have it
-            : await getGroupById(
-              get_group.GroupIdParams(groupId: event.groupId),
-            );
-
-    // Then calculate debts
+    // Calculate debts
     final debtsResult = await calculateDebts(
       calc.GroupIdParams(groupId: event.groupId),
     );
 
-    if (groupResult != null) {
-      groupResult.fold(
-        (failure) => emit(GroupError(message: failure.message)),
-        (group) {
-          debtsResult.fold(
-            (failure) => emit(
-              SingleGroupLoaded(
-                group: group,
-                transactions: currentGroupState?.transactions,
-              ),
-            ),
-            (debts) => emit(
-              SingleGroupLoaded(
-                group: group,
-                debts: debts,
-                transactions: currentGroupState?.transactions,
-              ),
-            ),
-          );
-        },
-      );
-    } else {
-      // Use current group data
-      debtsResult.fold(
-        (failure) => emit(currentGroupState!),
-        (debts) => emit(currentGroupState!.copyWith(debts: debts)),
-      );
-    }
+    debtsResult.fold(
+      (failure) => emit(GroupError(message: failure.message)),
+      (debts) {
+        // Get the CURRENT state at emit time, not the old state from when started
+        final currentState = state;
+        
+        if (currentState is SingleGroupLoaded && currentState.group.id == event.groupId) {
+          // Update existing state with debts
+          emit(currentState.copyWith(debts: debts));
+        }
+        // If no state yet, wait - the group is still loading
+        // Don't create a new state that might overwrite data loaded by other events
+      },
+    );
   }
 
   Future<void> _onSettleGroup(
@@ -268,7 +230,7 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     // Store current state to restore aspects of it later
     final currentState = state;
 
-    emit(const GroupLoading());
+    // Don't emit loading - keep current state active during the operation
 
     final params = AddGroupExpenseParams(
       groupId: event.groupId,
@@ -286,18 +248,23 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     result.fold((failure) => emit(GroupError(message: failure.message)), (
       transaction,
     ) {
+      // Always emit GroupOperationSuccess to close dialogs/pages
       emit(const GroupOperationSuccess(message: 'Expense added successfully'));
-
-      // Only refresh the group data once - this will automatically load transactions and debts
-      // Use a microtask to ensure the success message is shown first
-      Future.microtask(() {
+      
+      // Then refresh data based on current state
+      if (currentState is GroupsLoaded) {
+        // Refresh the groups list
+        add(const GetGroupsEvent());
+      } else if (currentState is SingleGroupLoaded) {
+        // Refresh all data for the single group view
         add(GetGroupByIdEvent(groupId: event.groupId));
-
-        // Only refresh the groups list if we were in the groups list view
-        if (currentState is GroupsLoaded) {
-          add(const GetGroupsEvent());
-        }
-      });
+        add(GetGroupTransactionsEvent(groupId: event.groupId));
+        add(GetGroupMembersEvent(groupId: event.groupId));
+        add(CalculateDebtsEvent(groupId: event.groupId));
+      } else {
+        // Default: refresh groups
+        add(const GetGroupsEvent());
+      }
     });
   }
 
@@ -305,11 +272,7 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     GetGroupTransactionsEvent event,
     Emitter<GroupState> emit,
   ) async {
-    // Don't show loading state if we already have a SingleGroupLoaded state
-    // Just keep the current state while loading in the background
-    final currentState = state;
-
-    // Only emit loading if we have no state at all
+    // Only emit loading if  have no state at all
     if (state is! SingleGroupLoaded && state is! GroupLoading) {
       emit(const GroupLoading());
     }
@@ -320,21 +283,23 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     result.fold((failure) => emit(GroupError(message: failure.message)), (
       transactions,
     ) {
+      // Get the CURRENT state at emit time, not the old state from when started
+      final currentState = state;
+      
       if (currentState is SingleGroupLoaded) {
         // Update the current SingleGroupLoaded state with transactions
         final groupState = currentState;
 
         // Only update if this data is for the correct group
         if (groupState.group.id == event.groupId) {
-          emit(groupState.copyWith(transactions: transactions));
+          emit(groupState.copyWith(transactions: transactions, clearMessage: true));
         } else {
-          // We have group data for a different group, get the correct group first
+          // Have group data for a different group, get the correct group first
           add(GetGroupByIdEvent(groupId: event.groupId));
         }
-      } else {
-        // If we're not in a SingleGroupLoaded state, get the group first
-        add(GetGroupByIdEvent(groupId: event.groupId));
       }
+      // If no state yet, just wait - the group is likely still loading
+      // Don't trigger another GetGroupByIdEvent as it would create a race condition
     });
   }
 
@@ -345,7 +310,7 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     // Store current state
     final currentState = state;
 
-    emit(const GroupLoading());
+    // Don't emit loading - keep current state active
 
     final params = TransactionApprovalParams(
       transactionId: event.transactionId,
@@ -361,17 +326,19 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
           event.approved
               ? 'Transaction approved successfully'
               : 'Transaction rejected';
-      emit(GroupOperationSuccess(message: message));
-
-      // If we're in a SingleGroupLoaded state, refresh the transactions
+      
+      // If have SingleGroupLoaded, emit it with a success message
       if (currentState is SingleGroupLoaded) {
-        final groupState = currentState;
-
-        // Refresh both the group and transactions
-        add(GetGroupByIdEvent(groupId: groupState.group.id));
-        add(GetGroupTransactionsEvent(groupId: groupState.group.id));
-
-        // Also refresh the groups list since approval affects totals
+        emit(currentState.copyWith(successMessage: message));
+        
+        // Then refresh only the transactions (like member operations do)
+        add(GetGroupTransactionsEvent(groupId: currentState.group.id));
+        
+        // Don't refresh GetGroupsEvent here - it would emit GroupsLoaded and break SingleGroupLoaded state
+        // The groups list will be refreshed when user navigates back
+      } else {
+        // Fallback if not in SingleGroupLoaded state
+        emit(GroupOperationSuccess(message: message));
         add(const GetGroupsEvent());
       }
     });
@@ -381,8 +348,8 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     GetGroupMembersEvent event,
     Emitter<GroupState> emit,
   ) async {
-    // Only emit loading if we don't already have members data
-    if (state is! GroupMembersLoaded) {
+    // Don't show loading if already have group data
+    if (state is! SingleGroupLoaded) {
       emit(const GroupLoading());
     }
 
@@ -395,8 +362,19 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
         emit(GroupError(message: failure.message));
       },
       (members) {
-        // Emit a new state with the members data
-        emit(GroupMembersLoaded(members: members));
+        // Get the CURRENT state at emit time, not the old state from when started
+        final currentState = state;
+        
+        // If have a SingleGroupLoaded state, update it with members
+        if (currentState is SingleGroupLoaded && currentState.group.id == event.groupId) {
+          emit(currentState.copyWith(members: members, clearMessage: true));
+        } else if (currentState is SingleGroupLoaded) {
+          // Have a different group loaded, get the correct group first
+          add(GetGroupByIdEvent(groupId: event.groupId));
+        } else {
+          // No SingleGroupLoaded state, emit GroupMembersLoaded for pages that need just the members list
+          emit(GroupMembersLoaded(members: members));
+        }
       },
     );
   }
@@ -405,8 +383,8 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     RemoveMemberEvent event,
     Emitter<GroupState> emit,
   ) async {
-    emit(const GroupLoading());
-
+    final currentState = state;
+    
     final result = await removeMember(
       RemoveMemberParams(groupId: event.groupId, userId: event.userId),
     );
@@ -414,14 +392,12 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     result.fold((failure) => emit(GroupError(message: failure.message)), (
       success,
     ) {
-      emit(GroupOperationSuccess(message: 'Member removed successfully'));
-
-      // Refresh both the group data and members list
-      Future.microtask(() {
-        add(GetGroupByIdEvent(groupId: event.groupId));
-        add(GetGroupMembersEvent(groupId: event.groupId)); // Refresh members
-        add(const GetGroupsEvent()); // Refresh the list of groups
-      });
+      // If have SingleGroupLoaded, emit it with a success message
+      if (currentState is SingleGroupLoaded) {
+        emit(currentState.copyWith(successMessage: 'Member removed successfully'));
+      }
+      // Then refresh members
+      add(GetGroupMembersEvent(groupId: event.groupId));
     });
   }
 
@@ -429,8 +405,8 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     UpdateMemberRoleEvent event,
     Emitter<GroupState> emit,
   ) async {
-    emit(const GroupLoading());
-
+    final currentState = state;
+    
     final result = await updateMemberRole(
       UpdateMemberRoleParams(
         groupId: event.groupId,
@@ -442,14 +418,12 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     result.fold((failure) => emit(GroupError(message: failure.message)), (
       success,
     ) {
-      emit(GroupOperationSuccess(message: 'Member role updated successfully'));
-
-      // Refresh both the group data and members list
-      Future.microtask(() {
-        add(GetGroupByIdEvent(groupId: event.groupId));
-        add(GetGroupMembersEvent(groupId: event.groupId)); // Refresh members
-        add(const GetGroupsEvent()); // Refresh the list of groups
-      });
+      // If have SingleGroupLoaded, emit it with a success message
+      if (currentState is SingleGroupLoaded) {
+        emit(currentState.copyWith(successMessage: 'Member role updated successfully'));
+      }
+      // Then refresh members
+      add(GetGroupMembersEvent(groupId: event.groupId));
     });
   }
 }

@@ -74,7 +74,7 @@ class CategoryUtils {
       isIncome: isIncome,
     );
 
-    // If we got the default color, try finding the svgName through TransactionCategories
+    // If got the default color, try finding the svgName through TransactionCategories
     if (color == CategoryColors.coolGrey) {
       svgName = TransactionCategories.getSvgNameForCategory(categoryIdentifier);
       color = CategoryColorHelper.getColorForCategory(
@@ -97,7 +97,7 @@ class CategoryUtils {
       isIncome: isIncome,
     );
 
-    // If we got the default color, try finding the svgName through TransactionCategories
+    // If got the default color, try finding the svgName through TransactionCategories
     if (result == CategoryColors.toHex(CategoryColors.coolGrey)) {
       svgName = TransactionCategories.getSvgNameForCategory(categoryName);
       result = CategoryColorHelper.getHexColorForCategory(

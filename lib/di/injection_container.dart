@@ -52,6 +52,7 @@ final sl = GetIt.instance;
 void setup() {
   // External
   sl.registerLazySingleton(() => SupabaseClientManager.instance);
+  sl.registerLazySingleton(() => SupabaseClientManager.instance.client);
 
   // Core Services
   sl.registerLazySingleton(() => NotificationService());
@@ -111,9 +112,9 @@ void _setupGroupsFeature() {
   sl.registerLazySingleton(() => get_group.GetGroupById(repository: sl()));
   sl.registerLazySingleton(() => CreateGroup(repository: sl()));
   sl.registerLazySingleton(() => AddMember(repository: sl()));
-  sl.registerLazySingleton(() => calc.CalculateDebts(repository: sl()));
-  sl.registerLazySingleton(() => settle.SettleGroup(repository: sl()));
-  sl.registerLazySingleton(() => get_members.GetGroupMembers(repository: sl()));
+  sl.registerLazySingleton(() => calc.CalculateDebts(sl()));
+  sl.registerLazySingleton(() => settle.SettleGroup(sl()));
+  sl.registerLazySingleton(() => get_members.GetGroupMembers(sl()));
   sl.registerLazySingleton(
     () => get_transactions.GetGroupTransactions(repository: sl()),
   );

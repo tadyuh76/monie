@@ -403,7 +403,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
                               double.tryParse(_controllers['balance']!.text) ??
                               0;
 
-                          // Make sure we have a valid account ID before creating a transaction
+                          // Make sure have a valid account ID before creating a transaction
                           if (balance > 0 && state.account.accountId != null) {
                             try {
                               final transactionBloc =

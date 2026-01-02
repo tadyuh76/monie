@@ -130,7 +130,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
           accountBloc.add(LoadAccountsEvent(authState.user.id));
         }
       } catch (e) {
-        // If AuthBloc is not available, we can't load accounts
+        // If AuthBloc is not available, can't load accounts
       }
     }
   }
@@ -294,7 +294,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
       return;
     }
 
-    // Make sure we have a category
+    // Make sure have a category
     if (_selectedCategory == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1039,7 +1039,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
               } else if (state is AccountsLoaded) {
                 final accounts = state.accounts;
 
-                // If no account is selected and we have accounts, select the first one
+                // If no account is selected and have accounts, select the first one
                 if (_selectedAccountId == null && accounts.isNotEmpty) {
                   // Select the first account by default
                   _selectedAccountId = accounts.first.accountId;

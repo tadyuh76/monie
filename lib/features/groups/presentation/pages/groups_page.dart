@@ -29,7 +29,7 @@ class _GroupsPageState extends State<GroupsPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Only reload data if we don't already have it
+    // Only reload data if don't already have it
     final state = context.read<GroupBloc>().state;
     if (state is! GroupsLoaded) {
       _loadGroups();
@@ -99,10 +99,6 @@ class _GroupsPageState extends State<GroupsPage>
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));
             }
-            // Only refresh if we need to
-            if (context.read<GroupBloc>().state is! GroupsLoaded) {
-              _loadGroups();
-            }
           }
         },
         builder: (context, state) {
@@ -165,7 +161,7 @@ class _GroupsPageState extends State<GroupsPage>
       );
     }
 
-    // Show the regular content when we have groups
+    // Show the regular content when have groups
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -310,17 +306,6 @@ class _GroupsPageState extends State<GroupsPage>
     ];
   }
 
-  // Helper method to extract clean display name from member string
-  String _getCleanDisplayName(String member) {
-    // Extract display name from member string if it contains user ID (format: "Name (userId)")
-    final match = RegExp(r'^(.+?)\s*\(([^)]+)\)$').firstMatch(member);
-    if (match != null) {
-      return match.group(1)?.trim() ?? member;
-    }
-    // If no ID in parentheses, return the member string as is
-    return member;
-  }
-
   Widget _buildGroupCard(BuildContext context, ExpenseGroup group) {
     final textTheme = Theme.of(context).textTheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -425,38 +410,29 @@ class _GroupsPageState extends State<GroupsPage>
 
             // Members
             Text(
-              '${context.tr('groups_members')} (${group.members.length})',
+              '${context.tr('groups_members')} (${group.memberCount})',
               style: textTheme.titleSmall?.copyWith(
                 color:
                     isDarkMode ? AppColors.textSecondary : Colors.grey.shade600,
               ),
             ),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children:
-                  group.members.map((member) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            isDarkMode
-                                ? AppColors.surface
-                                : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        _getCleanDisplayName(member),
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                    );
-                  }).toList(),
+            // Show member count indicator since members are loaded separately
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: isDarkMode ? AppColors.surface : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                '${group.memberCount} ${group.memberCount == 1 ? 'member' : 'members'}',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
             ),
 
             if (!group.isSettled) ...[
@@ -500,12 +476,17 @@ class _GroupsPageState extends State<GroupsPage>
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(
+                    onPressed: () async {
+                      // Navigate to add expense page and wait for result
+                      await Navigator.pushNamed(
                         context,
                         '/add-group-expense',
                         arguments: group.id,
                       );
+                      // When user returns (either completed or went back), refresh the groups list
+                      if (context.mounted) {
+                        context.read<GroupBloc>().add(const GetGroupsEvent());
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,

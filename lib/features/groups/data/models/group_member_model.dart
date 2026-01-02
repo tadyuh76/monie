@@ -1,26 +1,32 @@
-class GroupMemberModel {
-  final String groupId;
-  final String userId;
-  final String role;
-  final String? displayName; // User's name for display purposes
+import 'package:monie/features/groups/domain/entities/group_member.dart';
 
+class GroupMemberModel extends GroupMember {
   const GroupMemberModel({
-    required this.groupId,
-    required this.userId,
-    required this.role,
-    this.displayName,
+    required super.userId,
+    required super.email,
+    super.displayName,
+    super.profileImageUrl,
+    required super.role,
   });
 
   factory GroupMemberModel.fromJson(Map<String, dynamic> json) {
     return GroupMemberModel(
-      groupId: json['group_id'],
       userId: json['user_id'],
-      role: json['role'],
+      email: json['email'],
       displayName: json['display_name'],
+      profileImageUrl: json['profile_image_url'],
+      role: json['role'] ?? 'member',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'group_id': groupId, 'user_id': userId, 'role': role};
+    return {
+      'user_id': userId,
+      'email': email,
+      'display_name': displayName,
+      'profile_image_url': profileImageUrl,
+      'role': role,
+    };
   }
 }
+
