@@ -14,6 +14,28 @@ class DailyReminderRepositoryImpl implements DailyReminderRepository {
     required this.alarmService,
   });
 
+  /// Helper method to reschedule all enabled reminders
+  Future<void> _rescheduleAllReminders() async {
+    // Cancel all existing alarms first
+    await alarmService.cancelAllAlarms();
+    
+    // Get all reminders from database
+    final reminderModels = await localDataSource.getAllReminders();
+    
+    // Schedule each enabled reminder with unique ID
+    int id = 0;
+    for (final model in reminderModels) {
+      final entity = model.toEntity();
+      if (entity.isEnabled) {
+        await alarmService.scheduleDailyAlarm(
+          hour: entity.hour,
+          minute: entity.minute,
+          id: id++,
+        );
+      }
+    }
+  }
+
   @override
   Future<Either<Failure, DailyReminder>> addReminder({
     required int hour,
@@ -27,12 +49,8 @@ class DailyReminderRepositoryImpl implements DailyReminderRepository {
 
       final entity = reminderModel.toEntity();
       
-      // Schedule local alarm
-      await alarmService.scheduleDailyAlarm(
-        hour: hour,
-        minute: minute,
-        id: entity.id.hashCode,
-      );
+      // Reschedule all enabled reminders
+      await _rescheduleAllReminders();
       
       return Right(entity);
     } catch (e) {
@@ -57,16 +75,8 @@ class DailyReminderRepositoryImpl implements DailyReminderRepository {
 
       final entity = reminderModel.toEntity();
       
-      // Cancel old alarm and reschedule if enabled
-      await alarmService.cancelAlarm(entity.id.hashCode);
-      
-      if (entity.isEnabled) {
-        await alarmService.scheduleDailyAlarm(
-          hour: entity.hour,
-          minute: entity.minute,
-          id: entity.id.hashCode,
-        );
-      }
+      // Reschedule all enabled reminders
+      await _rescheduleAllReminders();
       
       return Right(entity);
     } catch (e) {
@@ -79,8 +89,8 @@ class DailyReminderRepositoryImpl implements DailyReminderRepository {
     try {
       await localDataSource.deleteReminder(id);
       
-      // Cancel scheduled alarm
-      await alarmService.cancelAlarm(id.hashCode);
+      // Reschedule all remaining enabled reminders
+      await _rescheduleAllReminders();
       
       return const Right(null);
     } catch (e) {
@@ -117,7 +127,7 @@ class DailyReminderRepositoryImpl implements DailyReminderRepository {
       await alarmService.scheduleDailyAlarm(
         hour: reminder.hour,
         minute: reminder.minute,
-        id: reminder.id.hashCode,
+        id: 0,
       );
       return const Right(null);
     } catch (e) {
@@ -128,7 +138,8 @@ class DailyReminderRepositoryImpl implements DailyReminderRepository {
   @override
   Future<Either<Failure, void>> cancelNotification(String id) async {
     try {
-      await alarmService.cancelAlarm(id.hashCode);
+      // Cancel all alarms
+      await alarmService.cancelAllAlarms();
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(message: e.toString()));

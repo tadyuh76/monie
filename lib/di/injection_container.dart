@@ -193,12 +193,10 @@ void _setupDailyReminderFeature() {
     ),
   );
 
-  // Services
-  sl.registerLazySingleton(() {
-    final service = DailyReminderAlarmService();
-    service.initialize(); // Initialize timezone
-    return service;
-  });
+  // Services - don't initialize here, do it after registration
+  sl.registerLazySingleton<DailyReminderAlarmService>(
+    () => DailyReminderAlarmService(),
+  );
 
   // Data sources
   sl.registerLazySingleton<DailyReminderLocalDataSource>(

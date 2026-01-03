@@ -32,6 +32,7 @@ import 'package:monie/features/groups/presentation/pages/group_detail_page.dart'
 import 'package:monie/features/groups/presentation/pages/add_group_expense_page.dart';
 import 'package:monie/features/daily_reminder/presentation/bloc/daily_reminder_bloc.dart';
 import 'package:monie/features/daily_reminder/presentation/pages/daily_reminder_page.dart';
+import 'package:monie/features/daily_reminder/data/services/daily_reminder_alarm_service.dart';
 import 'package:monie/core/services/notification_service.dart';
 import 'package:monie/di/injection_container.dart' as di;
 
@@ -68,17 +69,22 @@ void main() async {
   // Setup dependency injection
   await configureDependencies();
 
+  // Initialize daily reminder alarm service
+  final dailyReminderService = di.sl<DailyReminderAlarmService>();
+  await dailyReminderService.initialize();
+  print('Daily reminder service initialized');
+
   // Initialize notification service (FCM)
   final notificationService = di.sl<NotificationService>();
   await notificationService.initialize();
   
   // Request notification permissions
-  print('🔐 Requesting notification permissions...');
+  print('Requesting notification permissions...');
   final hasPermission = await notificationService.requestPermission();
   if (hasPermission) {
-    print('✅ Permission granted!');
+    print('Permission granted!');
   } else {
-    print('❌ Permission denied');
+    print('Permission denied');
   }
 
   runApp(const MyApp());

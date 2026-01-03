@@ -775,7 +775,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
 
       // Create notifications for group members
       if (approvalStatus == 'approved') {
-        // If auto-approved, notify all members about the new transaction
+        // If auto-approved, notify all members about the new transaction (except creator)
         final membersResponse = await supabase
             .from('group_members')
             .select('user_id')
@@ -784,6 +784,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         final List<String> memberIds =
             (membersResponse as List)
                 .map((member) => member['user_id'] as String)
+                .where((id) => id != currentUserId) // Exclude creator
                 .toList();
 
         final notificationTitle =
@@ -807,23 +808,42 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         if (notifications.isNotEmpty) {
           await supabase.from('notifications').insert(notifications);
         }
+
+        // Send push notifications to all members except creator
+        if (memberIds.isNotEmpty) {
+          await _sendGroupNotification(
+            userIds: memberIds,
+            title: notificationTitle,
+            body: '$title in "$groupName" - \$${amount.abs().toStringAsFixed(2)}',
+            data: {
+              'type': 'group_transaction',
+              'group_id': groupId,
+              'group_name': groupName,
+            },
+          );
+        }
       } else {
-        // If requires approval, notify group admins
-        final adminMembers = await supabase
+        // If requires approval, notify all members except creator
+        final membersResponse = await supabase
             .from('group_members')
             .select('user_id')
-            .eq('group_id', groupId)
-            .eq('role', 'admin');
+            .eq('group_id', groupId);
+
+        final List<String> memberIds =
+            (membersResponse as List)
+                .map((member) => member['user_id'] as String)
+                .where((id) => id != currentUserId) // Exclude creator
+                .toList();
 
         final notificationTitle =
             isIncomeTransaction
                 ? 'Income Needs Approval'
                 : 'Expense Needs Approval';
         final notifications =
-            (adminMembers as List)
+            memberIds
                 .map(
-                  (admin) => {
-                    'user_id': admin['user_id'],
+                  (userId) => {
+                    'user_id': userId,
                     'amount': amount,
                     'type': 'group_transaction',
                     'title': notificationTitle,
@@ -837,6 +857,21 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
 
         if (notifications.isNotEmpty) {
           await supabase.from('notifications').insert(notifications);
+        }
+
+        // Send push notifications to all members except creator
+        if (memberIds.isNotEmpty) {
+          await _sendGroupNotification(
+            userIds: memberIds,
+            title: notificationTitle,
+            body: '$title in "$groupName" - \$${amount.abs().toStringAsFixed(2)}',
+            data: {
+              'type': 'group_transaction',
+              'group_id': groupId,
+              'group_name': groupName,
+              'needs_approval': 'true',
+            },
+          );
         }
       }
 
@@ -1153,12 +1188,13 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
               .map((member) => member['user_id'] as String)
               .toList();
 
-      // Create notifications for all members
+      // Create notification title
       final notificationTitle =
           approved
               ? (isIncomeTransaction ? 'Income Approved' : 'Expense Approved')
               : (isIncomeTransaction ? 'Income Rejected' : 'Expense Rejected');
 
+      // Create notifications for all members
       final notifications =
           memberIds
               .map(
@@ -1179,9 +1215,79 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         await supabase.from('notifications').insert(notifications);
       }
 
+      // Send push notifications to all members (excluding self will be handled by _sendGroupNotification)
+      await _sendGroupNotification(
+        userIds: memberIds,
+        title: notificationTitle,
+        body: '$title in "$groupName" - \$${amount.abs().toStringAsFixed(2)}',
+        data: {
+          'type': 'group_transaction',
+          'group_id': groupId,
+          'group_name': groupName,
+          'status': approved ? 'approved' : 'rejected',
+        },
+      );
+
       return true;
     } catch (e) {
       throw ServerException(message: e.toString());
+    }
+  }
+
+  /// Send push notification via edge function to multiple users
+  Future<void> _sendGroupNotification({
+    required List<String> userIds,
+    required String title,
+    required String body,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      // Get current user ID to exclude from notifications
+      final currentUserId = supabase.auth.currentUser?.id;
+      
+      // Filter out current user - don't send notification to yourself
+      final recipientIds = userIds.where((id) => id != currentUserId).toList();
+      
+      if (recipientIds.isEmpty) {
+        print('No recipients after filtering current user');
+        return;
+      }
+      
+      // Fetch FCM tokens for the specified users (excluding current user)
+      final tokensResponse = await supabase
+          .from('users')
+          .select('fcm_token')
+          .inFilter('user_id', recipientIds)
+          .not('fcm_token', 'is', null);
+
+      final List<String> tokens =
+          (tokensResponse as List)
+              .where((user) => user['fcm_token'] != null)
+              .map((user) => user['fcm_token'] as String)
+              .toList();
+
+      if (tokens.isEmpty) {
+        print('No FCM tokens found for notification');
+        return;
+      }
+
+      print('Sending notification to ${tokens.length} device(s) (excluding self)');
+
+      // Call edge function to send push notification
+      await supabase.functions.invoke(
+        'send-group-notification',
+        body: {
+          'tokens': tokens,
+          'title': title,
+          'body': body,
+          'data': data,
+        },
+      );
+
+      print('Push notification sent successfully');
+    } catch (e) {
+      // Don't throw error - notification failure shouldn't block the main operation
+      print('Failed to send push notification: $e');
     }
   }
 }

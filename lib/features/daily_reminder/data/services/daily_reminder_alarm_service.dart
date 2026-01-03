@@ -4,7 +4,6 @@ import 'package:timezone/data/latest_all.dart' as tz;
 
 class DailyReminderAlarmService {
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
-  static const int _notificationId = 0;
   static const String _channelId = 'daily_reminder_channel';
   
   /// Initialize timezone data
@@ -150,6 +149,18 @@ class DailyReminderAlarmService {
   Future<void> cancelAlarm(int id) async {
     try {
       await _notifications.cancel(id);
+      final pending = await _notifications.pendingNotificationRequests();
+      print('Cancelled alarm ID: $id, Remaining: ${pending.length}');
+    } catch (e) {
+      rethrow;
+    }
+  }
+  
+  /// Cancel all scheduled alarms
+  Future<void> cancelAllAlarms() async {
+    try {
+      await _notifications.cancelAll();
+      print('All alarms cancelled');
     } catch (e) {
       rethrow;
     }

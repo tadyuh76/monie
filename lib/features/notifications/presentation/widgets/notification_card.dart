@@ -187,8 +187,10 @@ class NotificationCard extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
+    // Ensure both dates are in UTC for accurate comparison
+    final now = DateTime.now().toUtc();
+    final dateUtc = date.toUtc();
+    final difference = now.difference(dateUtc);
 
     if (difference.inDays == 0) {
       if (difference.inHours == 0) {

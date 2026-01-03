@@ -9,6 +9,7 @@ import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
+import 'package:monie/core/services/notification_service.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetCurrentUser _getCurrentUser;
@@ -71,6 +72,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold((failure) => emit(AuthError(failure.message)), (user) {
       if (user != null) {
         emit(Authenticated(user));
+        // Update FCM token in database after authentication
+        _updateFCMToken();
       } else {
         emit(Unauthenticated());
       }
@@ -106,6 +109,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     result.fold((failure) => emit(AuthError(failure.message)), (user) {
       emit(Authenticated(user));
+      // Update FCM token in database after sign in
+      _updateFCMToken();
     });
   }
 
@@ -214,5 +219,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(EmailDoesNotExist());
       }
     });
+  }
+
+  /// Update FCM token in database after authentication
+  void _updateFCMToken() {
+    try {
+      final notificationService = NotificationService();
+      notificationService.updateFCMToken();
+    } catch (e) {
+      // Don't fail authentication if FCM token update fails
+      print('Failed to update FCM token: $e');
+    }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Background message handler - must be top-level function
 @pragma('vm:entry-point')
@@ -46,9 +47,9 @@ class NotificationService {
 
       // Create Android notification channel for high priority notifications
       const androidChannel = AndroidNotificationChannel(
-        'high_importance_channel',
-        'High Importance Notifications',
-        description: 'This channel is used for important notifications.',
+        'monie_notifications',
+        'Monie Notifications',
+        description: 'Notifications for group transactions and updates.',
         importance: Importance.high,
       );
 
@@ -82,7 +83,7 @@ class NotificationService {
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
         debugPrint('FCM Token refreshed: $newToken');
         _fcmToken = newToken;
-        // TODO: Update token in Supabase when user is logged in
+        updateFCMToken(); // Update token in Supabase
       });
 
       // Set up message handlers
@@ -106,7 +107,7 @@ class NotificationService {
       debugPrint('Body: ${message.notification?.body}');
       debugPrint('Data: ${message.data}');
 
-      // TODO: Show local notification banner when app is in foreground
+      // Show local notification banner when app is in foreground
       _handleForegroundMessage(message);
     });
 
@@ -140,9 +141,9 @@ class NotificationService {
         notification.body,
         NotificationDetails(
           android: AndroidNotificationDetails(
-            'high_importance_channel',
-            'High Importance Notifications',
-            channelDescription: 'This channel is used for important notifications.',
+            'monie_notifications',
+            'Monie Notifications',
+            channelDescription: 'Notifications for group transactions and updates.',
             importance: Importance.high,
             priority: Priority.high,
             icon: android?.smallIcon ?? '@mipmap/ic_launcher',
@@ -183,6 +184,27 @@ class NotificationService {
   Future<String?> getToken() async {
     _fcmToken ??= await _firebaseMessaging.getToken();
     return _fcmToken;
+  }
+
+  /// Update FCM token in Supabase database
+  Future<void> updateFCMToken() async {
+    try {
+      final token = await getToken();
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      
+      if (token != null && userId != null) {
+        await Supabase.instance.client
+            .from('users')
+            .update({'fcm_token': token})
+            .eq('user_id', userId);
+        
+        debugPrint('FCM token updated in database');
+      } else {
+        debugPrint('Cannot update FCM token: token=$token, userId=$userId');
+      }
+    } catch (e) {
+      debugPrint('Error updating FCM token: $e');
+    }
   }
 
   /// Subscribe to a topic
