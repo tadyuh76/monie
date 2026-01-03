@@ -116,7 +116,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
             GetGroupByIdEvent(groupId: widget.groupId),
           );
         }
-        // No need to load separate members data since we use group.members
+        // No need to load separate members data since use group.members
         break;
       case 2: // Debts tab
         // Just reload the group if needed
@@ -135,7 +135,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Only reload data if we haven't loaded it yet or if we're forcing a refresh
+    // Only reload data if haven't loaded it yet or if we're forcing a refresh
     if (!_dataLoaded) {
       _loadDataForCurrentTab(forceRefresh: false);
     }
@@ -257,10 +257,10 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               _isLoading = false;
             });
 
-            // The bloc will automatically refresh data, so we don't need to manually trigger it here
+            // The bloc will automatically refresh data, so don't need to manually trigger it here
           } else if (state is SingleGroupLoaded &&
               state.group.id == widget.groupId) {
-            // Reset loading flag when we receive updated group data
+            // Reset loading flag when receive updated group data
             setState(() {
               _isLoading = false;
               _dataLoaded = true;
@@ -283,7 +283,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               });
             }
           } else if (state is GroupMembersLoaded) {
-            // Reset loading flag when we receive members data
+            // Reset loading flag when receive members data
             setState(() {
               _isLoading = false;
             });
@@ -291,11 +291,11 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         },
         builder: (context, state) {
           if (state is GroupLoading && !_dataLoaded) {
-            // Only show loading indicator if we don't have any data yet
+            // Only show loading indicator if don't have any data yet
             return const Center(child: CircularProgressIndicator());
           } else if (state is SingleGroupLoaded &&
               state.group.id == widget.groupId) {
-            // Show tab view when we have the correct group data
+            // Show tab view when have the correct group data
             return TabBarView(
               controller: _tabController,
               children: [
@@ -305,7 +305,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               ],
             );
           } else if (state is SingleGroupLoaded) {
-            // If we have group data but for a different group, reload correct data
+            // If have group data but for a different group, reload correct data
             if (!_isLoading) {
               // Use Future.microtask to avoid calling setState during build
               Future.microtask(() {
@@ -323,7 +323,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
             }
             return const Center(child: CircularProgressIndicator());
           } else {
-            // If we have no valid state, trigger data loading (only if not already loading)
+            // If have no valid state, trigger data loading (only if not already loading)
             if (!_isLoading && !_dataLoaded) {
               // Use Future.microtask to avoid calling setState during build
               Future.microtask(() {
@@ -377,7 +377,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
     return BlocBuilder<GroupBloc, GroupState>(
       buildWhen: (previous, current) {
-        // Only rebuild if we have new transaction data for this group
+        // Only rebuild if have new transaction data for this group
         if (current is SingleGroupLoaded &&
             current.group.id == widget.groupId) {
           if (previous is SingleGroupLoaded &&
@@ -817,7 +817,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         }
       },
       buildWhen: (previous, current) {
-        // Rebuild when we have SingleGroupLoaded with this group's data
+        // Rebuild when have SingleGroupLoaded with this group's data
         if (current is SingleGroupLoaded && current.group.id == widget.groupId) {
           if (previous is SingleGroupLoaded && previous.group.id == widget.groupId) {
             // Only rebuild if members changed
@@ -829,7 +829,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         return current is GroupLoading || current is GroupError || current is GroupMembersLoaded;
       },
       builder: (context, state) {
-        // Show loading while fetching members (only if we don't have any data yet)
+        // Show loading while fetching members (only if don't have any data yet)
         if (state is GroupLoading && !_dataLoaded) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -1093,7 +1093,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     final supabase = SupabaseClientManager.instance.client;
     final currentUserId = supabase.auth.currentUser?.id;
 
-    // If we can't determine current user, we assume they're not admin
+    // If can't determine current user, assume they're not admin
     if (currentUserId == null) return false;
 
     // Check if user is the group's admin
@@ -1316,7 +1316,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
     return BlocBuilder<GroupBloc, GroupState>(
       buildWhen: (previous, current) {
-        // Only rebuild if we have new transaction data for this group
+        // Only rebuild if have new transaction data for this group
         if (current is SingleGroupLoaded &&
             current.group.id == widget.groupId) {
           if (previous is SingleGroupLoaded &&
@@ -1364,7 +1364,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
       netBalances[userId] = 0.0;
     }
 
-    // If we don't have proper user ID mapping, try to build it from transactions
+    // If don't have proper user ID mapping, try to build it from transactions
     if (transactions != null && transactions.isNotEmpty) {
       for (var transaction in transactions) {
         final payerId = transaction.paidByUserId;
