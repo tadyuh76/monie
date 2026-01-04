@@ -96,6 +96,13 @@ import 'package:monie/features/groups/domain/usecases/get_group_transactions.dar
 import 'package:monie/features/groups/domain/usecases/approve_group_transaction.dart';
 import 'package:monie/features/groups/domain/usecases/remove_member.dart';
 import 'package:monie/features/groups/domain/usecases/update_member_role.dart';
+import 'package:monie/features/speech_to_command/data/datasources/speech_remote_data_source.dart';
+import 'package:monie/features/speech_to_command/data/repositories/speech_repository_impl.dart';
+import 'package:monie/features/speech_to_command/domain/repositories/speech_repository.dart';
+import 'package:monie/features/speech_to_command/domain/usecases/recognize_speech_usecase.dart';
+import 'package:monie/features/speech_to_command/domain/usecases/parse_command_usecase.dart';
+import 'package:monie/features/speech_to_command/domain/usecases/create_transaction_from_command_usecase.dart';
+import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -370,6 +377,29 @@ Future<void> configureDependencies() async {
       updateUserProfile: sl(),
       changePassword: sl(),
       uploadAvatar: sl(),
+    ),
+  );
+
+  // Speech to Command Feature
+  sl.registerLazySingleton<SpeechRemoteDataSource>(
+    () => SpeechRemoteDataSourceImpl(),
+  );
+
+  sl.registerLazySingleton<SpeechRepository>(
+    () => SpeechRepositoryImpl(dataSource: sl()),
+  );
+
+  // Speech use cases
+  sl.registerLazySingleton(() => RecognizeSpeech(sl()));
+  sl.registerLazySingleton(() => ParseCommand(sl()));
+  sl.registerLazySingleton(() => CreateTransactionFromCommand(sl<TransactionRepository>()));
+
+  // Speech Bloc
+  sl.registerFactory<SpeechBloc>(
+    () => SpeechBloc(
+      recognizeSpeech: sl(),
+      parseCommand: sl(),
+      createTransactionFromCommand: sl(),
     ),
   );
 }

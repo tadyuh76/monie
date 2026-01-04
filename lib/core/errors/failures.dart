@@ -34,3 +34,19 @@ class AuthFailure extends Failure {
 class EmailVerificationFailure extends Failure {
   const EmailVerificationFailure({required super.message});
 }
+
+/// Speech recognition not available failure
+class SpeechNotAvailableFailure extends Failure {
+  const SpeechNotAvailableFailure()
+      : super(message: 'Speech recognition is not available on this device');
+}
+
+/// Invalid command failure
+class InvalidCommandFailure extends Failure {
+  const InvalidCommandFailure({required super.message});
+}
+
+/// Speech recognition failure
+class SpeechRecognitionFailure extends Failure {
+  const SpeechRecognitionFailure({required super.message});
+}

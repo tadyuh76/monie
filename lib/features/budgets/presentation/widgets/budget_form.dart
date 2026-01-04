@@ -318,7 +318,7 @@ class _BudgetFormState extends State<BudgetForm> {
                     _isSaving = value;
                   });
                 },
-                activeColor: AppColors.income,
+                activeThumbColor: AppColors.income,
                 contentPadding: EdgeInsets.zero,
               ),
               Container(

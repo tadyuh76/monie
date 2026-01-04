@@ -312,7 +312,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: DropdownButtonFormField<String>(
-                        value: _accountType,
+                        initialValue: _accountType,
                         decoration: const InputDecoration(
                           labelText: 'Account Type',
                           border: OutlineInputBorder(),
@@ -694,7 +694,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(
-        value: _controllers['currency']!.text,
+        initialValue: _controllers['currency']!.text,
         decoration: const InputDecoration(
           labelText: 'Currency',
           border: OutlineInputBorder(),

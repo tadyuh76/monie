@@ -29,6 +29,7 @@ import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.d
 import 'package:monie/features/transactions/presentation/bloc/transactions_bloc.dart';
 import 'package:monie/features/groups/presentation/pages/group_detail_page.dart';
 import 'package:monie/features/groups/presentation/pages/add_group_expense_page.dart';
+import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
 
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -107,6 +108,9 @@ class MyApp extends StatelessWidget {
         BlocProvider<GroupBloc>(create: (context) => sl<GroupBloc>()),
         BlocProvider<NotificationBloc>(
           create: (context) => sl<NotificationBloc>(),
+        ),
+        BlocProvider<SpeechBloc>(
+          create: (context) => sl<SpeechBloc>(),
         ),
       ],
       child: BlocBuilder<SettingsBloc, SettingsState>(

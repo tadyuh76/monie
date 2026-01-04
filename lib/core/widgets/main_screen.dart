@@ -19,6 +19,8 @@ import 'package:monie/features/transactions/presentation/pages/transactions_page
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 import 'package:monie/main.dart'; // Import for rootScaffoldMessengerKey
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
+import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
+import 'package:monie/features/speech_to_command/presentation/pages/speech_to_command_dialog.dart';
 
 // Global key for accessing MainScreen state from anywhere
 // Using a global key without exposing the private type
@@ -176,17 +178,37 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            _showAddTransactionModal(context);
-          },
-          backgroundColor: Colors.white.withValues(alpha: 0.9),
-          foregroundColor: AppColors.background,
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(Icons.add),
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FloatingActionButton(
+              heroTag: "speech",
+              onPressed: () {
+                _showSpeechToCommandDialog(context);
+              },
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.mic),
+            ),
+            const SizedBox(height: 12),
+            FloatingActionButton(
+              heroTag: "add",
+              onPressed: () {
+                _showAddTransactionModal(context);
+              },
+              backgroundColor: Colors.white.withValues(alpha: 0.9),
+              foregroundColor: AppColors.background,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.add),
+            ),
+          ],
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
@@ -270,6 +292,48 @@ class _MainScreenState extends State<MainScreen> {
                 showLoadingError('Error adding transaction: $e');
               }
             },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSpeechToCommandDialog(BuildContext context) {
+    final speechBloc = BlocProvider.of<SpeechBloc>(context);
+    final transactionBloc = BlocProvider.of<TransactionBloc>(context);
+    final homeBloc = BlocProvider.of<HomeBloc>(context);
+    final authBloc = BlocProvider.of<AuthBloc>(context);
+    final accountBloc = BlocProvider.of<AccountBloc>(context);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: speechBloc),
+            BlocProvider.value(value: transactionBloc),
+            BlocProvider.value(value: homeBloc),
+            BlocProvider.value(value: authBloc),
+            BlocProvider.value(value: accountBloc),
+          ],
+          child: BlocListener<SpeechBloc, SpeechState>(
+            listener: (context, state) {
+              if (state is TransactionCreated) {
+                // Reload transactions and home data
+                final authState = context.read<AuthBloc>().state;
+                if (authState is Authenticated) {
+                  context.read<HomeBloc>().add(LoadHomeData(authState.user.id));
+                  
+                  // Recalculate account balance if needed
+                  if (state.transaction.accountId != null) {
+                    context.read<AccountBloc>().add(
+                      RecalculateAccountBalanceEvent(state.transaction.accountId!),
+                    );
+                  }
+                }
+              }
+            },
+            child: const SpeechToCommandDialog(),
           ),
         );
       },
