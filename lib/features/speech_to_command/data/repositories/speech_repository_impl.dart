@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:monie/core/errors/failures.dart';
 import 'package:monie/features/speech_to_command/data/datasources/speech_remote_data_source.dart';
-import 'package:monie/features/speech_to_command/data/utils/command_parser.dart';
+import 'package:monie/core/utils/command_parser.dart';
 import 'package:monie/features/speech_to_command/domain/entities/speech_command.dart';
 import 'package:monie/features/speech_to_command/domain/repositories/speech_repository.dart';
 
