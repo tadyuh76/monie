@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/ai_chat/domain/entities/chat_message.dart';
@@ -264,14 +265,55 @@ class _AIChatPageState extends State<AIChatPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    message.content,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: isUser
-                          ? Colors.white
-                          : (isDarkMode ? Colors.white : Colors.black87),
+                  if (isUser)
+                    Text(
+                      message.content,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                      ),
+                    )
+                  else
+                    MarkdownBody(
+                      data: message.content,
+                      selectable: true,
+                      styleSheet: MarkdownStyleSheet(
+                        p: textTheme.bodyMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        h1: textTheme.titleLarge?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        h2: textTheme.titleMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        h3: textTheme.titleSmall?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        strong: textTheme.bodyMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        em: textTheme.bodyMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        code: textTheme.bodySmall?.copyWith(
+                          color: isDarkMode ? Colors.greenAccent : Colors.green[800],
+                          backgroundColor: isDarkMode ? Colors.black26 : Colors.grey[200],
+                          fontFamily: 'monospace',
+                        ),
+                        codeblockDecoration: BoxDecoration(
+                          color: isDarkMode ? Colors.black26 : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        listBullet: textTheme.bodyMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
                     ),
-                  ),
                   if (message.status == MessageStatus.error)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
