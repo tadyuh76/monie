@@ -18,7 +18,7 @@ class GeminiService {
 
     // Model for general content generation
     _model = GenerativeModel(
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         temperature: 0.7,
@@ -30,7 +30,7 @@ class GeminiService {
 
     // Model for chat sessions
     _chatModel = GenerativeModel(
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         temperature: 0.8,
