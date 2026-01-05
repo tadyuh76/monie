@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/account/presentation/bloc/account_event.dart';
+import 'package:monie/features/ai_chat/presentation/widgets/draggable_chat_bubble.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/budgets/presentation/pages/budgets_page.dart';
@@ -142,7 +143,13 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ],
       child: Scaffold(
-        body: _screens[_currentIndex],
+        body: Stack(
+          children: [
+            _screens[_currentIndex],
+            // AI Chat Bubble
+            const DraggableChatBubble(),
+          ],
+        ),
         bottomNavigationBar: Container(
           decoration: const BoxDecoration(
             border: Border(top: BorderSide(color: Colors.black, width: 0.5)),

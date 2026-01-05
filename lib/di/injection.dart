@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
+import 'package:monie/core/services/gemini_service.dart';
 import 'package:monie/features/account/data/datasources/account_remote_data_source.dart';
 import 'package:monie/features/account/data/repositories/account_repository_impl.dart';
 import 'package:monie/features/account/domain/repositories/account_repository.dart';
@@ -15,6 +16,13 @@ import 'package:monie/features/account/domain/usecases/update_account_balance_us
 import 'package:monie/features/account/domain/usecases/update_account_usecase.dart'
     as account_update_account_usecase;
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/ai_chat/data/datasources/ai_chat_datasource.dart';
+import 'package:monie/features/ai_chat/presentation/bloc/ai_chat_bloc.dart';
+import 'package:monie/features/ai_insights/data/datasources/ai_insights_datasource.dart';
+import 'package:monie/features/ai_insights/data/repositories/ai_insights_repository_impl.dart';
+import 'package:monie/features/ai_insights/domain/repositories/ai_insights_repository.dart';
+import 'package:monie/features/ai_insights/domain/usecases/analyze_spending_pattern_usecase.dart';
+import 'package:monie/features/ai_insights/presentation/bloc/spending_pattern_bloc.dart';
 import 'package:monie/features/authentication/data/datasources/auth_remote_data_source.dart';
 import 'package:monie/features/authentication/data/repositories/auth_repository_impl.dart';
 import 'package:monie/features/authentication/domain/repositories/auth_repository.dart';
@@ -48,6 +56,8 @@ import 'package:monie/features/groups/domain/usecases/get_group_by_id.dart'
 import 'package:monie/features/groups/domain/usecases/get_group_members.dart'
     as get_members;
 import 'package:monie/features/groups/domain/usecases/get_groups.dart';
+import 'package:monie/features/predictions/data/datasources/prediction_datasource.dart';
+import 'package:monie/features/predictions/presentation/bloc/prediction_bloc.dart';
 import 'package:monie/features/groups/domain/usecases/settle_group.dart'
     as settle;
 import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
@@ -370,6 +380,57 @@ Future<void> configureDependencies() async {
       updateUserProfile: sl(),
       changePassword: sl(),
       uploadAvatar: sl(),
+    ),
+  );
+
+  // ============================================
+  // AI Features
+  // ============================================
+
+  // Gemini Service (Singleton)
+  sl.registerLazySingleton<GeminiService>(() => GeminiService.instance);
+
+  // AI Insights Feature
+  sl.registerLazySingleton<AIInsightsDataSource>(
+    () => AIInsightsDataSource(sl()),
+  );
+
+  sl.registerLazySingleton<AIInsightsRepository>(
+    () => AIInsightsRepositoryImpl(sl()),
+  );
+
+  sl.registerLazySingleton(() => AnalyzeSpendingPatternUseCase(sl()));
+
+  sl.registerFactory<SpendingPatternBloc>(
+    () => SpendingPatternBloc(
+      aiInsightsRepository: sl(),
+      transactionRepository: sl(),
+    ),
+  );
+
+  // AI Chat Feature
+  sl.registerLazySingleton<AIChatDataSource>(
+    () => AIChatDataSource(sl()),
+  );
+
+  sl.registerFactory<AIChatBloc>(
+    () => AIChatBloc(
+      chatDataSource: sl(),
+      accountRepository: sl(),
+      transactionRepository: sl(),
+      budgetRepository: sl(),
+    ),
+  );
+
+  // Predictions Feature
+  sl.registerLazySingleton<PredictionDataSource>(
+    () => PredictionDataSource(sl()),
+  );
+
+  sl.registerFactory<PredictionBloc>(
+    () => PredictionBloc(
+      dataSource: sl(),
+      transactionRepository: sl(),
     ),
   );
 }

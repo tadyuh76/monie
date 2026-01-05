@@ -9,6 +9,8 @@ import 'package:monie/core/themes/app_theme.dart';
 // import 'package:monie/core/themes/color_extensions.dart';
 import 'package:monie/di/injection.dart';
 import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
+import 'package:monie/features/ai_chat/presentation/bloc/ai_chat_bloc.dart';
+import 'package:monie/features/ai_insights/presentation/bloc/spending_pattern_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
@@ -19,6 +21,7 @@ import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
 import 'package:monie/features/home/presentation/pages/home_page.dart';
 import 'package:monie/core/widgets/main_screen.dart';
 import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
+import 'package:monie/features/predictions/presentation/bloc/prediction_bloc.dart';
 import 'package:monie/features/settings/domain/models/app_settings.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:monie/features/settings/presentation/bloc/settings_event.dart';
@@ -107,6 +110,16 @@ class MyApp extends StatelessWidget {
         BlocProvider<GroupBloc>(create: (context) => sl<GroupBloc>()),
         BlocProvider<NotificationBloc>(
           create: (context) => sl<NotificationBloc>(),
+        ),
+        // AI Features BLoCs
+        BlocProvider<SpendingPatternBloc>(
+          create: (context) => sl<SpendingPatternBloc>(),
+        ),
+        BlocProvider<AIChatBloc>(
+          create: (context) => sl<AIChatBloc>(),
+        ),
+        BlocProvider<PredictionBloc>(
+          create: (context) => sl<PredictionBloc>(),
         ),
       ],
       child: BlocBuilder<SettingsBloc, SettingsState>(

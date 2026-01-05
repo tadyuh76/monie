@@ -8,6 +8,7 @@ import 'package:monie/features/account/presentation/bloc/account_bloc.dart';
 import 'package:monie/features/account/presentation/bloc/account_event.dart';
 import 'package:monie/features/account/presentation/bloc/account_state.dart';
 import 'package:monie/features/account/presentation/pages/account_form_modal.dart';
+import 'package:monie/features/ai_insights/presentation/widgets/ai_spending_insights_widget.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_state.dart';
 import 'package:monie/features/budgets/domain/entities/budget.dart';
@@ -22,9 +23,9 @@ import 'package:monie/features/home/presentation/widgets/heat_map_section_widget
 import 'package:monie/features/home/presentation/widgets/monthly_summary_widget.dart';
 import 'package:monie/features/home/presentation/widgets/notification_bell_widget.dart';
 import 'package:monie/features/home/presentation/widgets/recent_transactions_section_widget.dart';
-import 'package:monie/features/home/presentation/widgets/spending_forecast_widget.dart';
 import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
 import 'package:monie/features/notifications/presentation/bloc/notification_event.dart';
+import 'package:monie/features/predictions/presentation/widgets/next_month_forecast_widget.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
@@ -214,11 +215,6 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 24),
 
-                // AI Analysis section
-                // const AIAnalysisWidget(),
-
-                // const SizedBox(height: 24),
-
                 // Accounts section
                 _buildAccountsSection(context, userId),
 
@@ -238,6 +234,16 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 24),
 
+                // AI Spending Insights section (Gemini-powered)
+                const AISpendingInsightsWidget(),
+
+                const SizedBox(height: 24),
+
+                // AI Next Month Forecast (Gemini-powered)
+                const NextMonthForecastWidget(),
+
+                const SizedBox(height: 24),
+
                 // Balance Chart section
                 BlocBuilder<TransactionBloc, TransactionState>(
                   builder: (context, state) {
@@ -249,11 +255,6 @@ class _HomePageState extends State<HomePage> {
                     return const SizedBox();
                   },
                 ),
-
-                const SizedBox(height: 24),
-
-                // Spending Forecast section
-                const SpendingForecastWidget(),
 
                 const SizedBox(height: 24),
 
