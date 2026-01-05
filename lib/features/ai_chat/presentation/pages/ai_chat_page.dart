@@ -83,12 +83,17 @@ class _AIChatPageState extends State<AIChatPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.15),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF667EEA),
+                    Color(0xFF764BA2),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.auto_awesome,
-                color: AppColors.primary,
+                color: Colors.white,
                 size: 20,
               ),
             ),
@@ -214,12 +219,17 @@ class _AIChatPageState extends State<AIChatPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.15),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF667EEA),
+                    Color(0xFF764BA2),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.auto_awesome,
-                color: AppColors.primary,
+                color: Colors.white,
                 size: 18,
               ),
             ),
@@ -314,12 +324,17 @@ class _AIChatPageState extends State<AIChatPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.15),
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF667EEA),
+                  Color(0xFF764BA2),
+                ],
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.auto_awesome,
-              color: AppColors.primary,
+              color: Colors.white,
               size: 18,
             ),
           ),
