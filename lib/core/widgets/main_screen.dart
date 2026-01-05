@@ -20,6 +20,7 @@ import 'package:monie/features/transactions/presentation/widgets/add_transaction
 import 'package:monie/main.dart'; // Import for rootScaffoldMessengerKey
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
+import 'package:monie/features/speech_to_command/presentation/bloc/speech_state.dart' as speech_state;
 import 'package:monie/features/speech_to_command/presentation/pages/speech_to_command_dialog.dart';
 
 // Global key for accessing MainScreen state from anywhere
@@ -316,9 +317,9 @@ class _MainScreenState extends State<MainScreen> {
             BlocProvider.value(value: authBloc),
             BlocProvider.value(value: accountBloc),
           ],
-          child: BlocListener<SpeechBloc, SpeechState>(
+          child: BlocListener<SpeechBloc, speech_state.SpeechState>(
             listener: (context, state) {
-              if (state is TransactionCreated) {
+              if (state is speech_state.TransactionCreated) {
                 // Reload transactions and home data
                 final authState = context.read<AuthBloc>().state;
                 if (authState is Authenticated) {

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:monie/features/speech_to_command/domain/entities/speech_command.dart';
 import 'package:monie/features/speech_to_command/domain/usecases/create_transaction_from_command_usecase.dart';
 import 'package:monie/features/speech_to_command/domain/usecases/parse_command_usecase.dart';
 import 'package:monie/features/speech_to_command/domain/usecases/recognize_speech_usecase.dart';

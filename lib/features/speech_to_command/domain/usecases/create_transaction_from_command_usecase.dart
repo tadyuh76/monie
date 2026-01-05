@@ -17,7 +17,7 @@ class CreateTransactionFromCommand {
     final userId = params.userId;
 
     if (!command.isValid) {
-      return Left(InvalidCommandFailure('Invalid command: amount must be greater than 0'));
+      return Left(const InvalidCommandFailure(message: 'Invalid command: amount must be greater than 0'));
     }
 
     // Create transaction from command
@@ -36,7 +36,7 @@ class CreateTransactionFromCommand {
       final createdTransaction = await transactionRepository.createTransaction(transaction);
       return Right(createdTransaction);
     } catch (e) {
-      return Left(ServerFailure('Failed to create transaction: $e'));
+      return Left(ServerFailure(message: 'Failed to create transaction: $e'));
     }
   }
 }
