@@ -11,30 +11,10 @@ class SupabaseClientManager {
   SupabaseClientManager._();
 
   static Future<void> initialize() async {
-    final supabaseUrl = dotenv.env['SUPABASE_URL'];
-    final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+   
 
-    // Validate that environment variables are set
-    if (supabaseUrl == null || supabaseAnonKey == null) {
-      throw Exception(
-        'Supabase configuration missing!\n'
-        'Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file.\n'
-        'See README.md for instructions.',
-      );
-    }
-
-    // Validate that placeholder values are not being used
-    if (supabaseUrl.contains('your-project-id') || 
-        supabaseAnonKey.contains('your-supabase-anon-key')) {
-      throw Exception(
-        'Supabase configuration contains placeholder values!\n'
-        'Please replace the placeholder values in your .env file with actual Supabase credentials.\n'
-        'Get your credentials from: https://app.supabase.com/project/_/settings/api\n'
-        'Current values:\n'
-        'SUPABASE_URL: $supabaseUrl\n'
-        'SUPABASE_ANON_KEY: ${supabaseAnonKey.substring(0, 20)}...',
-      );
-    }
+    final supabaseUrl = dotenv.env['SUPABASE_URL']!;
+    final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']!;
 
     _supabase = await Supabase.initialize(
       url: supabaseUrl,
