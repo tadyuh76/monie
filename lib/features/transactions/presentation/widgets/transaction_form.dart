@@ -446,7 +446,7 @@ class _TransactionFormState extends State<TransactionForm> {
             : TransactionCategories.expenseCategories;
 
     return DropdownButtonFormField<String>(
-      value: _selectedCategoryName,
+      initialValue: _selectedCategoryName,
       isExpanded: true,
       icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
       decoration: InputDecoration(

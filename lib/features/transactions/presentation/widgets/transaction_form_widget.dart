@@ -232,7 +232,7 @@ class _TransactionFormWidgetState extends State<TransactionFormWidget> {
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.account_balance_wallet),
                 ),
-                value: _selectedAccountId,
+                initialValue: _selectedAccountId,
                 items:
                     accounts.map((account) {
                       return DropdownMenuItem<String>(
@@ -301,7 +301,7 @@ class _TransactionFormWidgetState extends State<TransactionFormWidget> {
                           ? 'No ${_isExpense ? "expense" : "income"} budgets available'
                           : null,
                 ),
-                value: _selectedBudgetId,
+                initialValue: _selectedBudgetId,
                 items:
                     matchingBudgets.isEmpty
                         ? [

@@ -66,7 +66,7 @@ class _AddMemberDialogState extends State<AddMemberDialog> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              value: _selectedRole,
+              initialValue: _selectedRole,
               items: [
                 DropdownMenuItem(
                   value: 'editor',

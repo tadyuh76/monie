@@ -38,6 +38,7 @@ import 'package:monie/features/daily_reminder/presentation/pages/daily_reminder_
 import 'package:monie/features/daily_reminder/data/services/daily_reminder_alarm_service.dart';
 import 'package:monie/core/services/notification_service.dart';
 import 'package:monie/di/injection_container.dart' as di;
+import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
 
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -147,8 +148,12 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<PredictionBloc>(
           create: (context) => sl<PredictionBloc>(),
+        ),
         BlocProvider<DailyReminderBloc>(
           create: (context) => sl<DailyReminderBloc>(),
+        ),
+        BlocProvider<SpeechBloc>(
+          create: (context) => sl<SpeechBloc>(),
         ),
       ],
       child: BlocBuilder<SettingsBloc, SettingsState>(
