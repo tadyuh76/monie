@@ -10,15 +10,16 @@ import 'package:monie/features/speech_to_command/presentation/bloc/speech_state.
 class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
   final RecognizeSpeech _recognizeSpeech;
   final ParseCommand _parseCommand;
-  final CreateTransactionFromCommand _createTransactionFromCommand;
-  
+  final CreateTransactionFromCommand? _createTransactionFromCommand;
+
   StreamSubscription<String>? _speechSubscription;
   SpeechCommand? _currentCommand;
+  String? _currentOriginalText;
 
   SpeechBloc({
     required RecognizeSpeech recognizeSpeech,
     required ParseCommand parseCommand,
-    required CreateTransactionFromCommand createTransactionFromCommand,
+    CreateTransactionFromCommand? createTransactionFromCommand,
   })  : _recognizeSpeech = recognizeSpeech,
         _parseCommand = parseCommand,
         _createTransactionFromCommand = createTransactionFromCommand,
@@ -29,6 +30,7 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     on<SpeechResultReceivedEvent>(_onSpeechResultReceived);
     on<ParseCommandEvent>(_onParseCommand);
     on<CreateTransactionFromCommandEvent>(_onCreateTransactionFromCommand);
+    on<OpenTransactionFormEvent>(_onOpenTransactionForm);
     on<ResetSpeechStateEvent>(_onResetSpeechState);
   }
 
@@ -108,9 +110,9 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     Emitter<SpeechState> emit,
   ) async {
     emit(CommandParsing(event.text));
-    
+
     final result = await _parseCommand(ParseCommandParams(text: event.text));
-    
+
     result.fold(
       (failure) {
         emit(CommandParseError(
@@ -120,12 +122,28 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
       },
       (command) {
         _currentCommand = command;
+        _currentOriginalText = event.text;
         emit(CommandParsed(
           command: command,
           originalText: event.text,
         ));
       },
     );
+  }
+
+  Future<void> _onOpenTransactionForm(
+    OpenTransactionFormEvent event,
+    Emitter<SpeechState> emit,
+  ) async {
+    if (_currentCommand == null) {
+      emit(const SpeechError('No command available'));
+      return;
+    }
+
+    emit(CommandReadyForForm(
+      command: _currentCommand!,
+      originalText: _currentOriginalText ?? '',
+    ));
   }
 
   Future<void> _onCreateTransactionFromCommand(
@@ -137,15 +155,20 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
       return;
     }
 
+    if (_createTransactionFromCommand == null) {
+      emit(const SpeechError('Transaction creation not available'));
+      return;
+    }
+
     emit(CreatingTransaction(_currentCommand!));
-    
-    final result = await _createTransactionFromCommand(
+
+    final result = await _createTransactionFromCommand!(
       CreateTransactionFromCommandParams(
         command: _currentCommand!,
         userId: event.userId,
       ),
     );
-    
+
     result.fold(
       (failure) {
         emit(SpeechError(failure.message));

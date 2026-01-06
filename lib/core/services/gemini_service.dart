@@ -300,4 +300,45 @@ Detect:
 
     return generateStructuredContent(prompt, expectedFormat);
   }
+
+  /// Parse a voice command into transaction data using AI
+  Future<Map<String, dynamic>?> parseVoiceCommand(String voiceText) async {
+    final today = DateTime.now();
+    final prompt = '''
+Parse this voice command into transaction data. The command may be in Vietnamese or English.
+Today's date is: ${today.toIso8601String().split('T')[0]}
+
+Voice command: "$voiceText"
+
+Context:
+- Vietnamese currency is typically in thousands (e.g., "50k" = 50,000 VND, "50 nghìn" = 50,000, "1 triệu" or "1tr" = 1,000,000)
+- Common expense keywords: chi, tiêu, mua, thanh toán, trả, spend, paid, bought, purchased
+- Common income keywords: thu, nhận, lương, tiền về, receive, got, earned, salary, income
+
+Available expense categories: Bills, Debt, Dining, Donate, Education, Electricity, Entertainment, Gifts, Groceries, Healthcare, Housing, Insurance, Investment, Loans, Pets, Rent, Saving, Shopping, Tax, Technology, Transport, Travel
+
+Available income categories: Salary, Scholarship, Insurance Payout, Family Support, Stock, Commission, Allowance
+
+Parse the command and extract:
+1. amount: The numerical amount (handle Vietnamese shortcuts like "50k" = 50000, "1tr" = 1000000, "50 nghìn" = 50000)
+2. category: Best matching category from the available lists above (use exact category name)
+3. description: A clean, short title/description for the transaction (what was bought/received)
+4. isIncome: true if it's income, false if expense
+5. date: The date mentioned (use ISO format YYYY-MM-DD), or null if not mentioned. Handle relative dates like "yesterday", "hôm qua", "last week", "tuần trước"
+6. confidence: Your confidence in this parsing (0.0 to 1.0)
+''';
+
+    final expectedFormat = '''
+{
+  "amount": number,
+  "category": "string or null",
+  "description": "string",
+  "isIncome": boolean,
+  "date": "YYYY-MM-DD or null",
+  "confidence": number
+}
+''';
+
+    return generateStructuredContent(prompt, expectedFormat);
+  }
 }

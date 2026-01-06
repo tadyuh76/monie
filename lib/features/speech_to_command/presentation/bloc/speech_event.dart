@@ -46,6 +46,11 @@ class CreateTransactionFromCommandEvent extends SpeechEvent {
   List<Object?> get props => [userId];
 }
 
+/// Event to open transaction form with pre-filled data from parsed command
+class OpenTransactionFormEvent extends SpeechEvent {
+  const OpenTransactionFormEvent();
+}
+
 class ResetSpeechStateEvent extends SpeechEvent {
   const ResetSpeechStateEvent();
 }

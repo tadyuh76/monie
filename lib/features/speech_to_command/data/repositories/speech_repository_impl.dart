@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:monie/core/errors/failures.dart';
+import 'package:monie/core/services/gemini_service.dart';
 import 'package:monie/features/speech_to_command/data/datasources/speech_remote_data_source.dart';
 import 'package:monie/core/utils/command_parser.dart';
 import 'package:monie/features/speech_to_command/domain/entities/speech_command.dart';
@@ -8,9 +10,13 @@ import 'package:monie/features/speech_to_command/domain/repositories/speech_repo
 
 class SpeechRepositoryImpl implements SpeechRepository {
   final SpeechRemoteDataSource dataSource;
+  final GeminiService? geminiService;
   StreamController<String>? _speechStreamController;
 
-  SpeechRepositoryImpl({required this.dataSource});
+  SpeechRepositoryImpl({
+    required this.dataSource,
+    this.geminiService,
+  });
 
   @override
   Future<Either<Failure, bool>> isAvailable() async {
@@ -108,8 +114,19 @@ class SpeechRepositoryImpl implements SpeechRepository {
         ));
       }
 
+      // Try AI parsing first if Gemini service is available
+      if (geminiService != null) {
+        final aiCommand = await _parseWithGemini(text);
+        if (aiCommand != null && aiCommand.isValid) {
+          debugPrint('✅ Using AI-parsed command');
+          return Right(aiCommand);
+        }
+        debugPrint('⚠️ AI parsing failed or invalid, falling back to local parser');
+      }
+
+      // Fallback to local rule-based parsing
       final command = CommandParser.parse(text);
-      
+
       if (!command.isValid) {
         return Left(InvalidCommandFailure(
           message: 'Could not extract valid amount from command',
@@ -121,6 +138,40 @@ class SpeechRepositoryImpl implements SpeechRepository {
       return Left(InvalidCommandFailure(
         message: 'Failed to parse command: $e',
       ));
+    }
+  }
+
+  /// Parse voice command using Gemini AI
+  Future<SpeechCommand?> _parseWithGemini(String text) async {
+    try {
+      final result = await geminiService!.parseVoiceCommand(text);
+
+      if (result == null) return null;
+
+      final amount = (result['amount'] as num?)?.toDouble();
+      if (amount == null || amount <= 0) return null;
+
+      // Parse date if provided
+      DateTime? parsedDate;
+      if (result['date'] != null && result['date'] != 'null') {
+        try {
+          parsedDate = DateTime.parse(result['date']);
+        } catch (e) {
+          debugPrint('⚠️ Failed to parse date: ${result['date']}');
+        }
+      }
+
+      return SpeechCommand(
+        amount: amount,
+        categoryName: result['category'] as String?,
+        description: result['description'] as String?,
+        isIncome: result['isIncome'] as bool? ?? false,
+        date: parsedDate,
+        confidence: (result['confidence'] as num?)?.toDouble() ?? 0.8,
+      );
+    } catch (e) {
+      debugPrint('❌ Gemini parsing failed: $e');
+      return null;
     }
   }
 }

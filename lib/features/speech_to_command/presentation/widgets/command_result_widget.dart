@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
@@ -84,7 +85,7 @@ class CommandResultWidget extends StatelessWidget {
 
   Widget _buildParsedCommand(BuildContext context, CommandParsed state) {
     final command = state.command;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -115,6 +116,35 @@ class CommandResultWidget extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              const Spacer(),
+              // AI confidence indicator
+              if (command.confidence < 1.0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getConfidenceColor(command.confidence).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: _getConfidenceColor(command.confidence),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${(command.confidence * 100).toInt()}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _getConfidenceColor(command.confidence),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -163,6 +193,27 @@ class CommandResultWidget extends StatelessWidget {
                 ),
             ],
           ),
+          // Date display
+          if (command.date != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  DateFormat('MMM dd, yyyy').format(command.date!),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (command.description != null && command.description!.isNotEmpty) ...[
             const SizedBox(height: 12),
             const Divider(color: AppColors.divider),
@@ -186,6 +237,12 @@ class CommandResultWidget extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 0.8) return AppColors.income;
+    if (confidence >= 0.5) return Colors.orange;
+    return AppColors.expense;
   }
 
   Widget _buildError(BuildContext context, String message, String? originalText) {

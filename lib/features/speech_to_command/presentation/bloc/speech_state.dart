@@ -101,6 +101,20 @@ class TransactionCreated extends SpeechState {
   List<Object?> get props => [transaction];
 }
 
+/// State for opening transaction form with pre-filled data from voice command
+class CommandReadyForForm extends SpeechState {
+  final SpeechCommand command;
+  final String originalText;
+
+  const CommandReadyForForm({
+    required this.command,
+    required this.originalText,
+  });
+
+  @override
+  List<Object?> get props => [command, originalText];
+}
+
 class SpeechError extends SpeechState {
   final String message;
 

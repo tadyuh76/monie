@@ -375,7 +375,10 @@ Future<void> configureDependencies() async {
   );
 
   sl.registerLazySingleton<SpeechRepository>(
-    () => SpeechRepositoryImpl(dataSource: sl()),
+    () => SpeechRepositoryImpl(
+      dataSource: sl(),
+      geminiService: sl<GeminiService>(),
+    ),
   );
 
   // Speech use cases

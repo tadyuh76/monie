@@ -5,11 +5,8 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   file_selector_windows
-<<<<<<< HEAD
   firebase_core
-=======
   speech_to_text_windows
->>>>>>> origin/feature/speech2command
   url_launcher_windows
 )
 
