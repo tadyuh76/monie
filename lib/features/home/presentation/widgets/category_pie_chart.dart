@@ -22,7 +22,7 @@ class CategoryPieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Filter out categories with null values and ensure we have valid data
+    // Filter out categories with null values and ensure have valid data
     final validCategories =
         categories
             .where((category) => (category['value'] ?? 0.0) > 0.0)

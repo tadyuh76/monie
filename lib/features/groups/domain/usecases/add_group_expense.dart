@@ -18,7 +18,7 @@ class AddGroupExpense {
       amount: params.amount,
       description: params.description,
       date: params.date,
-      paidBy: params.paidBy,
+
       categoryName: params.categoryName,
       color: params.color,
     );

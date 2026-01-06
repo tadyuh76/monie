@@ -89,7 +89,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 .maybeSingle();
         userExists = response != null;
       } catch (_) {
-        // If we can't check directly, proceed with signup and let Supabase handle duplication
+        // If can't check directly, proceed with signup and let Supabase handle duplication
       }
 
       if (userExists) {
@@ -292,7 +292,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         // If this approach fails, it's likely due to security restrictions
       }
 
-      // If we cannot determine verification status, we'll assume verified
+      // If cannot determine verification status, we'll assume verified
       // to avoid blocking users who have actually verified their email
       // This is a trade-off for a better user experience
       return true;
@@ -317,7 +317,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 .maybeSingle();
         userExists = response != null;
       } catch (_) {
-        // If we can't check, continue with reset to let Supabase handle it
+        // If can't check, continue with reset to let Supabase handle it
         userExists = true;
       }
 
@@ -367,11 +367,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           };
         }
       } catch (_) {
-        // If this fails, it's likely because we can't access the auth schema directly
+        // If this fails, it's likely because can't access the auth schema directly
         // which is expected for security reasons
       }
 
-      // If we can't determine with certainty, default to assuming the email doesn't exist
+      // If can't determine with certainty, default to assuming the email doesn't exist
       // This lets the signup process begin, and Supabase will handle the duplicate case
       return {'exists': false, 'verified': false};
     } catch (e) {

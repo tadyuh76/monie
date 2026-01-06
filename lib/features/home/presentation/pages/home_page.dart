@@ -302,7 +302,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // If we can't find the transaction, don't continue
+    // If can't find the transaction, don't continue
     if (transactionToDelete == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: Transaction not found')),
@@ -425,7 +425,7 @@ class _HomePageState extends State<HomePage> {
           builder: (context, transactionState) {
             List<Account> accountsToDisplay = [];
 
-            // Handle loading states explicitly - use cached accounts if we have them
+            // Handle loading states explicitly - use cached accounts if have them
             if ((accountState is AccountLoading ||
                     transactionState is TransactionLoading) &&
                 _cachedAccounts.isNotEmpty) {
@@ -433,7 +433,7 @@ class _HomePageState extends State<HomePage> {
               accountsToDisplay = List.from(_cachedAccounts);
             } else if (accountState is AccountLoading &&
                 transactionState is! TransactionsLoaded) {
-              // Only show loading if accounts are loading and we don't have transactions loaded yet
+              // Only show loading if accounts are loading and don't have transactions loaded yet
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 50.0),
@@ -641,7 +641,7 @@ class _HomePageState extends State<HomePage> {
         }
       });
     } catch (e) {
-      // If the bloc is closed, we need to reload the page to get a fresh bloc
+      // If the bloc is closed, need to reload the page to get a fresh bloc
       if (mounted) {
         // Force refresh the UI to get fresh blocs
         _loadData();

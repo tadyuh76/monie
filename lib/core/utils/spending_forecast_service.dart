@@ -111,7 +111,7 @@ class SpendingForecastService {
     final dataPoints =
         monthsToUse.map((month) => monthlySpending[month] ?? 0).toList();
 
-    // If we have very few data points, pad with zeros to ensure we have at least 3 points for the chart
+    // If have very few data points, pad with zeros to ensure have at least 3 points for the chart
     while (dataPoints.length < 3 && dataPoints.length < 6) {
       dataPoints.insert(0, 0.0); // Add zeros at the beginning
     }

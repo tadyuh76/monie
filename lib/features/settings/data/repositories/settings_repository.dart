@@ -167,7 +167,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       try {
         success = true;
       } catch (dbError) {
-        // If we haven't succeeded with auth update, this is a complete failure
+        // If haven't succeeded with auth update, this is a complete failure
         if (!success) {
           return false;
         }
@@ -177,7 +177,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       try {
         await _supabaseClient.client.auth.refreshSession();
       } catch (refreshError) {
-        // This is not critical, we can still return success if earlier operations worked
+        // This is not critical, can still return success if earlier operations worked
       }
 
       return success;
@@ -298,7 +298,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
             if (result != null && result['success'] == true) {
             } else {}
           } catch (dbError) {
-            // Continue since we already updated auth metadata
+            // Continue since already updated auth metadata
           }
 
           return publicUrl;

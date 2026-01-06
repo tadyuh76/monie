@@ -159,7 +159,7 @@ class _BalanceChartWidgetState extends State<BalanceChartWidget> {
       if (minY > 0) minY = 0;
       if (maxY < 0) maxY = 0;
 
-      // Ensure we have a non-zero range for the grid
+      // Ensure have a non-zero range for the grid
       if (maxY == minY) {
         maxY = minY + 100;
       }

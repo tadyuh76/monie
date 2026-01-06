@@ -136,6 +136,7 @@
   "groups_your_groups": "Nhóm của bạn",
   "groups_total": "Tổng cộng",
   "groups_created": "Ngày tạo",
+  "groups_per_person": "Vị chi mỗi người",
   "groups_members": "Thành viên",
   "groups_view_details": "Xem chi tiết",
   "groups_add_expense": "Thêm chi phí",
@@ -210,6 +211,7 @@
   "email_invalid": "Vui lòng nhập địa chỉ email hợp lệ",
 
   "cancel": "Hủy",
+  "remove": "Xóa",
   "create": "Tạo",
   "add": "Thêm",
 
@@ -251,6 +253,7 @@
   "common_retry": "Thử lại",
   "common_cancel": "Hủy",
   "common_save": "Lưu",
+  "common_remove": "Xóa",
   "common_delete": "Xóa",
   "common_edit": "Sửa",
   "common_add": "Thêm",
@@ -319,7 +322,6 @@
   "groups_remove_member": "Xóa thành viên",
   "groups_remove_member_confirm": "Bạn có chắc chắn muốn xóa",
   "groups_member": "Thành viên",
-  "common_remove": "Xóa",
 
   "groups_add_income": "Thêm thu nhập",
   "groups_income_title": "Tiêu đề thu nhập",

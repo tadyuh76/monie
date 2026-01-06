@@ -3,75 +3,85 @@ import 'package:equatable/equatable.dart';
 class GroupTransaction extends Equatable {
   final String id;
   final String groupId;
+  final String transactionId;
   final String title;
   final double amount;
-  final String description;
+  final String? description;
   final DateTime date;
-  final String paidBy;
-  final List<String> splitWith;
-  final String approvalStatus; // 'pending', 'approved', 'rejected'
-  final DateTime? approvedAt;
+  final String paidByUserId;
+  final String paidByUserName;
   final String? categoryName;
   final String? color;
+  final String status; // 'pending', 'approved', 'rejected'
+  final DateTime? approvedAt;
 
   const GroupTransaction({
     required this.id,
     required this.groupId,
+    required this.transactionId,
     required this.title,
     required this.amount,
-    required this.description,
+    this.description,
     required this.date,
-    required this.paidBy,
-    required this.splitWith,
-    this.approvalStatus = 'pending',
-    this.approvedAt,
+    required this.paidByUserId,
+    required this.paidByUserName,
     this.categoryName,
     this.color,
+    this.status = 'pending',
+    this.approvedAt,
   });
+
+  bool get isPending => status == 'pending';
+  bool get isApproved => status == 'approved';
+  bool get isRejected => status == 'rejected';
 
   @override
   List<Object?> get props => [
-    id,
-    groupId,
-    title,
-    amount,
-    description,
-    date,
-    paidBy,
-    splitWith,
-    approvalStatus,
-    approvedAt,
-    categoryName,
-    color,
-  ];
+        id,
+        groupId,
+        transactionId,
+        title,
+        amount,
+        description,
+        date,
+        paidByUserId,
+        paidByUserName,
+        categoryName,
+        color,
+        status,
+        approvedAt,
+      ];
 
   GroupTransaction copyWith({
     String? id,
     String? groupId,
+    String? transactionId,
     String? title,
     double? amount,
     String? description,
     DateTime? date,
-    String? paidBy,
-    List<String>? splitWith,
-    String? approvalStatus,
-    DateTime? approvedAt,
+    String? paidByUserId,
+    String? paidByUserName,
     String? categoryName,
     String? color,
+    String? status,
+    DateTime? approvedAt,
   }) {
     return GroupTransaction(
       id: id ?? this.id,
       groupId: groupId ?? this.groupId,
+      transactionId: transactionId ?? this.transactionId,
       title: title ?? this.title,
       amount: amount ?? this.amount,
       description: description ?? this.description,
       date: date ?? this.date,
-      paidBy: paidBy ?? this.paidBy,
-      splitWith: splitWith ?? this.splitWith,
-      approvalStatus: approvalStatus ?? this.approvalStatus,
-      approvedAt: approvedAt ?? this.approvedAt,
+      paidByUserId: paidByUserId ?? this.paidByUserId,
+      paidByUserName: paidByUserName ?? this.paidByUserName,
       categoryName: categoryName ?? this.categoryName,
       color: color ?? this.color,
+      status: status ?? this.status,
+      approvedAt: approvedAt ?? this.approvedAt,
     );
   }
 }
+

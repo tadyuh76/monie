@@ -1,11 +1,13 @@
 import 'package:dartz/dartz.dart';
 import 'package:monie/core/errors/exceptions.dart';
 import 'package:monie/core/errors/failures.dart';
+import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/groups/data/datasources/group_remote_datasource.dart';
 import 'package:monie/features/groups/domain/entities/expense_group.dart';
+import 'package:monie/features/groups/domain/entities/group_debt.dart';
+import 'package:monie/features/groups/domain/entities/group_member.dart';
 import 'package:monie/features/groups/domain/entities/group_transaction.dart';
 import 'package:monie/features/groups/domain/repositories/group_repository.dart';
-import 'package:monie/features/groups/data/models/group_member_model.dart';
 
 class GroupRepositoryImpl implements GroupRepository {
   final GroupRemoteDataSource dataSource;
@@ -145,7 +147,7 @@ class GroupRepositoryImpl implements GroupRepository {
   }
 
   @override
-  Future<Either<Failure, Map<String, double>>> calculateDebts(
+  Future<Either<Failure, List<GroupDebt>>> calculateDebts(
     String groupId,
   ) async {
     try {
@@ -175,20 +177,24 @@ class GroupRepositoryImpl implements GroupRepository {
     required String groupId,
     required String title,
     required double amount,
-    required String description,
+    String? description,
     required DateTime date,
-    required String paidBy,
     String? categoryName,
     String? color,
   }) async {
     try {
+      final supabase = SupabaseClientManager.instance.client;
+      final currentUserId = supabase.auth.currentUser?.id;
+      if (currentUserId == null) {
+        return Left(ServerFailure(message: 'User not authenticated'));
+      }
+
       final transaction = await dataSource.addGroupExpense(
         groupId: groupId,
         title: title,
         amount: amount,
         description: description,
         date: date,
-        paidBy: paidBy,
         categoryName: categoryName,
         color: color,
       );
@@ -198,6 +204,42 @@ class GroupRepositoryImpl implements GroupRepository {
     } catch (e) {
       return Left(
         ServerFailure(message: 'Failed to add expense: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, GroupTransaction>> addGroupIncome({
+    required String groupId,
+    required String title,
+    required double amount,
+    String? description,
+    required DateTime date,
+    String? categoryName,
+    String? color,
+  }) async {
+    try {
+      final supabase = SupabaseClientManager.instance.client;
+      final currentUserId = supabase.auth.currentUser?.id;
+      if (currentUserId == null) {
+        return Left(ServerFailure(message: 'User not authenticated'));
+      }
+
+      final transaction = await dataSource.addGroupIncome(
+        groupId: groupId,
+        title: title,
+        amount: amount,
+        description: description ?? '',
+        date: date,
+        categoryName: categoryName,
+        color: color,
+      );
+      return Right(transaction);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } catch (e) {
+      return Left(
+        ServerFailure(message: 'Failed to add income: ${e.toString()}'),
       );
     }
   }
@@ -241,7 +283,7 @@ class GroupRepositoryImpl implements GroupRepository {
   }
 
   @override
-  Future<Either<Failure, List<GroupMemberModel>>> getGroupMembers(
+  Future<Either<Failure, List<GroupMember>>> getGroupMembers(
     String groupId,
   ) async {
     try {

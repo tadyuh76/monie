@@ -36,6 +36,7 @@ import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
 import 'package:monie/features/budgets/data/datasources/budget_remote_data_source.dart';
+import 'package:monie/di/injection_container.dart' as injection_container;
 import 'package:monie/features/budgets/data/repositories/budget_repository_impl.dart';
 import 'package:monie/features/budgets/domain/repositories/budget_repository.dart';
 import 'package:monie/features/budgets/domain/usecases/add_budget_usecase.dart';
@@ -62,15 +63,7 @@ import 'package:monie/features/groups/domain/usecases/settle_group.dart'
     as settle;
 import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
-import 'package:monie/features/notifications/data/datasources/notification_datasource.dart';
-import 'package:monie/features/notifications/data/repositories/notification_repository_impl.dart';
-import 'package:monie/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:monie/features/notifications/domain/usecases/create_budget_notification.dart';
-import 'package:monie/features/notifications/domain/usecases/create_group_notification.dart';
-import 'package:monie/features/notifications/domain/usecases/get_notifications.dart';
-import 'package:monie/features/notifications/domain/usecases/get_unread_count.dart';
-import 'package:monie/features/notifications/domain/usecases/mark_notification_read.dart';
-import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
 import 'package:monie/features/settings/data/repositories/settings_repository.dart';
 import 'package:monie/features/settings/domain/repositories/settings_repository.dart';
 import 'package:monie/features/settings/domain/usecases/change_password.dart';
@@ -101,11 +94,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../features/transactions/data/repositories/category_repository_impl.dart';
 import '../features/transactions/domain/repositories/category_repository.dart';
-import 'package:monie/features/groups/domain/usecases/add_group_expense.dart';
-import 'package:monie/features/groups/domain/usecases/get_group_transactions.dart';
-import 'package:monie/features/groups/domain/usecases/approve_group_transaction.dart';
-import 'package:monie/features/groups/domain/usecases/remove_member.dart';
-import 'package:monie/features/groups/domain/usecases/update_member_role.dart';
+
 
 final sl = GetIt.instance;
 
@@ -115,12 +104,12 @@ final sl = GetIt.instance;
   asExtension: false, // default
 )
 Future<void> configureDependencies() async {
-  // This will be filled in by the injectable build_runner when we run code generation
+  // This will be filled in by the injectable build_runner when run code generation
   // We'll need to run build_runner after setting up our repositories and usecases
   // await init(getIt);
 
-  // External
-  sl.registerSingleton<SupabaseClientManager>(SupabaseClientManager.instance);
+  // Setup core services and daily reminder feature (includes SupabaseClientManager)
+  injection_container.setup();
 
   // Authentication
   sl.registerLazySingleton<AuthRemoteDataSource>(
@@ -217,22 +206,6 @@ Future<void> configureDependencies() async {
     () => GetTransactionsByBudgetUseCase(sl<TransactionRepository>()),
   );
 
-  // Notifications Feature
-  sl.registerLazySingleton<NotificationDataSource>(
-    () => NotificationDataSourceImpl(sl()),
-  );
-
-  sl.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepositoryImpl(sl()),
-  );
-
-  // Notification use cases
-  sl.registerLazySingleton(() => GetNotifications(sl()));
-  sl.registerLazySingleton(() => MarkNotificationRead(sl()));
-  sl.registerLazySingleton(() => CreateGroupNotification(sl()));
-  sl.registerLazySingleton(() => CreateBudgetNotification(sl()));
-  sl.registerLazySingleton(() => GetUnreadCount(sl()));
-
   // BLoCs
   sl.registerFactory<AuthBloc>(
     () => AuthBloc(
@@ -303,57 +276,7 @@ Future<void> configureDependencies() async {
         CategoriesBloc(getCategoriesUseCase: sl(), createCategoryUseCase: sl()),
   );
 
-  sl.registerFactory<NotificationBloc>(
-    () => NotificationBloc(
-      getNotifications: sl(),
-      markNotificationRead: sl(),
-      createGroupNotification: sl(),
-      getUnreadCount: sl(),
-      repository: sl(),
-    ),
-  );
-
-  // Groups Feature
-  sl.registerLazySingleton<GroupRemoteDataSource>(
-    () =>
-        GroupRemoteDataSourceImpl(supabase: sl<SupabaseClientManager>().client),
-  );
-
-  sl.registerLazySingleton<GroupRepository>(
-    () => GroupRepositoryImpl(dataSource: sl()),
-  );
-
-  // Group usecases
-  sl.registerLazySingleton(() => GetGroups(repository: sl()));
-  sl.registerLazySingleton(() => get_group.GetGroupById(repository: sl()));
-  sl.registerLazySingleton(() => CreateGroup(repository: sl()));
-  sl.registerLazySingleton(() => AddMember(repository: sl()));
-  sl.registerLazySingleton(() => calc.CalculateDebts(repository: sl()));
-  sl.registerLazySingleton(() => settle.SettleGroup(repository: sl()));
-  sl.registerLazySingleton(() => AddGroupExpense(repository: sl()));
-  sl.registerLazySingleton(() => GetGroupTransactions(repository: sl()));
-  sl.registerLazySingleton(() => ApproveGroupTransaction(repository: sl()));
-  sl.registerLazySingleton(() => get_members.GetGroupMembers(repository: sl()));
-  sl.registerLazySingleton(() => RemoveMember(repository: sl()));
-  sl.registerLazySingleton(() => UpdateMemberRole(repository: sl()));
-
-  // Group Bloc
-  sl.registerFactory<GroupBloc>(
-    () => GroupBloc(
-      getGroups: sl(),
-      getGroupById: sl(),
-      createGroup: sl(),
-      addMember: sl(),
-      calculateDebts: sl(),
-      settleGroup: sl(),
-      addGroupExpense: sl(),
-      getGroupTransactions: sl(),
-      approveGroupTransaction: sl(),
-      getGroupMembers: sl(),
-      removeMember: sl(),
-      updateMemberRole: sl(),
-    ),
-  );
+  // Groups and Notifications Features are registered in injection_container.setup()
 
   // Settings
   final sharedPreferences = await SharedPreferences.getInstance();

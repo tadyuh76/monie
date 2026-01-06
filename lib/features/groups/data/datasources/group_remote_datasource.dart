@@ -1,5 +1,6 @@
 import 'package:monie/core/errors/exceptions.dart';
 import 'package:monie/features/groups/data/models/expense_group_model.dart';
+import 'package:monie/features/groups/data/models/group_debt_model.dart';
 import 'package:monie/features/groups/data/models/group_member_model.dart';
 import 'package:monie/features/groups/data/models/group_transaction_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -28,7 +29,7 @@ abstract class GroupRemoteDataSource {
     required String userId,
     required String role,
   });
-  Future<Map<String, double>> calculateDebts(String groupId);
+  Future<List<GroupDebtModel>> calculateDebts(String groupId);
   Future<bool> settleGroup(String groupId);
   Future<List<GroupMemberModel>> getGroupMembers(String groupId);
   Future<double> getGroupTotalAmount(String groupId);
@@ -36,9 +37,17 @@ abstract class GroupRemoteDataSource {
     required String groupId,
     required String title,
     required double amount,
+    String? description,
+    required DateTime date,
+    String? categoryName,
+    String? color,
+  });
+  Future<GroupTransactionModel> addGroupIncome({
+    required String groupId,
+    required String title,
+    required double amount,
     required String description,
     required DateTime date,
-    required String paidBy,
     String? categoryName,
     String? color,
   });
@@ -77,30 +86,35 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
       final groupIds =
           groupsResponse.map((g) => g['group_id'] as String).toList();
 
-      // Fetch group details
-      final groups = await supabase
-          .from('groups')
-          .select('*')
-          .inFilter('group_id', groupIds);
+      // Fetch group details with member count in one query
+      final groups = await supabase.from('groups').select('''
+        *,
+        group_members(count)
+      ''').inFilter('group_id', groupIds);
 
-      // Convert to models
-      final groupModels =
-          groups.map((g) => ExpenseGroupModel.fromJson(g)).toList();
-
-      // Enrich with members and total amounts
+      // Convert to models with enhanced data
       List<ExpenseGroupModel> enrichedGroups = [];
-      for (var group in groupModels) {
-        final members = await getGroupMembers(group.id);
-        final totalAmount = await getGroupTotalAmount(group.id);
+      for (var group in groups) {
+        // Get member count from the nested query
+        final memberCount = group['group_members'][0]['count'] as int? ?? 0;
+
+        // Calculate amounts efficiently
+        final amounts = await _getGroupAmounts(group['group_id']);
 
         enrichedGroups.add(
-          group.copyWith(
-            members:
-                members
-                    .map((m) => '${m.displayName ?? 'Unknown'} (${m.userId})')
-                    .toList(),
-            totalAmount: totalAmount,
-            isSettled: group.isSettled,
+          ExpenseGroupModel(
+            id: group['group_id'],
+            adminId: group['admin_id'],
+            name: group['name'],
+            description: group['description'],
+            isSettled: group['is_settled'] ?? false,
+            createdAt: DateTime.parse(
+              group['created_at'] ?? DateTime.now().toIso8601String(),
+            ),
+            memberCount: memberCount,
+            totalAmount: amounts['total'] ?? 0,
+            activeAmount: amounts['active'] ?? 0,
+            settledAmount: amounts['settled'] ?? 0,
           ),
         );
       }
@@ -111,27 +125,86 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
     }
   }
 
+  // Helper method to get group amounts
+  Future<Map<String, double>> _getGroupAmounts(String groupId) async {
+    try {
+      final groupTransactions = await supabase
+          .from('group_transactions')
+          .select('transaction_id, status')
+          .eq('group_id', groupId);
+
+      if (groupTransactions.isEmpty) {
+        return {'total': 0, 'active': 0, 'settled': 0};
+      }
+
+      final transactionIds =
+          groupTransactions.map((t) => t['transaction_id'] as String).toList();
+
+      final transactions = await supabase
+          .from('transactions')
+          .select('transaction_id, amount')
+          .inFilter('transaction_id', transactionIds);
+
+      double activeAmount = 0;
+      double settledAmount = 0;
+
+      for (var transaction in transactions) {
+        // Use signed amount: positive for income, negative for expense
+        // This way total = income - expense, can be negative if expense > income
+        final amount = (transaction['amount'] as num).toDouble();
+        final groupTx = groupTransactions.firstWhere(
+          (gt) => gt['transaction_id'] == transaction['transaction_id'],
+        );
+        final status = groupTx['status'];
+
+        if (status == 'approved') {
+          activeAmount += amount;
+        } else if (status == 'settled') {
+          settledAmount += amount;
+        }
+      }
+
+      return {
+        'total': activeAmount + settledAmount,
+        'active': activeAmount,
+        'settled': settledAmount,
+      };
+    } catch (e) {
+      return {'total': 0, 'active': 0, 'settled': 0};
+    }
+  }
+
   @override
   Future<ExpenseGroupModel> getGroupById(String groupId) async {
     try {
-      final groupResponse =
-          await supabase
-              .from('groups')
-              .select('*')
-              .eq('group_id', groupId)
-              .single();
+      final groupResponse = await supabase
+          .from('groups')
+          .select('''
+        *,
+        group_members(count)
+      ''')
+          .eq('group_id', groupId)
+          .single();
 
-      final group = ExpenseGroupModel.fromJson(groupResponse);
-      final members = await getGroupMembers(groupId);
-      final totalAmount = await getGroupTotalAmount(groupId);
+      // Get member count from the nested query
+      final memberCount = groupResponse['group_members'][0]['count'] as int? ?? 0;
 
-      return group.copyWith(
-        members:
-            members
-                .map((m) => '${m.displayName ?? 'Unknown'} (${m.userId})')
-                .toList(),
-        totalAmount: totalAmount,
-        isSettled: group.isSettled,
+      // Calculate amounts efficiently
+      final amounts = await _getGroupAmounts(groupId);
+
+      return ExpenseGroupModel(
+        id: groupResponse['group_id'],
+        adminId: groupResponse['admin_id'],
+        name: groupResponse['name'],
+        description: groupResponse['description'],
+        isSettled: groupResponse['is_settled'] ?? false,
+        createdAt: DateTime.parse(
+          groupResponse['created_at'] ?? DateTime.now().toIso8601String(),
+        ),
+        memberCount: memberCount,
+        totalAmount: amounts['total'] ?? 0,
+        activeAmount: amounts['active'] ?? 0,
+        settledAmount: amounts['settled'] ?? 0,
       );
     } catch (e) {
       throw ServerException(message: e.toString());
@@ -173,20 +246,14 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         'role': 'admin',
       });
 
-      // Get the user's display name for proper member format
-      final userData =
-          await supabase
-              .from('users')
-              .select('display_name')
-              .eq('user_id', userId)
-              .single();
+      // Return the newly created group with updated counts
+      final amounts = await _getGroupAmounts(group.id);
 
-      final displayName = userData['display_name'] ?? 'Unknown';
-
-      // Return the newly created group
       return group.copyWith(
-        members: ['$displayName ($userId)'],
-        totalAmount: 0,
+        memberCount: 1,
+        totalAmount: amounts['total'] ?? 0,
+        activeAmount: amounts['active'] ?? 0,
+        settledAmount: amounts['settled'] ?? 0,
         isSettled: false,
       );
     } catch (e) {
@@ -281,14 +348,14 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         'role': role,
       });
 
-      // Send notification to the user
-      await supabase.from('notifications').insert({
-        'user_id': userId,
-        'type': 'group_invitation',
-        'title': 'New Group Invitation',
-        'message': 'You have been added to a new expense group',
-        'created_at': DateTime.now().toIso8601String(),
-      });
+      // TODO: Send notification to the user when FCM is implemented
+      // await supabase.from('notifications').insert({
+      //   'user_id': userId,
+      //   'type': 'group_invitation',
+      //   'title': 'New Group Invitation',
+      //   'message': 'You have been added to a new group',
+      //   'created_at': DateTime.now().toIso8601String(),
+      // });
 
       return true;
     } catch (e) {
@@ -368,17 +435,17 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
   }
 
   @override
-  Future<Map<String, double>> calculateDebts(String groupId) async {
+  Future<List<GroupDebtModel>> calculateDebts(String groupId) async {
     try {
-      // Get all transactions for this group
+      // Get all approved transactions for this group
       final groupTransactions = await supabase
           .from('group_transactions')
           .select('transaction_id, status')
           .eq('group_id', groupId)
-          .neq('status', 'settled');
+          .eq('status', 'approved'); // Only count approved transactions
 
       if (groupTransactions.isEmpty) {
-        return {};
+        return [];
       }
 
       // Get the transaction details
@@ -390,21 +457,28 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
           .select('transaction_id, user_id, amount')
           .inFilter('transaction_id', transactionIds);
 
-      // Get group members
+      // Get group members with their details
       final members = await getGroupMembers(groupId);
 
-      // Calculate each person's spending and debts
+      if (members.length < 2) {
+        return []; // No debts if less than 2 members
+      }
+
+      // Calculate each person's spending
       Map<String, double> memberSpending = {};
+      Map<String, String> memberNames = {};
       double totalSpent = 0;
 
       // Initialize spending for each member
       for (var member in members) {
         memberSpending[member.userId] = 0;
+        memberNames[member.userId] =
+            member.displayName ?? member.email.split('@')[0];
       }
 
-      // Calculate what each person has spent
+      // Calculate what each person has spent (expenses are negative, income is positive)
       for (var transaction in transactions) {
-        final amount = (transaction['amount'] as num).toDouble();
+        final amount = (transaction['amount'] as num).toDouble().abs();
         final userId = transaction['user_id'] as String;
 
         if (memberSpending.containsKey(userId)) {
@@ -416,11 +490,70 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
       // Calculate fair share per person
       final fairShare = totalSpent / members.length;
 
-      // Calculate what each person owes or is owed
-      Map<String, double> debts = {};
+      // Calculate net balance for each person
+      Map<String, double> balances = {};
       for (var member in members) {
         final spent = memberSpending[member.userId] ?? 0;
-        debts[member.displayName ?? member.userId] = spent - fairShare;
+        balances[member.userId] =
+            spent - fairShare; // Positive = owed, Negative = owes
+      }
+
+      // Convert balances to debt list using simplify debts algorithm
+      List<GroupDebtModel> debts = [];
+
+      // Separate creditors (owed money) and debtors (omoney)
+      List<MapEntry<String, double>> creditors = [];
+      List<MapEntry<String, double>> debtors = [];
+
+      balances.forEach((userId, balance) {
+        if (balance > 0.01) {
+          // Owed money (creditor)
+          creditors.add(MapEntry(userId, balance));
+        } else if (balance < -0.01) {
+          // Owes money (debtor)
+          debtors.add(MapEntry(userId, balance.abs()));
+        }
+      });
+
+      // Sort by amount descending
+      creditors.sort((a, b) => b.value.compareTo(a.value));
+      debtors.sort((a, b) => b.value.compareTo(a.value));
+
+      // Simplify debts using greedy algorithm
+      int creditorIndex = 0;
+      int debtorIndex = 0;
+
+      while (creditorIndex < creditors.length &&
+          debtorIndex < debtors.length) {
+        final creditor = creditors[creditorIndex];
+        final debtor = debtors[debtorIndex];
+
+        final settleAmount = creditor.value < debtor.value
+            ? creditor.value
+            : debtor.value;
+
+        if (settleAmount > 0.01) {
+          // Create debt from debtor to creditor
+          debts.add(
+            GroupDebtModel(
+              fromUserId: debtor.key,
+              fromUserName: memberNames[debtor.key] ?? 'Unknown',
+              toUserId: creditor.key,
+              toUserName: memberNames[creditor.key] ?? 'Unknown',
+              amount: settleAmount,
+            ),
+          );
+
+          // Update remaining amounts
+          creditors[creditorIndex] =
+              MapEntry(creditor.key, creditor.value - settleAmount);
+          debtors[debtorIndex] =
+              MapEntry(debtor.key, debtor.value - settleAmount);
+        }
+
+        // Move to next person if current one is settled
+        if (creditors[creditorIndex].value < 0.01) creditorIndex++;
+        if (debtors[debtorIndex].value < 0.01) debtorIndex++;
       }
 
       return debts;
@@ -496,19 +629,20 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
       final membersResponse = await supabase
           .from('group_members')
           .select(
-            'group_id, user_id, role, users!group_members_user_id_fkey(display_name)',
+            'user_id, role, users!group_members_user_id_fkey(email, display_name, profile_image_url)',
           )
           .eq('group_id', groupId);
 
-      final members =
-          membersResponse.map((m) {
-            return GroupMemberModel(
-              groupId: m['group_id'],
-              userId: m['user_id'],
-              role: m['role'],
-              displayName: m['users']['display_name'],
-            );
-          }).toList();
+      final members = membersResponse.map((m) {
+        final userData = m['users'];
+        return GroupMemberModel(
+          userId: m['user_id'],
+          email: userData['email'] ?? '',
+          displayName: userData['display_name'],
+          profileImageUrl: userData['profile_image_url'],
+          role: m['role'],
+        );
+      }).toList();
 
       return members;
     } catch (e) {
@@ -559,9 +693,8 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
     required String groupId,
     required String title,
     required double amount,
-    required String description,
+    String? description,
     required DateTime date,
-    required String paidBy,
     String? categoryName,
     String? color,
   }) async {
@@ -616,7 +749,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         'amount': transactionAmount,
         'description': description,
         'date': date.toIso8601String(),
-        'user_id': paidBy, // This must be a valid UUID!
+        'user_id': currentUserId,
         'category_name': categoryName ?? 'Group',
         'color': color ?? '#4CAF50',
       };
@@ -642,7 +775,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
 
       // Create notifications for group members
       if (approvalStatus == 'approved') {
-        // If auto-approved, notify all members about the new transaction
+        // If auto-approved, notify all members about the new transaction (except creator)
         final membersResponse = await supabase
             .from('group_members')
             .select('user_id')
@@ -651,6 +784,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         final List<String> memberIds =
             (membersResponse as List)
                 .map((member) => member['user_id'] as String)
+                .where((id) => id != currentUserId) // Exclude creator
                 .toList();
 
         final notificationTitle =
@@ -674,23 +808,42 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         if (notifications.isNotEmpty) {
           await supabase.from('notifications').insert(notifications);
         }
+
+        // Send push notifications to all members except creator
+        if (memberIds.isNotEmpty) {
+          await _sendGroupNotification(
+            userIds: memberIds,
+            title: notificationTitle,
+            body: '$title in "$groupName" - \$${amount.abs().toStringAsFixed(2)}',
+            data: {
+              'type': 'group_transaction',
+              'group_id': groupId,
+              'group_name': groupName,
+            },
+          );
+        }
       } else {
-        // If requires approval, notify group admins
-        final adminMembers = await supabase
+        // If requires approval, notify all members except creator
+        final membersResponse = await supabase
             .from('group_members')
             .select('user_id')
-            .eq('group_id', groupId)
-            .eq('role', 'admin');
+            .eq('group_id', groupId);
+
+        final List<String> memberIds =
+            (membersResponse as List)
+                .map((member) => member['user_id'] as String)
+                .where((id) => id != currentUserId) // Exclude creator
+                .toList();
 
         final notificationTitle =
             isIncomeTransaction
                 ? 'Income Needs Approval'
                 : 'Expense Needs Approval';
         final notifications =
-            (adminMembers as List)
+            memberIds
                 .map(
-                  (admin) => {
-                    'user_id': admin['user_id'],
+                  (userId) => {
+                    'user_id': userId,
                     'amount': amount,
                     'type': 'group_transaction',
                     'title': notificationTitle,
@@ -705,24 +858,203 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         if (notifications.isNotEmpty) {
           await supabase.from('notifications').insert(notifications);
         }
+
+        // Send push notifications to all members except creator
+        if (memberIds.isNotEmpty) {
+          await _sendGroupNotification(
+            userIds: memberIds,
+            title: notificationTitle,
+            body: '$title in "$groupName" - \$${amount.abs().toStringAsFixed(2)}',
+            data: {
+              'type': 'group_transaction',
+              'group_id': groupId,
+              'group_name': groupName,
+              'needs_approval': 'true',
+            },
+          );
+        }
       }
 
       // Get all group members for the transaction model
-      final groupMembers = await getGroupMembers(groupId);
-      final memberIds = groupMembers.map((m) => m.userId).toList();
+      // Get user details for display
+      final userData = await supabase
+          .from('users')
+          .select('display_name, email')
+          .eq('user_id', currentUserId)
+          .single();
 
       // Return the transaction model
       return GroupTransactionModel(
         id: transactionId,
         groupId: groupId,
+        transactionId: transactionId,
         title: title,
-        amount: transactionAmount,
+        amount: amount,
         description: description,
         date: date,
-        paidBy: paidBy,
-        splitWith: memberIds,
-        approvalStatus: approvalStatus,
+        paidByUserId: currentUserId,
+        paidByUserName: userData['display_name'] ?? userData['email'] ?? 'Unknown',
+        status: approvalStatus,
         approvedAt: approvedAt,
+        categoryName: categoryName,
+        color: color,
+      );
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<GroupTransactionModel> addGroupIncome({
+    required String groupId,
+    required String title,
+    required double amount,
+    required String description,
+    required DateTime date,
+    String? categoryName,
+    String? color,
+  }) async {
+    try {
+      // Get current user
+      final currentUserId = supabase.auth.currentUser?.id;
+      if (currentUserId == null) {
+        throw ServerException(message: 'User not authenticated');
+      }
+
+      // Get the group admin ID and name
+      final groupData = await supabase
+          .from('groups')
+          .select('admin_id, name')
+          .eq('group_id', groupId)
+          .single();
+
+      final adminId = groupData['admin_id'];
+      final groupName = groupData['name'];
+
+      // Get the user's role in the group
+      final memberData = await supabase
+          .from('group_members')
+          .select('role')
+          .eq('group_id', groupId)
+          .eq('user_id', currentUserId)
+          .single();
+
+      final userRole = memberData['role'] as String;
+
+      // Determine approval status based on role
+      final approvalStatus =
+          (currentUserId == adminId || userRole == 'admin')
+              ? 'approved'
+              : 'pending';
+
+      final approvedAt = approvalStatus == 'approved' ? DateTime.now() : null;
+
+      // Create the income transaction (amount is positive for income)
+      final transactionData = {
+        'title': title,
+        'amount': amount.abs(), // Ensure positive for income
+        'description': description,
+        'date': date.toIso8601String(),
+        'user_id': currentUserId,
+        'category_name': categoryName ?? 'Group Income',
+        'color': color ?? '#4CAF50',
+      };
+
+      final transactionResponse = await supabase
+          .from('transactions')
+          .insert(transactionData)
+          .select('transaction_id')
+          .single();
+
+      final transactionId = transactionResponse['transaction_id'];
+
+      // Create group_transactions link
+      final groupTransactionInsert = {
+        'group_id': groupId,
+        'transaction_id': transactionId,
+        'status': approvalStatus,
+        'approved_at': approvedAt?.toIso8601String(),
+      };
+      await supabase.from('group_transactions').insert(groupTransactionInsert);
+
+      // Create notifications
+      if (approvalStatus == 'approved') {
+        final membersResponse = await supabase
+            .from('group_members')
+            .select('user_id')
+            .eq('group_id', groupId);
+
+        final List<String> memberIds = (membersResponse as List)
+            .map((member) => member['user_id'] as String)
+            .toList();
+
+        final notifications = memberIds
+            .map(
+              (userId) => {
+                'user_id': userId,
+                'amount': amount,
+                'type': 'group_transaction',
+                'title': 'New Group Income',
+                'message':
+                    '$title in "$groupName" - \$${amount.toStringAsFixed(2)}',
+                'is_read': false,
+                'created_at': DateTime.now().toIso8601String(),
+              },
+            )
+            .toList();
+
+        if (notifications.isNotEmpty) {
+          await supabase.from('notifications').insert(notifications);
+        }
+      } else {
+        final adminMembers = await supabase
+            .from('group_members')
+            .select('user_id')
+            .eq('group_id', groupId)
+            .eq('role', 'admin');
+
+        final notifications = (adminMembers as List)
+            .map(
+              (admin) => {
+                'user_id': admin['user_id'],
+                'amount': amount,
+                'type': 'group_transaction',
+                'title': 'Income Needs Approval',
+                'message':
+                    '$title in "$groupName" - \$${amount.toStringAsFixed(2)}',
+                'is_read': false,
+                'created_at': DateTime.now().toIso8601String(),
+              },
+            )
+            .toList();
+
+        if (notifications.isNotEmpty) {
+          await supabase.from('notifications').insert(notifications);
+        }
+      }
+
+      // Get user details for display
+      final userData = await supabase
+          .from('users')
+          .select('display_name, email')
+          .eq('user_id', currentUserId)
+          .single();
+
+      // Return the transaction model
+      return GroupTransactionModel(
+        id: transactionId,
+        groupId: groupId,
+        transactionId: transactionId,
+        title: title,
+        amount: amount,
+        description: description,
+        date: date,
+        paidByUserId: currentUserId,
+        paidByUserName: userData['display_name'] ?? userData['email'] ?? 'Unknown',
+        status: approvalStatus,
+        approvedAt: approvedAt,
+        categoryName: categoryName,
+        color: color,
       );
     } catch (e) {
       throw ServerException(message: e.toString());
@@ -734,52 +1066,53 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
     String groupId,
   ) async {
     try {
-      // First get all group transactions links
-      final groupTransactions = await supabase
+      // Get all group transactions with full details using a join
+      final data = await supabase
           .from('group_transactions')
-          .select('transaction_id, status, approved_at')
+          .select('''
+            group_transaction_id,
+            group_id,
+            transaction_id,
+            status,
+            approved_at,
+            transactions!inner(
+              title,
+              amount,
+              description,
+              date,
+              user_id,
+              category_name,
+              color,
+              users!transactions_user_id_fkey(
+                display_name
+              )
+            )
+          ''')
           .eq('group_id', groupId)
-          .order('status');
+          .order('date', referencedTable: 'transactions', ascending: false);
 
-      if (groupTransactions.isEmpty) {
-        return [];
-      }
-
-      // Extract transaction IDs
-      final transactionIds =
-          groupTransactions.map((t) => t['transaction_id'] as String).toList();
-
-      // Get the full transaction details
-      final transactions = await supabase
-          .from('transactions')
-          .select('*, users!transactions_user_id_fkey(display_name)')
-          .inFilter('transaction_id', transactionIds);
-
-      // Combine the data to create GroupTransactionModel objects
-      final result = <GroupTransactionModel>[];
-
-      for (var i = 0; i < transactions.length; i++) {
-        final transaction = transactions[i];
-        final groupTransaction = groupTransactions.firstWhere(
-          (gt) => gt['transaction_id'] == transaction['transaction_id'],
+      return data.map((json) {
+        final transaction = json['transactions'];
+        final user = transaction['users'];
+        
+        return GroupTransactionModel(
+          id: json['group_transaction_id'],
+          groupId: json['group_id'],
+          transactionId: json['transaction_id'],
+          title: transaction['title'],
+          amount: (transaction['amount'] as num).toDouble(),
+          description: transaction['description'],
+          date: DateTime.parse(transaction['date']),
+          paidByUserId: transaction['user_id'],
+          paidByUserName: user?['display_name'] ?? 'Unknown',
+          categoryName: transaction['category_name'],
+          color: transaction['color'],
+          status: json['status'],
+          approvedAt: json['approved_at'] != null
+              ? DateTime.parse(json['approved_at'])
+              : null,
         );
-
-        // Get the list of members the expense is split with
-        // For now we'll just use all group members since the schema doesn't explicitly store this
-        final groupMembers = await getGroupMembers(groupId);
-        final memberIds = groupMembers.map((m) => m.userId).toList();
-
-        // Create transaction model using the factory method
-        final transactionModel = GroupTransactionModel.fromTransactionAndGroup(
-          transaction,
-          {...groupTransaction, 'group_id': groupId},
-        );
-
-        // Add member IDs to split with
-        result.add(transactionModel.copyWith(splitWith: memberIds));
-      }
-
-      return result;
+      }).toList();
     } catch (e) {
       throw ServerException(message: e.toString());
     }
@@ -797,7 +1130,11 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
               .from('group_transactions')
               .select('group_id')
               .eq('transaction_id', transactionId)
-              .single();
+              .maybeSingle();
+
+      if (groupTransactionData == null) {
+        throw ServerException(message: 'Group transaction not found');
+      }
 
       final groupId = groupTransactionData['group_id'];
 
@@ -816,14 +1153,22 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
               .from('transactions')
               .select('title, amount, user_id')
               .eq('transaction_id', transactionId)
-              .single();
+              .maybeSingle();
+
+      if (transaction == null) {
+        throw ServerException(message: 'Transaction not found');
+      }
 
       final groupData =
           await supabase
               .from('groups')
               .select('name')
               .eq('group_id', groupId)
-              .single();
+              .maybeSingle();
+
+      if (groupData == null) {
+        throw ServerException(message: 'Group not found');
+      }
 
       final title = transaction['title'];
       final amount = transaction['amount'];
@@ -843,12 +1188,13 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
               .map((member) => member['user_id'] as String)
               .toList();
 
-      // Create notifications for all members
+      // Create notification title
       final notificationTitle =
           approved
               ? (isIncomeTransaction ? 'Income Approved' : 'Expense Approved')
               : (isIncomeTransaction ? 'Income Rejected' : 'Expense Rejected');
 
+      // Create notifications for all members
       final notifications =
           memberIds
               .map(
@@ -869,9 +1215,79 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         await supabase.from('notifications').insert(notifications);
       }
 
+      // Send push notifications to all members (excluding self will be handled by _sendGroupNotification)
+      await _sendGroupNotification(
+        userIds: memberIds,
+        title: notificationTitle,
+        body: '$title in "$groupName" - \$${amount.abs().toStringAsFixed(2)}',
+        data: {
+          'type': 'group_transaction',
+          'group_id': groupId,
+          'group_name': groupName,
+          'status': approved ? 'approved' : 'rejected',
+        },
+      );
+
       return true;
     } catch (e) {
       throw ServerException(message: e.toString());
+    }
+  }
+
+  /// Send push notification via edge function to multiple users
+  Future<void> _sendGroupNotification({
+    required List<String> userIds,
+    required String title,
+    required String body,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      // Get current user ID to exclude from notifications
+      final currentUserId = supabase.auth.currentUser?.id;
+      
+      // Filter out current user - don't send notification to yourself
+      final recipientIds = userIds.where((id) => id != currentUserId).toList();
+      
+      if (recipientIds.isEmpty) {
+        print('No recipients after filtering current user');
+        return;
+      }
+      
+      // Fetch FCM tokens for the specified users (excluding current user)
+      final tokensResponse = await supabase
+          .from('users')
+          .select('fcm_token')
+          .inFilter('user_id', recipientIds)
+          .not('fcm_token', 'is', null);
+
+      final List<String> tokens =
+          (tokensResponse as List)
+              .where((user) => user['fcm_token'] != null)
+              .map((user) => user['fcm_token'] as String)
+              .toList();
+
+      if (tokens.isEmpty) {
+        print('No FCM tokens found for notification');
+        return;
+      }
+
+      print('Sending notification to ${tokens.length} device(s) (excluding self)');
+
+      // Call edge function to send push notification
+      await supabase.functions.invoke(
+        'send-group-notification',
+        body: {
+          'tokens': tokens,
+          'title': title,
+          'body': body,
+          'data': data,
+        },
+      );
+
+      print('Push notification sent successfully');
+    } catch (e) {
+      // Don't throw error - notification failure shouldn't block the main operation
+      print('Failed to send push notification: $e');
     }
   }
 }
