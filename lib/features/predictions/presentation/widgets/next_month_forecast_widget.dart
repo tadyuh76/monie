@@ -274,7 +274,7 @@ class _NextMonthForecastWidgetState extends State<NextMonthForecastWidget> {
         // Progress bar
         if (percentOfBudget != null) ...[
           Text(
-            '${percentOfBudget.toStringAsFixed(0)}% of budget',
+            '${percentOfBudget.toStringAsFixed(0)}% ${context.tr('of budget')}',
             style: textTheme.bodySmall?.copyWith(
               color: isDarkMode ? Colors.white70 : Colors.black54,
             ),
@@ -366,7 +366,7 @@ class _NextMonthForecastWidgetState extends State<NextMonthForecastWidget> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Failed to generate forecast',
+              context.tr('Failed to generate forecast'),
               style: textTheme.bodyMedium?.copyWith(
                 color: Colors.red[400],
               ),
@@ -374,7 +374,7 @@ class _NextMonthForecastWidgetState extends State<NextMonthForecastWidget> {
           ),
           TextButton(
             onPressed: _loadPrediction,
-            child: const Text('Retry'),
+            child: Text(context.tr('Retry')),
           ),
         ],
       ),
@@ -399,7 +399,7 @@ class _NextMonthForecastWidgetState extends State<NextMonthForecastWidget> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Tap to generate spending forecast',
+              context.tr('Tap to generate spending forecast'),
               style: textTheme.bodyMedium?.copyWith(
                 color: isDarkMode ? Colors.white70 : Colors.black54,
               ),

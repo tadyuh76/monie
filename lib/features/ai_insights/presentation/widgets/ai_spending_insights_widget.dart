@@ -168,7 +168,7 @@ class _AISpendingInsightsWidgetState extends State<AISpendingInsightsWidget> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Analyzing your spending...',
+              context.tr('Analyzing your spending...'),
               style: textTheme.bodySmall?.copyWith(
                 color: isDarkMode ? Colors.white70 : Colors.black54,
               ),
@@ -323,7 +323,7 @@ class _AISpendingInsightsWidgetState extends State<AISpendingInsightsWidget> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Failed to analyze spending',
+              context.tr('Failed to analyze spending'),
               style: textTheme.bodyMedium?.copyWith(
                 color: Colors.red[400],
               ),
@@ -331,7 +331,7 @@ class _AISpendingInsightsWidgetState extends State<AISpendingInsightsWidget> {
           ),
           TextButton(
             onPressed: _loadAnalysis,
-            child: Text(context.tr('retry')),
+            child: Text(context.tr('Retry')),
           ),
         ],
       ),
@@ -356,7 +356,7 @@ class _AISpendingInsightsWidgetState extends State<AISpendingInsightsWidget> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Tap to get AI-powered spending insights',
+              context.tr('Tap to get AI-powered spending insights'),
               style: textTheme.bodyMedium?.copyWith(
                 color: isDarkMode ? Colors.white70 : Colors.black54,
               ),
