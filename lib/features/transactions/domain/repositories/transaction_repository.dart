@@ -10,6 +10,7 @@ abstract class TransactionRepository {
   Future<bool> deleteTransaction(String transactionId);
   Future<List<Transaction>> getTransactionsByType(String userId, String type);
   Future<List<Transaction>> getTransactionsByDateRange(
+    String userId,
     DateTime startDate,
     DateTime endDate,
   );

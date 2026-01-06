@@ -38,12 +38,13 @@ class FilterTransactionsByType extends TransactionsEvent {
 }
 
 class FilterTransactionsByMonth extends TransactionsEvent {
+  final String userId;
   final DateTime month;
 
-  const FilterTransactionsByMonth(this.month);
+  const FilterTransactionsByMonth({required this.userId, required this.month});
 
   @override
-  List<Object?> get props => [month];
+  List<Object?> get props => [userId, month];
 }
 
 class AddNewTransaction extends TransactionsEvent {
@@ -257,6 +258,7 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
       );
 
       _allTransactions = await getTransactionsByDateRangeUseCase(
+        userId: event.userId,
         startDate: startDate,
         endDate: endDate,
       );

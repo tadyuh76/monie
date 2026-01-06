@@ -12,7 +12,7 @@ abstract class TransactionRemoteDataSource {
   Future<TransactionModel> updateTransaction(TransactionModel transaction);
   Future<bool> deleteTransaction(String transactionId);
 
-  getTransactionsByDateRange(DateTime startDate, DateTime endDate) {}
+  Future<List<TransactionModel>> getTransactionsByDateRange(String userId, DateTime startDate, DateTime endDate);
 
   getTransactionsByType(String userId, String type) {}
 }
@@ -164,6 +164,7 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
 
   @override
   Future<List<TransactionModel>> getTransactionsByDateRange(
+    String userId,
     DateTime startDate,
     DateTime endDate,
   ) async {
@@ -171,6 +172,7 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
       final response = await _supabaseClientManager.client
           .from('transactions')
           .select()
+          .eq('user_id', userId)
           .gte('date', startDate.toIso8601String())
           .lte('date', endDate.toIso8601String())
           .order('date', ascending: false);
