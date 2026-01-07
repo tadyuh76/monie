@@ -122,7 +122,7 @@ class CommandResultWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getConfidenceColor(command.confidence).withOpacity(0.2),
+                    color: _getConfidenceColor(command.confidence).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -258,7 +258,7 @@ class CommandResultWidget extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.income.withOpacity(0.1),
+        color: AppColors.income.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.income,

@@ -312,6 +312,7 @@ class _MainScreenState extends State<MainScreen> {
     final homeBloc = BlocProvider.of<HomeBloc>(context);
     final authBloc = BlocProvider.of<AuthBloc>(context);
     final accountBloc = BlocProvider.of<AccountBloc>(context);
+    final budgetsBloc = BlocProvider.of<BudgetsBloc>(context);
 
     showDialog(
       context: context,
@@ -323,6 +324,7 @@ class _MainScreenState extends State<MainScreen> {
             BlocProvider.value(value: homeBloc),
             BlocProvider.value(value: authBloc),
             BlocProvider.value(value: accountBloc),
+            BlocProvider.value(value: budgetsBloc),
           ],
           child: BlocListener<SpeechBloc, speech_state.SpeechState>(
             listener: (context, state) {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/ai_chat/presentation/pages/ai_chat_page.dart';
 
 /// Draggable floating chat bubble

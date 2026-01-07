@@ -29,7 +29,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   late TabController _tabController;
   bool _isLoading = false;
   bool _dataLoaded = false;
-  bool _membersLoadRequested = false;
+  // bool _membersLoadRequested = false;
   String?
   _lastShownMessage; // Track the last shown message to prevent duplicates
 
@@ -55,7 +55,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
     setState(() {
       _isLoading = true;
-      _membersLoadRequested = false; // Reset flag when loading new data
+      // _membersLoadRequested = false; // Reset flag when loading new data
     });
 
     final bloc = context.read<GroupBloc>();
@@ -70,7 +70,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   void _refreshAllData() {
     setState(() {
       _isLoading = true;
-      _membersLoadRequested = false;
+      // _membersLoadRequested = false;
       _dataLoaded = false;
     });
 
@@ -812,7 +812,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
             state.group.id == widget.groupId &&
             state.members != null) {
           setState(() {
-            _membersLoadRequested = false;
+            // _membersLoadRequested = false;
           });
         }
       },
@@ -1872,19 +1872,19 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   }
 
   // Helper method to get display name for a user ID
-  String _getDisplayNameForUserId(String userId, ExpenseGroup group) {
-    // In production, this would query the members from state
-    // For now, just return user ID or check if it's current user
+  // String _getDisplayNameForUserId(String userId, ExpenseGroup group) {
+  //   // In production, this would query the members from state
+  //   // For now, just return user ID or check if it's current user
 
-    // Check if it's the current user
-    final supabase = SupabaseClientManager.instance.client;
-    final currentUserId = supabase.auth.currentUser?.id;
+  //   // Check if it's the current user
+  //   final supabase = SupabaseClientManager.instance.client;
+  //   final currentUserId = supabase.auth.currentUser?.id;
 
-    if (userId == currentUserId) {
-      return 'You';
-    }
+  //   if (userId == currentUserId) {
+  //     return 'You';
+  //   }
 
-    // Last resort: use a shortened user ID
-    return 'User ${userId.substring(0, 8)}...';
-  }
+  //   // Last resort: use a shortened user ID
+  //   return 'User ${userId.substring(0, 8)}...';
+  // }
 }

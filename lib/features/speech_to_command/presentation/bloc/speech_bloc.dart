@@ -162,7 +162,7 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
 
     emit(CreatingTransaction(_currentCommand!));
 
-    final result = await _createTransactionFromCommand!(
+    final result = await _createTransactionFromCommand(
       CreateTransactionFromCommandParams(
         command: _currentCommand!,
         userId: event.userId,

@@ -25,7 +25,6 @@ class _PreFillTransaction {
   final String? categoryName;
   final bool isRecurring;
   final String? accountId;
-  final String? budgetId;
 
   _PreFillTransaction({
     this.title,
@@ -35,7 +34,6 @@ class _PreFillTransaction {
     this.categoryName,
     this.isRecurring = false,
     this.accountId,
-    this.budgetId,
   });
 }
 
@@ -54,6 +52,7 @@ void _openTransactionFormWithCommand(BuildContext context, SpeechCommand command
     date: command.date ?? DateTime.now(),
     categoryName: command.categoryName,
     isRecurring: false,
+    accountId: command.accountId,
   );
 
   // Use a post-frame callback to ensure the dialog is fully closed

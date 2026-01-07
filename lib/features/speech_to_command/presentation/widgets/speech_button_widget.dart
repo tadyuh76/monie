@@ -38,7 +38,7 @@ class SpeechButtonWidget extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: (isListening ? AppColors.expense : AppColors.primary)
-                      .withOpacity(0.3),
+                      .withValues(alpha: 0.3),
                   blurRadius: 20,
                   spreadRadius: isListening ? 10 : 5,
                 ),
