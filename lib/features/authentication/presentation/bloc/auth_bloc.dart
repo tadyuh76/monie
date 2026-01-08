@@ -6,6 +6,7 @@ import 'package:monie/features/authentication/domain/usecases/is_email_verified.
 import 'package:monie/features/authentication/domain/usecases/resend_verification_email.dart';
 import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_in.dart';
+import 'package:monie/features/authentication/domain/usecases/sign_in_with_google.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_event.dart';
@@ -16,6 +17,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetCurrentUser _getCurrentUser;
   final SignUp _signUp;
   final SignIn _signIn;
+  final SignInWithGoogle _signInWithGoogle;
   final SignOut _signOut;
   final ResendVerificationEmail _resendVerificationEmail;
   final IsEmailVerified _isEmailVerified;
@@ -29,6 +31,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required GetCurrentUser getCurrentUser,
     required SignUp signUp,
     required SignIn signIn,
+    required SignInWithGoogle signInWithGoogle,
     required SignOut signOut,
     required ResendVerificationEmail resendVerificationEmail,
     required IsEmailVerified isEmailVerified,
@@ -37,6 +40,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }) : _getCurrentUser = getCurrentUser,
        _signUp = signUp,
        _signIn = signIn,
+       _signInWithGoogle = signInWithGoogle,
        _signOut = signOut,
        _resendVerificationEmail = resendVerificationEmail,
        _isEmailVerified = isEmailVerified,
@@ -47,6 +51,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<RefreshUserEvent>(_onRefreshUser);
     on<SignUpEvent>(_onSignUp);
     on<SignInEvent>(_onSignIn);
+    on<SignInWithGoogleEvent>(_onSignInWithGoogle);
     on<SignOutEvent>(_onSignOut);
     on<ResendVerificationEmailEvent>(_onResendVerificationEmail);
     on<CheckVerificationStatusEvent>(_onCheckVerificationStatus);
@@ -111,6 +116,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold((failure) => emit(AuthError(failure.message)), (user) {
       emit(Authenticated(user));
       // Update FCM token in database after sign in
+      _updateFCMToken();
+    });
+  }
+
+  Future<void> _onSignInWithGoogle(
+    SignInWithGoogleEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await _signInWithGoogle();
+
+    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      emit(Authenticated(user));
+      // Update FCM token in database after Google sign in
       _updateFCMToken();
     });
   }

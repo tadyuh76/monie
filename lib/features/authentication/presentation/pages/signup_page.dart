@@ -8,6 +8,7 @@ import 'package:monie/features/authentication/presentation/bloc/auth_state.dart'
 import 'package:monie/features/authentication/presentation/pages/verification_page.dart';
 import 'package:monie/features/authentication/presentation/widgets/auth_button.dart';
 import 'package:monie/features/authentication/presentation/widgets/auth_input_field.dart';
+import 'package:monie/features/authentication/presentation/widgets/google_sign_in_button.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -257,6 +258,33 @@ class _SignupPageState extends State<SignupPage> {
                         isLoading: state is AuthLoading,
                         onPressed: _onSignUpPressed,
                       ),
+                      const SizedBox(height: 20),
+
+                      // Divider with "or"
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(color: AppColors.divider),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'or',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(color: AppColors.divider),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Google Sign In Button
+                      const GoogleSignInButton(),
                       const SizedBox(height: 24),
 
                       // Already have an account

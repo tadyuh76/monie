@@ -32,6 +32,7 @@ import 'package:monie/features/authentication/domain/usecases/is_email_verified.
 import 'package:monie/features/authentication/domain/usecases/resend_verification_email.dart';
 import 'package:monie/features/authentication/domain/usecases/reset_password.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_in.dart';
+import 'package:monie/features/authentication/domain/usecases/sign_in_with_google.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_out.dart';
 import 'package:monie/features/authentication/domain/usecases/sign_up.dart';
 import 'package:monie/features/authentication/presentation/bloc/auth_bloc.dart';
@@ -115,6 +116,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(() => GetCurrentUser(sl()));
   sl.registerLazySingleton(() => SignUp(sl()));
   sl.registerLazySingleton(() => SignIn(sl()));
+  sl.registerLazySingleton(() => SignInWithGoogle(sl()));
   sl.registerLazySingleton(() => SignOut(sl()));
   sl.registerLazySingleton(() => ResendVerificationEmail(sl()));
   sl.registerLazySingleton(() => IsEmailVerified(sl()));
@@ -203,6 +205,7 @@ Future<void> configureDependencies() async {
     () => AuthBloc(
       getCurrentUser: sl(),
       signIn: sl(),
+      signInWithGoogle: sl(),
       signUp: sl(),
       signOut: sl(),
       resetPassword: sl(),

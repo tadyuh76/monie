@@ -90,3 +90,5 @@ class CheckEmailExistsEvent extends AuthEvent {
   @override
   List<Object> get props => [email];
 }
+
+class SignInWithGoogleEvent extends AuthEvent {}

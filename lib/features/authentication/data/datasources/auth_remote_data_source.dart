@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:monie/core/errors/failures.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/authentication/data/models/user_model.dart';
@@ -37,6 +39,9 @@ abstract class AuthRemoteDataSource {
   /// Checks if an email already exists and returns status with verification state
   /// Returns a map with 'exists' (bool) and 'verified' (bool) keys
   Future<Map<String, bool>> checkEmailExists({required String email});
+
+  /// Signs in with Google OAuth
+  Future<UserModel> signInWithGoogle();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -377,6 +382,107 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       // If there's any error, assume the email doesn't exist
       return {'exists': false, 'verified': false};
+    }
+  }
+
+  @override
+  Future<UserModel> signInWithGoogle() async {
+    try {
+      // Web client ID from Google Cloud Console - must match Supabase config
+      const webClientId = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
+      // iOS client ID from GoogleService-Info.plist
+      const iosClientId = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com';
+
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        clientId: iosClientId,
+        serverClientId: webClientId,
+        scopes: ['email', 'profile'],
+      );
+
+      // Sign out first to allow account selection
+      await googleSignIn.signOut();
+
+      final googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        throw const AuthFailure(message: 'Google sign in was cancelled');
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
+
+      if (idToken == null) {
+        throw const AuthFailure(message: 'Failed to get Google ID token');
+      }
+
+      debugPrint('🔐 Google Sign In: Got tokens, signing in with Supabase...');
+
+      // Sign in to Supabase with Google credentials
+      final response = await supabaseClient.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+
+      if (response.user == null) {
+        throw const AuthFailure(message: 'Failed to sign in with Google');
+      }
+
+      debugPrint('✅ Google Sign In: Supabase auth successful');
+
+      // Create a UserModel from the Supabase user
+      UserModel user = UserModel.fromSupabaseUser(response.user!);
+
+      // Ensure user data is in the users table
+      try {
+        final displayName = googleUser.displayName ?? 
+            googleUser.email.split('@').first;
+        final photoUrl = googleUser.photoUrl;
+
+        await supabaseClient.client.from('users').upsert({
+          'user_id': response.user!.id,
+          'email': googleUser.email,
+          'display_name': displayName,
+          'profile_image_url': photoUrl,
+          'color_mode': 'dark',
+          'language': 'en',
+        }, onConflict: 'user_id');
+
+        // Fetch the latest user data
+        final userData =
+            await supabaseClient.client
+                .from('users')
+                .select()
+                .eq('user_id', response.user!.id)
+                .single();
+
+        user = UserModel(
+          id: user.id,
+          email: user.email,
+          displayName: userData['display_name'] ?? displayName,
+          profileImageUrl: userData['profile_image_url'] ?? photoUrl,
+          colorMode: userData['color_mode'] ?? 'dark',
+          language: userData['language'] ?? 'en',
+          emailVerified: true, // Google accounts are always verified
+          createdAt: user.createdAt,
+          lastSignInAt: user.lastSignInAt,
+        );
+
+        debugPrint('✅ Google Sign In: User data saved to database');
+      } catch (e) {
+        debugPrint('⚠️ Google Sign In: Failed to save user data: $e');
+        // Continue with basic user data
+      }
+
+      return user;
+    } on AuthException catch (e) {
+      debugPrint('❌ Google Sign In Auth Error: ${e.message}');
+      throw AuthFailure(message: e.message);
+    } catch (e) {
+      debugPrint('❌ Google Sign In Error: $e');
+      if (e is AuthFailure) rethrow;
+      throw ServerFailure(message: 'Google sign in failed: $e');
     }
   }
 }

@@ -78,6 +78,9 @@ dependencies:
   # Speech recognition
   speech_to_text: ^7.0.0
 
+  # Google Sign-In
+  google_sign_in: ^6.2.1
+
   # Google Gemini AI
   google_generative_ai: ^0.4.6
   

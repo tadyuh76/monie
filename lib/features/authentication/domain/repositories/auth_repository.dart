@@ -44,4 +44,7 @@ abstract class AuthRepository {
   Future<Either<Failure, Map<String, bool>>> checkEmailExists({
     required String email,
   });
+
+  /// Signs in with Google OAuth
+  Future<Either<Failure, User>> signInWithGoogle();
 }

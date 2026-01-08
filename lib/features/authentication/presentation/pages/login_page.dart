@@ -10,6 +10,7 @@ import 'package:monie/features/authentication/presentation/pages/reset_password_
 import 'package:monie/features/authentication/presentation/pages/signup_page.dart';
 import 'package:monie/features/authentication/presentation/widgets/auth_button.dart';
 import 'package:monie/features/authentication/presentation/widgets/auth_input_field.dart';
+import 'package:monie/features/authentication/presentation/widgets/google_sign_in_button.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -170,6 +171,33 @@ class _LoginPageState extends State<LoginPage> {
                         isLoading: state is AuthLoading,
                         onPressed: _onLoginPressed,
                       ),
+                      const SizedBox(height: 20),
+
+                      // Divider with "or"
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(color: AppColors.divider),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'or',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(color: AppColors.divider),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Google Sign In Button
+                      const GoogleSignInButton(),
                       const SizedBox(height: 24),
 
                       // Sign Up Option
