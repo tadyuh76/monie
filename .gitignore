@@ -52,9 +52,6 @@ firebase_options.dart
 
 # env
 .env
-push-notify/push-notify-key.json
-push-notify/node_modules/
-node_modules/
 
 
 CLAUDE.md
