@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -120,8 +121,8 @@ class DailyReminderAlarmService {
         
         // Verify the notification was scheduled
         final pending = await _notifications.pendingNotificationRequests();
-        print('Notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
-        print('Total pending notifications: ${pending.length}');
+        debugPrint('Notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+        debugPrint('Total pending notifications: ${pending.length}');
       } catch (e) {
         // Fallback to inexact alarm (Android 12+ compatibility)
         await _notifications.zonedSchedule(
@@ -137,8 +138,8 @@ class DailyReminderAlarmService {
         
         // Verify the notification was scheduled
         final pending = await _notifications.pendingNotificationRequests();
-        print('Inexact notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
-        print('Total pending notifications: ${pending.length}');
+        debugPrint('Inexact notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+        debugPrint('Total pending notifications: ${pending.length}');
       }
     } catch (e) {
       rethrow;
@@ -150,7 +151,7 @@ class DailyReminderAlarmService {
     try {
       await _notifications.cancel(id);
       final pending = await _notifications.pendingNotificationRequests();
-      print('Cancelled alarm ID: $id, Remaining: ${pending.length}');
+      debugPrint('Cancelled alarm ID: $id, Remaining: ${pending.length}');
     } catch (e) {
       rethrow;
     }
@@ -160,7 +161,7 @@ class DailyReminderAlarmService {
   Future<void> cancelAllAlarms() async {
     try {
       await _notifications.cancelAll();
-      print('All alarms cancelled');
+      debugPrint('All alarms cancelled');
     } catch (e) {
       rethrow;
     }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/features/authentication/domain/usecases/check_email_exists.dart';
 import 'package:monie/features/authentication/domain/usecases/get_current_user.dart';
@@ -228,7 +229,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       notificationService.updateFCMToken();
     } catch (e) {
       // Don't fail authentication if FCM token update fails
-      print('Failed to update FCM token: $e');
+      debugPrint('Failed to update FCM token: $e');
     }
   }
 }

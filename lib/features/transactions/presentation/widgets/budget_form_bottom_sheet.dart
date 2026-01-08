@@ -227,7 +227,7 @@ class _BudgetFormBottomSheetState extends State<BudgetFormBottomSheet> {
                 title: Text(context.tr('budget_recurring')),
                 subtitle: Text(context.tr('budget_recurring_description')),
                 value: _isRecurring,
-                activeThumbColor: AppColors.primary,
+                activeColor: AppColors.primary,
                 contentPadding: EdgeInsets.zero,
                 onChanged: (value) {
                   setState(() {
@@ -239,7 +239,7 @@ class _BudgetFormBottomSheetState extends State<BudgetFormBottomSheet> {
               // Frequency dropdown (only if recurring)
               if (_isRecurring)
                 DropdownButtonFormField<String>(
-                  initialValue: _frequency,
+                  value: _frequency,
                   decoration: InputDecoration(
                     labelText: context.tr('budget_frequency'),
                     border: OutlineInputBorder(

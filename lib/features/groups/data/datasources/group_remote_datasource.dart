@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:monie/core/errors/exceptions.dart';
 import 'package:monie/features/groups/data/models/expense_group_model.dart';
 import 'package:monie/features/groups/data/models/group_debt_model.dart';
@@ -1249,7 +1250,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
       final recipientIds = userIds.where((id) => id != currentUserId).toList();
       
       if (recipientIds.isEmpty) {
-        print('No recipients after filtering current user');
+        debugPrint('No recipients after filtering current user');
         return;
       }
       
@@ -1267,11 +1268,11 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
               .toList();
 
       if (tokens.isEmpty) {
-        print('No FCM tokens found for notification');
+        debugPrint('No FCM tokens found for notification');
         return;
       }
 
-      print('Sending notification to ${tokens.length} device(s) (excluding self)');
+      debugPrint('Sending notification to ${tokens.length} device(s) (excluding self)');
 
       // Call edge function to send push notification
       await supabase.functions.invoke(
@@ -1284,10 +1285,10 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         },
       );
 
-      print('Push notification sent successfully');
+      debugPrint('Push notification sent successfully');
     } catch (e) {
       // Don't throw error - notification failure shouldn't block the main operation
-      print('Failed to send push notification: $e');
+      debugPrint('Failed to send push notification: $e');
     }
   }
 }

@@ -684,7 +684,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
       value: settings.notificationsEnabled,
-      activeThumbColor: AppColors.primary,
+      activeColor: AppColors.primary,
       onChanged: (value) {
         context.read<SettingsBloc>().add(
           UpdateNotificationsEvent(enabled: value),
