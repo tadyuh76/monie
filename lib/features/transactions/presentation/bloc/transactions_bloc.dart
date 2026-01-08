@@ -368,7 +368,7 @@ class TransactionsBloc extends Bloc<TransactionsEvent, TransactionsState> {
     filteredTransactions.sort((a, b) => b.date.compareTo(a.date));
 
     // Calculate totals - differentiate between income and expense based on category's is_income flag
-    // Since we don't have direct access to categories, we'll determine based on amount
+    // Since don't have direct access to categories, we'll determine based on amount
     // Positive amounts are income, negative are expenses
     final totalExpense = filteredTransactions
         .where((t) => t.amount < 0)

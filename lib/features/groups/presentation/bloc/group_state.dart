@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:monie/features/groups/data/models/group_member_model.dart';
 import 'package:monie/features/groups/domain/entities/expense_group.dart';
+import 'package:monie/features/groups/domain/entities/group_debt.dart';
+import 'package:monie/features/groups/domain/entities/group_member.dart';
 import 'package:monie/features/groups/domain/entities/group_transaction.dart';
 
 abstract class GroupState extends Equatable {
@@ -29,23 +30,36 @@ class GroupsLoaded extends GroupState {
 
 class SingleGroupLoaded extends GroupState {
   final ExpenseGroup group;
-  final Map<String, double>? debts;
+  final List<GroupDebt>? debts;
   final List<GroupTransaction>? transactions;
+  final List<GroupMember>? members;
+  final String? successMessage; // Optional success message to show
 
-  const SingleGroupLoaded({required this.group, this.debts, this.transactions});
+  const SingleGroupLoaded({
+    required this.group,
+    this.debts,
+    this.transactions,
+    this.members,
+    this.successMessage,
+  });
 
   @override
-  List<Object?> get props => [group, debts, transactions];
+  List<Object?> get props => [group, debts, transactions, members, successMessage];
 
   SingleGroupLoaded copyWith({
     ExpenseGroup? group,
-    Map<String, double>? debts,
+    List<GroupDebt>? debts,
     List<GroupTransaction>? transactions,
+    List<GroupMember>? members,
+    String? successMessage,
+    bool clearMessage = false, // Flag to explicitly clear the message
   }) {
     return SingleGroupLoaded(
       group: group ?? this.group,
       debts: debts ?? this.debts,
       transactions: transactions ?? this.transactions,
+      members: members ?? this.members,
+      successMessage: clearMessage ? null : (successMessage ?? this.successMessage),
     );
   }
 }
@@ -60,7 +74,7 @@ class GroupTransactionsLoaded extends GroupState {
 }
 
 class GroupMembersLoaded extends GroupState {
-  final List<GroupMemberModel> members;
+  final List<GroupMember> members;
 
   const GroupMembersLoaded({required this.members});
 

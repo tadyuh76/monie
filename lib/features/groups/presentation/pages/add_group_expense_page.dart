@@ -7,7 +7,7 @@ import 'package:monie/core/constants/transaction_categories.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/category_utils.dart';
-import 'package:monie/features/groups/data/models/group_member_model.dart';
+import 'package:monie/features/groups/domain/entities/group_member.dart';
 import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 import 'package:monie/features/groups/presentation/bloc/group_event.dart';
 import 'package:monie/features/groups/presentation/bloc/group_state.dart';
@@ -33,7 +33,7 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
 
   // Map of user IDs to display names for the UI
   Map<String, String> _memberDisplayNames = {};
-  List<GroupMemberModel> _groupMembers = [];
+  List<GroupMember> _groupMembers = [];
 
   // State for category selection
   bool _showCategorySelector = false;
@@ -134,6 +134,22 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
                 _paidBy = _groupMembers.first.userId;
               }
             });
+          } else if (state is SingleGroupLoaded && state.group.id == widget.groupId && state.members != null) {
+            // Also handle members from SingleGroupLoaded state
+            setState(() {
+              _groupMembers = state.members!.cast<GroupMember>();
+
+              // Create a map of user IDs to display names
+              _memberDisplayNames = {
+                for (var member in _groupMembers)
+                  member.userId: member.displayName ?? member.userId,
+              };
+
+              // Set the default payer if not already set
+              if (_paidBy.isEmpty && _groupMembers.isNotEmpty) {
+                _paidBy = _groupMembers.first.userId;
+              }
+            });
           }
         },
         child: BlocBuilder<GroupBloc, GroupState>(
@@ -144,7 +160,7 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
               return const Center(child: CircularProgressIndicator());
             }
 
-            // If we have members data, build the form
+            // If have members data, build the form
             if (_memberDisplayNames.isNotEmpty) {
               // Show category selector if activated, otherwise show the main form
               return _showCategorySelector
@@ -152,7 +168,7 @@ class _AddGroupExpensePageState extends State<AddGroupExpensePage> {
                   : _buildForm(context);
             }
 
-            // Request member data if we need it
+            // Request member data if need it
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_memberDisplayNames.isEmpty && state is! GroupLoading) {
                 context.read<GroupBloc>().add(

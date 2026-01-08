@@ -265,7 +265,7 @@ BEGIN
       FROM auth.users 
       WHERE id = user_id_var::uuid;
       
-      -- Insert user if we have the email
+      -- Insert user if have the email
       IF user_email IS NOT NULL THEN
         INSERT INTO users (user_id, email, profile_image_url, display_name)
         VALUES (user_id_var, user_email, avatar_url_param, display_name);

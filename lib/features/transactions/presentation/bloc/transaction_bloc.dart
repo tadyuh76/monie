@@ -209,7 +209,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       final spentAmount = budget.spentAmount;
       final percentage = spentAmount / budget.amount;
 
-      // Check if we need to send a notification at 50%, 80%, or 100% thresholds
+      // Check if need to send a notification at 50%, 80%, or 100% thresholds
       if (percentage >= 0.5) {
         await createBudgetNotification(
           userId: transaction.userId,

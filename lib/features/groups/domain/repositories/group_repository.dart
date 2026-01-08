@@ -1,8 +1,9 @@
 import 'package:dartz/dartz.dart';
 import 'package:monie/core/errors/failures.dart';
 import 'package:monie/features/groups/domain/entities/expense_group.dart';
+import 'package:monie/features/groups/domain/entities/group_debt.dart';
+import 'package:monie/features/groups/domain/entities/group_member.dart';
 import 'package:monie/features/groups/domain/entities/group_transaction.dart';
-import 'package:monie/features/groups/data/models/group_member_model.dart';
 
 abstract class GroupRepository {
   /// Get all groups that the current user is a member of
@@ -27,7 +28,8 @@ abstract class GroupRepository {
   /// Delete a group
   Future<Either<Failure, bool>> deleteGroup(String groupId);
 
-  /// Add a member to a group
+  /// Add a member to a group by email
+  /// Returns true if user exists and was added, false if user not found
   Future<Either<Failure, bool>> addMember({
     required String groupId,
     required String email,
@@ -48,7 +50,7 @@ abstract class GroupRepository {
   });
 
   /// Calculate debts for a group
-  Future<Either<Failure, Map<String, double>>> calculateDebts(String groupId);
+  Future<Either<Failure, List<GroupDebt>>> calculateDebts(String groupId);
 
   /// Mark a group as settled
   Future<Either<Failure, bool>> settleGroup(String groupId);
@@ -58,9 +60,19 @@ abstract class GroupRepository {
     required String groupId,
     required String title,
     required double amount,
-    required String description,
+    String? description,
     required DateTime date,
-    required String paidBy,
+    String? categoryName,
+    String? color,
+  });
+
+  /// Add a new income to a group
+  Future<Either<Failure, GroupTransaction>> addGroupIncome({
+    required String groupId,
+    required String title,
+    required double amount,
+    String? description,
+    required DateTime date,
     String? categoryName,
     String? color,
   });
@@ -77,7 +89,7 @@ abstract class GroupRepository {
   });
 
   /// Get members of a group with their details
-  Future<Either<Failure, List<GroupMemberModel>>> getGroupMembers(
+  Future<Either<Failure, List<GroupMember>>> getGroupMembers(
     String groupId,
   );
 }

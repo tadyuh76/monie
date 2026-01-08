@@ -30,7 +30,7 @@ class AccountSummaryWidget extends StatelessWidget {
         .where((t) => t.amount > 0)
         .fold(0, (sum, t) => sum + t.amount);
 
-    // For expenses, we want to display the absolute value
+    // For expenses, want to display the absolute value
     final double totalExpense = transactions
         .where((t) => t.amount < 0)
         .fold(0, (sum, t) => sum + t.amount.abs());

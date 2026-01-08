@@ -6,7 +6,7 @@ import 'package:monie/features/groups/domain/repositories/group_repository.dart'
 class SettleGroup {
   final GroupRepository repository;
 
-  SettleGroup({required this.repository});
+  SettleGroup(this.repository);
 
   Future<Either<Failure, bool>> call(GroupIdParams params) async {
     return await repository.settleGroup(params.groupId);

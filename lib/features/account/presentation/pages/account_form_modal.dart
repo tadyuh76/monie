@@ -312,7 +312,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: DropdownButtonFormField<String>(
-                        value: _accountType,
+                        initialValue: _accountType,
                         decoration: const InputDecoration(
                           labelText: 'Account Type',
                           border: OutlineInputBorder(),
@@ -403,7 +403,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
                               double.tryParse(_controllers['balance']!.text) ??
                               0;
 
-                          // Make sure we have a valid account ID before creating a transaction
+                          // Make sure have a valid account ID before creating a transaction
                           if (balance > 0 && state.account.accountId != null) {
                             try {
                               final transactionBloc =
@@ -694,7 +694,7 @@ class _AccountFormModalState extends State<AccountFormModal> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(
-        value: _controllers['currency']!.text,
+        initialValue: _controllers['currency']!.text,
         decoration: const InputDecoration(
           labelText: 'Currency',
           border: OutlineInputBorder(),

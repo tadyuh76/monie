@@ -29,6 +29,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   late TabController _tabController;
   bool _isLoading = false;
   bool _dataLoaded = false;
+  // bool _membersLoadRequested = false;
   String?
   _lastShownMessage; // Track the last shown message to prevent duplicates
 
@@ -54,18 +55,29 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
     setState(() {
       _isLoading = true;
+      // _membersLoadRequested = false; // Reset flag when loading new data
     });
 
-    // Load group details
-    context.read<GroupBloc>().add(GetGroupByIdEvent(groupId: widget.groupId));
+    final bloc = context.read<GroupBloc>();
+    
+    // Only dispatch GetGroupByIdEvent - it will auto-dispatch child events
+    bloc.add(GetGroupByIdEvent(groupId: widget.groupId));
 
-    // We'll let the bloc handle the transaction loading
-    // The transactions will be loaded by the bloc after it gets the group
-
-    // Mark as loaded
-    _dataLoaded = true;
-
+    // Don't mark as loaded yet - wait for data to arrive in the listener
     // The loading flag will be reset in the listener when data arrives
+  }
+
+  void _refreshAllData() {
+    setState(() {
+      _isLoading = true;
+      // _membersLoadRequested = false;
+      _dataLoaded = false;
+    });
+
+    final bloc = context.read<GroupBloc>();
+    
+    // Only dispatch GetGroupByIdEvent - it will auto-dispatch child events
+    bloc.add(GetGroupByIdEvent(groupId: widget.groupId));
   }
 
   void _loadDataForCurrentTab({bool forceRefresh = false}) {
@@ -104,7 +116,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
             GetGroupByIdEvent(groupId: widget.groupId),
           );
         }
-        // No need to load separate members data since we use group.members
+        // No need to load separate members data since use group.members
         break;
       case 2: // Debts tab
         // Just reload the group if needed
@@ -123,7 +135,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Only reload data if we haven't loaded it yet or if we're forcing a refresh
+    // Only reload data if haven't loaded it yet or if we're forcing a refresh
     if (!_dataLoaded) {
       _loadDataForCurrentTab(forceRefresh: false);
     }
@@ -170,6 +182,16 @@ class _GroupDetailPageState extends State<GroupDetailPage>
             return Text(context.tr('groups_details'));
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              _refreshAllData();
+            },
+            color: isDarkMode ? Colors.white : Colors.black87,
+            tooltip: 'Refresh',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: isDarkMode ? Colors.white : Colors.black87,
@@ -235,16 +257,33 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               _isLoading = false;
             });
 
-            // The bloc will automatically refresh data, so we don't need to manually trigger it here
+            // The bloc will automatically refresh data, so don't need to manually trigger it here
           } else if (state is SingleGroupLoaded &&
               state.group.id == widget.groupId) {
-            // Reset loading flag when we receive updated group data
+            // Reset loading flag when receive updated group data
             setState(() {
               _isLoading = false;
               _dataLoaded = true;
             });
+            
+            // Show success message if present
+            if (state.successMessage != null && _lastShownMessage != state.successMessage) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.successMessage!)),
+              );
+              _lastShownMessage = state.successMessage;
+              
+              // Reset after 3 seconds
+              Timer(Duration(seconds: 3), () {
+                if (mounted) {
+                  setState(() {
+                    _lastShownMessage = null;
+                  });
+                }
+              });
+            }
           } else if (state is GroupMembersLoaded) {
-            // Reset loading flag when we receive members data
+            // Reset loading flag when receive members data
             setState(() {
               _isLoading = false;
             });
@@ -252,11 +291,11 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         },
         builder: (context, state) {
           if (state is GroupLoading && !_dataLoaded) {
-            // Only show loading indicator if we don't have any data yet
+            // Only show loading indicator if don't have any data yet
             return const Center(child: CircularProgressIndicator());
           } else if (state is SingleGroupLoaded &&
               state.group.id == widget.groupId) {
-            // Show tab view when we have the correct group data
+            // Show tab view when have the correct group data
             return TabBarView(
               controller: _tabController,
               children: [
@@ -266,30 +305,34 @@ class _GroupDetailPageState extends State<GroupDetailPage>
               ],
             );
           } else if (state is SingleGroupLoaded) {
-            // If we have group data but for a different group, reload correct data
+            // If have group data but for a different group, reload correct data
             if (!_isLoading) {
-              setState(() {
-                _isLoading = true;
-              });
               // Use Future.microtask to avoid calling setState during build
               Future.microtask(() {
-                if (context.mounted) {
-                  context.read<GroupBloc>().add(
-                    GetGroupByIdEvent(groupId: widget.groupId),
-                  );
+                if (mounted) {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  if (context.mounted) {
+                    context.read<GroupBloc>().add(
+                      GetGroupByIdEvent(groupId: widget.groupId),
+                    );
+                  }
                 }
               });
             }
             return const Center(child: CircularProgressIndicator());
           } else {
-            // If we have no valid state, trigger data loading (only if not already loading)
+            // If have no valid state, trigger data loading (only if not already loading)
             if (!_isLoading && !_dataLoaded) {
-              setState(() {
-                _isLoading = true;
-              });
               // Use Future.microtask to avoid calling setState during build
               Future.microtask(() {
-                _loadAllData();
+                if (mounted) {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  _loadAllData();
+                }
               });
             }
             return const Center(child: CircularProgressIndicator());
@@ -334,7 +377,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
     return BlocBuilder<GroupBloc, GroupState>(
       buildWhen: (previous, current) {
-        // Only rebuild if we have new transaction data for this group
+        // Only rebuild if have new transaction data for this group
         if (current is SingleGroupLoaded &&
             current.group.id == widget.groupId) {
           if (previous is SingleGroupLoaded &&
@@ -462,7 +505,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${context.tr('groups_members')}: ${group.members.length}',
+                  '${context.tr('groups_members')}: ${group.memberCount}',
                   style: textTheme.bodyMedium?.copyWith(
                     color:
                         isDarkMode
@@ -472,6 +515,42 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                 ),
               ],
             ),
+            if (group.memberCount > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    Icons.person_outline,
+                    size: 16,
+                    color:
+                        isDarkMode
+                            ? AppColors.textSecondary
+                            : Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${context.tr('groups_per_person')}: ',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color:
+                          isDarkMode
+                              ? AppColors.textSecondary
+                              : Colors.grey.shade600,
+                    ),
+                  ),
+                  Text(
+                    (group.totalAmount / group.memberCount) >= 0
+                        ? '\$${(group.totalAmount / group.memberCount).toStringAsFixed(2)}'
+                        : '-\$${(group.totalAmount.abs() / group.memberCount).toStringAsFixed(2)}',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: (group.totalAmount / group.memberCount) >= 0
+                          ? Colors.green
+                          : Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             // Actions section
             if (!group.isSettled) const SizedBox(height: 24),
 
@@ -680,20 +759,9 @@ class _GroupDetailPageState extends State<GroupDetailPage>
             String? paidByName;
 
             // Check if transaction has user display name from the join
-            if (transaction.paidBy.isNotEmpty) {
-              // First try to get the name from the transaction's user data
-              // The data source joins with users table to get display_name
-              if (transaction is Map<String, dynamic> &&
-                  transaction['users'] != null &&
-                  transaction['users']['display_name'] != null) {
-                paidByName = transaction['users']['display_name'];
-              } else {
-                // Use the helper method to get the display name
-                paidByName = _getDisplayNameForUserId(
-                  transaction.paidBy,
-                  group,
-                );
-              }
+            if (transaction.paidByUserId.isNotEmpty) {
+              // Use the paidByUserName from the transaction model
+              paidByName = transaction.paidByUserName;
             }
 
             children.add(
@@ -702,7 +770,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                 paidByName: paidByName,
                 showApprovalButtons:
                     _isUserAdmin(group) &&
-                    transaction.approvalStatus == 'pending',
+                    transaction.status == 'pending',
                 onTap: () {
                   // Show transaction details dialog
                   _showTransactionDetailsDialog(
@@ -735,47 +803,122 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
-    // Use the group members data directly instead of requiring a separate state
-    // Parse the members from the group.members list
-    final List<Map<String, String>> parsedMembers = [];
-
-    for (var member in group.members) {
-      // Extract user ID from member string if it contains it (format: "Name (userId)")
-      final match = RegExp(r'^(.+?)\s*\(([^)]+)\)$').firstMatch(member);
-      if (match != null) {
-        final displayName = match.group(1)?.trim() ?? member;
-        final userId = match.group(2);
-        if (userId != null) {
-          parsedMembers.add({
-            'displayName': displayName,
-            'userId': userId,
-            'role': userId == group.adminId ? 'admin' : 'member',
-          });
-        }
-      } else {
-        // If no ID in parentheses, use the member string as both ID and name
-        parsedMembers.add({
-          'displayName': member,
-          'userId': member,
-          'role': member == group.adminId ? 'admin' : 'member',
-        });
-      }
-    }
-
     final isCurrentUserAdmin = _isUserAdmin(group);
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: parsedMembers.length,
-      itemBuilder: (context, index) {
-        final member = parsedMembers[index];
-        final displayName = member['displayName']!;
-        final userId = member['userId']!;
-        final role = member['role']!;
+    return BlocConsumer<GroupBloc, GroupState>(
+      listener: (context, state) {
+        // Reset flag when members are loaded successfully
+        if (state is SingleGroupLoaded &&
+            state.group.id == widget.groupId &&
+            state.members != null) {
+          setState(() {
+            // _membersLoadRequested = false;
+          });
+        }
+      },
+      buildWhen: (previous, current) {
+        // Rebuild when have SingleGroupLoaded with this group's data
+        if (current is SingleGroupLoaded && current.group.id == widget.groupId) {
+          if (previous is SingleGroupLoaded && previous.group.id == widget.groupId) {
+            // Only rebuild if members changed
+            return previous.members != current.members;
+          }
+          return true;
+        }
+        // Also rebuild for loading and error states
+        return current is GroupLoading || current is GroupError || current is GroupMembersLoaded;
+      },
+      builder: (context, state) {
+        // Show loading while fetching members (only if don't have any data yet)
+        if (state is GroupLoading && !_dataLoaded) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-        final isCurrentUser = _isCurrentUser(userId);
-        final canManageMember = isCurrentUserAdmin && !isCurrentUser;
-        final isAdmin = role == 'admin' || group.adminId == userId;
+        // Show error if something went wrong
+        if (state is GroupError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  state.message,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<GroupBloc>().add(
+                          GetGroupMembersEvent(groupId: widget.groupId),
+                        );
+                  },
+                  child: Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Get members from SingleGroupLoaded state or GroupMembersLoaded
+        List<dynamic> members = [];
+        
+        if (state is SingleGroupLoaded && state.group.id == widget.groupId) {
+          members = state.members ?? [];
+          // If members is null, keep showing loading - don't show empty state
+          if (state.members == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+        } else if (state is GroupMembersLoaded) {
+          members = state.members;
+        } else {
+          // No group data loaded yet
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (members.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.group,
+                  size: 64,
+                  color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('groups_no_members_yet'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: members.length,
+          itemBuilder: (context, index) {
+            final member = members[index];
+            final displayName = member.displayName ?? member.email;
+            final userId = member.userId;
+            final role = member.role;
+
+            final isCurrentUser = _isCurrentUser(userId);
+            final canManageMember = isCurrentUserAdmin && !isCurrentUser;
+            final isAdmin = role == 'admin' || group.adminId == userId;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -941,6 +1084,8 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         );
       },
     );
+      },
+    );
   }
 
   // Helper method to check if the current user is an admin of the group
@@ -948,7 +1093,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     final supabase = SupabaseClientManager.instance.client;
     final currentUserId = supabase.auth.currentUser?.id;
 
-    // If we can't determine current user, we assume they're not admin
+    // If can't determine current user, assume they're not admin
     if (currentUserId == null) return false;
 
     // Check if user is the group's admin
@@ -1084,14 +1229,14 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                     title: Text(context.tr('groups_expense_status')),
                     subtitle: _buildStatusBadge(
                       context,
-                      transaction.approvalStatus,
+                      transaction.status,
                     ),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
 
                   // Description if available
-                  if (transaction.description.isNotEmpty) ...[
+                  if (transaction.description?.isNotEmpty ?? false) ...[
                     const Divider(),
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
@@ -1104,7 +1249,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
                     ),
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(transaction.description),
+                      child: Text(transaction.description ?? ''),
                     ),
                   ],
                 ],
@@ -1171,7 +1316,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
     return BlocBuilder<GroupBloc, GroupState>(
       buildWhen: (previous, current) {
-        // Only rebuild if we have new transaction data for this group
+        // Only rebuild if have new transaction data for this group
         if (current is SingleGroupLoaded &&
             current.group.id == widget.groupId) {
           if (previous is SingleGroupLoaded &&
@@ -1219,12 +1364,12 @@ class _GroupDetailPageState extends State<GroupDetailPage>
       netBalances[userId] = 0.0;
     }
 
-    // If we don't have proper user ID mapping, try to build it from transactions
+    // If don't have proper user ID mapping, try to build it from transactions
     if (transactions != null && transactions.isNotEmpty) {
       for (var transaction in transactions) {
-        final payerId = transaction.paidBy;
-        if (payerId != null && !userIdToName.containsKey(payerId)) {
-          final displayName = _getDisplayNameForUserId(payerId, group);
+        final payerId = transaction.paidByUserId;
+        if (payerId.isNotEmpty && !userIdToName.containsKey(payerId)) {
+          final displayName = transaction.paidByUserName;
           userIdToName[payerId] = displayName;
           netBalances[payerId] = 0.0;
         }
@@ -1234,8 +1379,8 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     // Calculate net balances based on approved transactions
     if (transactions != null && transactions.isNotEmpty) {
       for (var transaction in transactions) {
-        if (transaction.approvalStatus == 'approved') {
-          final payerId = transaction.paidBy;
+        if (transaction.status == 'approved') {
+          final payerId = transaction.paidByUserId;
           final amount = transaction.amount; // Use the actual signed amount
           final memberCount = userIdToName.length;
 
@@ -1721,45 +1866,25 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   Map<String, String> _createUserIdToNameMapping(ExpenseGroup group) {
     Map<String, String> userIdToName = {};
 
-    for (var member in group.members) {
-      // Extract user ID from member string if it contains it (format: "Name (userId)")
-      final match = RegExp(r'^(.+?)\s*\(([^)]+)\)$').firstMatch(member);
-      if (match != null) {
-        final displayName = match.group(1)?.trim() ?? member;
-        final userId = match.group(2);
-        if (userId != null) {
-          userIdToName[userId] = displayName;
-        }
-      } else {
-        // If no ID in parentheses, the member string might be the display name
-        // In this case, we'll store it but it might not match transaction user IDs
-        userIdToName[member] = member;
-      }
-    }
-
+    // Members are stored separately now, so return empty map
+    // In production, you'd get this from GroupMembersLoaded state
     return userIdToName;
   }
 
   // Helper method to get display name for a user ID
-  String _getDisplayNameForUserId(String userId, ExpenseGroup group) {
-    final userIdToName = _createUserIdToNameMapping(group);
+  // String _getDisplayNameForUserId(String userId, ExpenseGroup group) {
+  //   // In production, this would query the members from state
+  //   // For now, just return user ID or check if it's current user
 
-    // First try the mapping
-    String? displayName = userIdToName[userId];
+  //   // Check if it's the current user
+  //   final supabase = SupabaseClientManager.instance.client;
+  //   final currentUserId = supabase.auth.currentUser?.id;
 
-    if (displayName != null) {
-      return displayName;
-    }
+  //   if (userId == currentUserId) {
+  //     return 'You';
+  //   }
 
-    // Check if it's the current user
-    final supabase = SupabaseClientManager.instance.client;
-    final currentUserId = supabase.auth.currentUser?.id;
-
-    if (userId == currentUserId) {
-      return 'You';
-    }
-
-    // Last resort: use a shortened user ID
-    return 'User ${userId.substring(0, 8)}...';
-  }
+  //   // Last resort: use a shortened user ID
+  //   return 'User ${userId.substring(0, 8)}...';
+  // }
 }

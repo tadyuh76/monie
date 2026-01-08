@@ -50,7 +50,7 @@ class _AccountsSectionWidgetState extends State<AccountsSectionWidget> {
         final updatedSelectedAcc = account.copyWith(pinned: true);
         accountBloc.add(UpdateAccountEvent(updatedSelectedAcc));
       }
-      // If account is already pinned, we don't unpin it since we need one account pinned
+      // If account is already pinned, don't unpin it since need one account pinned
     } catch (e) {
       // Bloc might be closed, ignore the error
       // Consider showing a snackbar or toast message if needed

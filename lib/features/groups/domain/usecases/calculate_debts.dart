@@ -1,14 +1,15 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:monie/core/errors/failures.dart';
+import 'package:monie/features/groups/domain/entities/group_debt.dart';
 import 'package:monie/features/groups/domain/repositories/group_repository.dart';
 
 class CalculateDebts {
   final GroupRepository repository;
 
-  CalculateDebts({required this.repository});
+  CalculateDebts(this.repository);
 
-  Future<Either<Failure, Map<String, double>>> call(
+  Future<Either<Failure, List<GroupDebt>>> call(
     GroupIdParams params,
   ) async {
     return await repository.calculateDebts(params.groupId);

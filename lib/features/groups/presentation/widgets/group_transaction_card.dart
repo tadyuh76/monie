@@ -143,7 +143,7 @@ class GroupTransactionCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      _buildStatusBadge(context, transaction.approvalStatus),
+                      _buildStatusBadge(context, transaction.status),
                     ],
                   ),
                 ],
@@ -152,11 +152,11 @@ class GroupTransactionCard extends StatelessWidget {
           ),
 
           // Description if available
-          if (transaction.description.isNotEmpty)
+          if (transaction.description?.isNotEmpty ?? false)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
               child: Text(
-                transaction.description,
+                transaction.description ?? '',
                 style: textTheme.bodyMedium?.copyWith(
                   color: isDarkMode ? AppColors.textSecondary : Colors.black87,
                 ),
@@ -166,7 +166,7 @@ class GroupTransactionCard extends StatelessWidget {
             ),
 
           // Approval buttons if transaction is pending and showApprovalButtons is true
-          if (showApprovalButtons && transaction.approvalStatus == 'pending')
+          if (showApprovalButtons && transaction.status == 'pending')
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: Row(
@@ -174,7 +174,7 @@ class GroupTransactionCard extends StatelessWidget {
                 children: [
                   // Reject button
                   OutlinedButton(
-                    onPressed: () => onApprove?.call(transaction.id, false),
+                    onPressed: () => onApprove?.call(transaction.transactionId, false),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
@@ -187,7 +187,7 @@ class GroupTransactionCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   // Approve button
                   ElevatedButton(
-                    onPressed: () => onApprove?.call(transaction.id, true),
+                    onPressed: () => onApprove?.call(transaction.transactionId, true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,

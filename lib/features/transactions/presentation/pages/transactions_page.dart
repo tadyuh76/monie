@@ -155,7 +155,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       );
     }
 
-    // If we can't find the transaction, don't continue
+    // If can't find the transaction, don't continue
     if (transactionToDelete == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -352,7 +352,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         final sortedDates =
                             groupedTransactions.keys.toList()..sort((a, b) {
                               // Since transactions are already sorted by date,
-                              // we can use the first transaction's date in each group for comparison
+                              // can use the first transaction's date in each group for comparison
                               final dateA = groupedTransactions[a]!.first.date;
                               final dateB = groupedTransactions[b]!.first.date;
                               return dateB.compareTo(dateA); // Newest first

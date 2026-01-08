@@ -176,7 +176,7 @@ class _TransactionFormState extends State<TransactionForm> {
 
   @override
   Widget build(BuildContext context) {
-    // Make sure we have a default category selected
+    // Make sure have a default category selected
     if (_selectedCategory == null) {
       final categories =
           _isIncome
@@ -446,7 +446,7 @@ class _TransactionFormState extends State<TransactionForm> {
             : TransactionCategories.expenseCategories;
 
     return DropdownButtonFormField<String>(
-      value: _selectedCategoryName,
+      initialValue: _selectedCategoryName,
       isExpanded: true,
       icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
       decoration: InputDecoration(

@@ -724,7 +724,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                     itemBuilder: (context, index) {
                       final transaction = _filteredTransactions[index];
 
-                      // For this page, we already know the account name
+                      // For this page, already know the account name
                       String accountName = account.name;
 
                       // Get budget name if available
@@ -779,7 +779,7 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
     AccountFormModal.show(context, account: homeAccount, isEdit: true).then((
       _,
     ) {
-      // When the modal is closed, ensure we have the latest data
+      // When the modal is closed, ensure have the latest data
       if (account.accountId != null) {
         if (!context.mounted) return;
 

@@ -31,7 +31,7 @@ class _NotificationsModalState extends State<NotificationsModal> {
   @override
   void initState() {
     super.initState();
-    // Only load notifications if we don't already have them
+    // Only load notifications if don't already have them
     final currentState = context.read<NotificationBloc>().state;
     if (currentState is! NotificationsLoaded) {
       context.read<NotificationBloc>().add(LoadNotifications(widget.userId));

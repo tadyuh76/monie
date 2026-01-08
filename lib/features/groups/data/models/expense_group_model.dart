@@ -6,10 +6,12 @@ class ExpenseGroupModel extends ExpenseGroup {
     required super.adminId,
     required super.name,
     super.description,
-    required super.members,
-    required super.totalAmount,
     required super.isSettled,
     required super.createdAt,
+    required super.memberCount,
+    required super.totalAmount,
+    required super.activeAmount,
+    required super.settledAmount,
   });
 
   factory ExpenseGroupModel.fromJson(Map<String, dynamic> json) {
@@ -18,14 +20,14 @@ class ExpenseGroupModel extends ExpenseGroup {
       adminId: json['admin_id'],
       name: json['name'],
       description: json['description'],
-      // Members will be loaded separately
-      members: const [],
-      // These will be calculated separately
-      totalAmount: 0.0,
       isSettled: json['is_settled'] ?? false,
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
       ),
+      memberCount: json['member_count'] ?? 0,
+      totalAmount: (json['total_amount'] ?? 0).toDouble(),
+      activeAmount: (json['active_amount'] ?? 0).toDouble(),
+      settledAmount: (json['settled_amount'] ?? 0).toDouble(),
     );
   }
 
@@ -44,20 +46,25 @@ class ExpenseGroupModel extends ExpenseGroup {
     String? adminId,
     String? name,
     String? description,
-    List<String>? members,
-    double? totalAmount,
     bool? isSettled,
     DateTime? createdAt,
+    int? memberCount,
+    double? totalAmount,
+    double? activeAmount,
+    double? settledAmount,
   }) {
     return ExpenseGroupModel(
       id: id ?? this.id,
       adminId: adminId ?? this.adminId,
       name: name ?? this.name,
       description: description ?? this.description,
-      members: members ?? this.members,
-      totalAmount: totalAmount ?? this.totalAmount,
       isSettled: isSettled ?? this.isSettled,
       createdAt: createdAt ?? this.createdAt,
+      memberCount: memberCount ?? this.memberCount,
+      totalAmount: totalAmount ?? this.totalAmount,
+      activeAmount: activeAmount ?? this.activeAmount,
+      settledAmount: settledAmount ?? this.settledAmount,
     );
   }
 }
+

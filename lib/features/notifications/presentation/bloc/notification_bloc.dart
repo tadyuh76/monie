@@ -65,7 +65,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     try {
       await _markNotificationRead(event.notificationId);
 
-      // Update current state if we have notifications loaded
+      // Update current state if have notifications loaded
       if (state is NotificationsLoaded) {
         final currentState = state as NotificationsLoaded;
         final updatedNotifications =
@@ -102,7 +102,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     try {
       await _repository.markAllAsRead(event.userId);
 
-      // Update current state if we have notifications loaded
+      // Update current state if have notifications loaded
       if (state is NotificationsLoaded) {
         final currentState = state as NotificationsLoaded;
         final updatedNotifications =
@@ -163,7 +163,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     try {
       await _repository.deleteNotification(event.notificationId);
 
-      // Update current state if we have notifications loaded
+      // Update current state if have notifications loaded
       if (state is NotificationsLoaded) {
         final currentState = state as NotificationsLoaded;
         final updatedNotifications =
