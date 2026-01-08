@@ -6,6 +6,7 @@ import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_event.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_state.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CommandResultWidget extends StatelessWidget {
   const CommandResultWidget({super.key});
@@ -249,10 +250,200 @@ class CommandResultWidget extends StatelessWidget {
   }
 
   Widget _buildError(BuildContext context, String message, String? originalText) {
+    // Check if this is a service unavailable error
+    final isServiceUnavailable = message.toLowerCase().contains('service') &&
+        message.toLowerCase().contains('not available');
+
+    if (isServiceUnavailable) {
+      return _buildServiceUnavailableError(context, message);
+    }
+
     return _buildResultText(
       context,
       originalText ?? 'Error occurred',
       message,
+    );
+  }
+
+  Widget _buildServiceUnavailableError(BuildContext context, String message) {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 350),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.orange,
+              width: 2,
+            ),
+          ),
+          child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.warning_amber_rounded,
+              size: 48,
+              color: Colors.orange,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Speech Recognition Unavailable',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Speech recognition requires special permissions on Vivo/Oppo devices.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.cardDark,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'For Vivo/Oppo Users:',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  _buildTroubleshootingStep('1', 'Allow microphone permission'),
+                  _buildTroubleshootingStep('2', 'Enable auto-start for Monie'),
+                  _buildTroubleshootingStep('3', 'Disable battery optimization'),
+                  _buildTroubleshootingStep('4', 'Restart app completely'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      // Retry speech recognition
+                      context.read<SpeechBloc>().add(const StartListeningEvent());
+                    },
+                    icon: const Icon(
+                      Icons.refresh,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      'Retry',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      // Open Play Store to install/update Google app
+                      final uri = Uri.parse(
+                          'https://play.google.com/store/apps/details?id=com.google.android.googlequicksearchbox');
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    icon: const Icon(
+                      Icons.download,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      'Get App',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTroubleshootingStep(String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -306,75 +497,87 @@ class CommandResultWidget extends StatelessWidget {
 
   Widget _buildPermissionRequired(
       BuildContext context, PermissionRequired state) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.primary,
-          width: 2,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            state.isPermanentlyDenied ? Icons.settings : Icons.mic_off,
-            size: 64,
+    return SingleChildScrollView(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        constraints: const BoxConstraints(maxHeight: 400),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
             color: AppColors.primary,
+            width: 2,
           ),
-          const SizedBox(height: 16),
-          Text(
-            state.isPermanentlyDenied
-                ? 'Permission Required'
-                : 'Microphone Access Needed',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              state.isPermanentlyDenied ? Icons.settings : Icons.mic_off,
+              size: 48,
+              color: AppColors.primary,
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            state.message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
+            const SizedBox(height: 12),
+            Text(
+              state.isPermanentlyDenied
+                  ? 'Permission Required'
+                  : 'Microphone Access',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                if (state.isPermanentlyDenied) {
-                  context.read<SpeechBloc>().add(const OpenAppSettingsEvent());
-                } else {
-                  context
-                      .read<SpeechBloc>()
-                      .add(const RequestPermissionEvent());
-                }
-              },
-              icon: Icon(
-                state.isPermanentlyDenied ? Icons.settings : Icons.mic,
-              ),
-              label: Text(
-                state.isPermanentlyDenied ? 'Open Settings' : 'Grant Permission',
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 8),
+            Flexible(
+              child: Text(
+                state.isPermanentlyDenied
+                    ? 'Enable microphone in app settings to use voice commands.'
+                    : 'Grant microphone permission to add transactions by voice.',
+                textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  if (state.isPermanentlyDenied) {
+                    context.read<SpeechBloc>().add(const OpenAppSettingsEvent());
+                  } else {
+                    context
+                        .read<SpeechBloc>()
+                        .add(const RequestPermissionEvent());
+                  }
+                },
+                icon: Icon(
+                  state.isPermanentlyDenied ? Icons.settings : Icons.mic,
+                  size: 20,
+                ),
+                label: Text(
+                  state.isPermanentlyDenied ? 'Open Settings' : 'Grant Permission',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

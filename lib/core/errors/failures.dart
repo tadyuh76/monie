@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import 'package:monie/core/services/device_info_service.dart';
+import 'package:monie/core/services/permission_service.dart';
 
 /// Base failure class
 abstract class Failure extends Equatable {
@@ -7,7 +9,7 @@ abstract class Failure extends Equatable {
   const Failure({required this.message});
 
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [message];
 }
 
 /// Server failure when API requests fail
@@ -89,4 +91,80 @@ class LocaleNotAvailableFailure extends Failure {
 
   @override
   List<Object> get props => [message, requestedLocale, fallbackLocale];
+}
+
+// ===== Device-Specific Failures =====
+
+/// Google Speech Services (Google app) is not installed
+class GoogleSpeechServicesMissingFailure extends Failure {
+  final DeviceCategory? deviceCategory;
+
+  const GoogleSpeechServicesMissingFailure({
+    this.deviceCategory,
+  }) : super(
+            message:
+                'Google app is required for speech recognition. Please install it from the Play Store.');
+
+  @override
+  List<Object?> get props => [message, deviceCategory];
+}
+
+/// Google Speech Services is outdated
+class GoogleSpeechServicesOutdatedFailure extends Failure {
+  final String? currentVersion;
+  final String? requiredVersion;
+
+  const GoogleSpeechServicesOutdatedFailure({
+    this.currentVersion,
+    this.requiredVersion,
+  }) : super(
+            message:
+                'Your Google app version is outdated. Please update it from the Play Store.');
+
+  @override
+  List<Object?> get props => [message, currentVersion, requiredVersion];
+}
+
+/// Battery optimization is blocking speech recognition
+class BatteryOptimizationBlockingFailure extends Failure {
+  final DeviceCategory deviceCategory;
+
+  const BatteryOptimizationBlockingFailure({
+    required this.deviceCategory,
+  }) : super(
+            message:
+                'Battery optimization is preventing speech recognition from working. Please disable it in settings.');
+
+  @override
+  List<Object> get props => [message, deviceCategory];
+}
+
+/// Auto-start is disabled (OEM-specific)
+class AutoStartDisabledFailure extends Failure {
+  final DeviceCategory deviceCategory;
+
+  const AutoStartDisabledFailure({
+    required this.deviceCategory,
+  }) : super(
+            message:
+                'Auto-start permission is required for speech recognition to work in background. Please enable it in settings.');
+
+  @override
+  List<Object> get props => [message, deviceCategory];
+}
+
+/// Manufacturer-specific restrictions detected
+class ManufacturerRestrictionFailure extends Failure {
+  final DeviceCategory deviceCategory;
+  final List<PermissionIssue> issues;
+
+  const ManufacturerRestrictionFailure({
+    required this.deviceCategory,
+    required this.issues,
+  }) : super(
+            message:
+                'Your device requires additional permissions for speech recognition to work.');
+
+  @override
+  List<Object> get props => [message, deviceCategory, issues];
 }

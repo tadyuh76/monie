@@ -724,45 +724,40 @@ class _SettingsPageState extends State<SettingsPage> {
                   : Colors.black54,
         ),
       ),
-      trailing: DropdownButton<ThemeMode>(
-        value: settings.themeMode,
-        dropdownColor:
-            Theme.of(context).brightness == Brightness.dark
-                ? AppColors.surface
-                : Colors.white,
-        underline: Container(),
-        icon: Icon(
-          Icons.arrow_drop_down,
-          color:
+      trailing: SizedBox(
+        width: 140,
+        child: DropdownButton<ThemeMode>(
+          value: settings.themeMode,
+          dropdownColor:
+              Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.surface
+                  : Colors.white,
+          underline: Container(),
+          isExpanded: true,
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            size: 20,
+          ),
+          iconEnabledColor:
               Theme.of(context).brightness == Brightness.dark
                   ? Colors.white
                   : Colors.black87,
-        ),
-        onChanged: (ThemeMode? newValue) {
-          if (newValue != null) {
-            context.read<SettingsBloc>().add(
-              UpdateThemeModeEvent(themeMode: newValue),
-            );
-          }
-        },
-        items: [
-          DropdownMenuItem(
-            value: ThemeMode.light,
-            child: Row(
-              children: [
-                Icon(
-                  Icons.light_mode,
-                  color:
-                      settings.themeMode == ThemeMode.light
-                          ? AppColors.primary
-                          : Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black87,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  context.tr('settings_theme_light'),
-                  style: TextStyle(
+          onChanged: (ThemeMode? newValue) {
+            if (newValue != null) {
+              context.read<SettingsBloc>().add(
+                UpdateThemeModeEvent(themeMode: newValue),
+              );
+            }
+          },
+          items: [
+            DropdownMenuItem(
+              value: ThemeMode.light,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.light_mode,
+                    size: 18,
                     color:
                         settings.themeMode == ThemeMode.light
                             ? AppColors.primary
@@ -770,27 +765,33 @@ class _SettingsPageState extends State<SettingsPage> {
                             ? Colors.white
                             : Colors.black87,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      context.tr('settings_theme_light'),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color:
+                            settings.themeMode == ThemeMode.light
+                                ? AppColors.primary
+                                : Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          DropdownMenuItem(
-            value: ThemeMode.dark,
-            child: Row(
-              children: [
-                Icon(
-                  Icons.dark_mode,
-                  color:
-                      settings.themeMode == ThemeMode.dark
-                          ? AppColors.primary
-                          : Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black87,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  context.tr('settings_theme_dark'),
-                  style: TextStyle(
+            DropdownMenuItem(
+              value: ThemeMode.dark,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.dark_mode,
+                    size: 18,
                     color:
                         settings.themeMode == ThemeMode.dark
                             ? AppColors.primary
@@ -798,11 +799,27 @@ class _SettingsPageState extends State<SettingsPage> {
                             ? Colors.white
                             : Colors.black87,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      context.tr('settings_theme_dark'),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color:
+                            settings.themeMode == ThemeMode.dark
+                                ? AppColors.primary
+                                : Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -882,91 +899,90 @@ class _SettingsPageState extends State<SettingsPage> {
                   : Colors.black54,
         ),
       ),
-      trailing: DropdownButton<AppLanguage>(
-        value: settings.language,
-        dropdownColor:
-            Theme.of(context).brightness == Brightness.dark
-                ? AppColors.surface
-                : Colors.white,
-        underline: Container(),
-        icon: Icon(
-          Icons.arrow_drop_down,
-          color:
+      trailing: SizedBox(
+        width: 150,
+        child: DropdownButton<AppLanguage>(
+          value: settings.language,
+          dropdownColor:
+              Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.surface
+                  : Colors.white,
+          underline: Container(),
+          isExpanded: true,
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            size: 20,
+          ),
+          iconEnabledColor:
               Theme.of(context).brightness == Brightness.dark
                   ? Colors.white
                   : Colors.black87,
+          onChanged: (AppLanguage? newValue) {
+            if (newValue != null) {
+              context.read<SettingsBloc>().add(
+                UpdateLanguageEvent(language: newValue),
+              );
+            }
+          },
+          items: [
+            DropdownMenuItem(
+              value: AppLanguage.english,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '🇬🇧',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      context.tr('settings_language_english'),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color:
+                            settings.language == AppLanguage.english
+                                ? AppColors.primary
+                                : Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            DropdownMenuItem(
+              value: AppLanguage.vietnamese,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '🇻🇳',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      context.tr('settings_language_vietnamese'),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color:
+                            settings.language == AppLanguage.vietnamese
+                                ? AppColors.primary
+                                : Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        onChanged: (AppLanguage? newValue) {
-          if (newValue != null) {
-            context.read<SettingsBloc>().add(
-              UpdateLanguageEvent(language: newValue),
-            );
-          }
-        },
-        items: [
-          DropdownMenuItem(
-            value: AppLanguage.english,
-            child: Row(
-              children: [
-                Text(
-                  '🇬🇧',
-                  style: TextStyle(
-                    fontSize: 20,
-                    color:
-                        settings.language == AppLanguage.english
-                            ? AppColors.primary
-                            : Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black87,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  context.tr('settings_language_english'),
-                  style: TextStyle(
-                    color:
-                        settings.language == AppLanguage.english
-                            ? AppColors.primary
-                            : Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          DropdownMenuItem(
-            value: AppLanguage.vietnamese,
-            child: Row(
-              children: [
-                Text(
-                  '🇻🇳',
-                  style: TextStyle(
-                    fontSize: 20,
-                    color:
-                        settings.language == AppLanguage.vietnamese
-                            ? AppColors.primary
-                            : Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black87,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  context.tr('settings_language_vietnamese'),
-                  style: TextStyle(
-                    color:
-                        settings.language == AppLanguage.vietnamese
-                            ? AppColors.primary
-                            : Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
