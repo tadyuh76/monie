@@ -78,11 +78,13 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
   @override
   Future<List<Transaction>> getTransactionsByDateRange(
+    String userId,
     DateTime startDate,
     DateTime endDate,
   ) async {
     try {
       return await remoteDataSource.getTransactionsByDateRange(
+        userId,
         startDate,
         endDate,
       );

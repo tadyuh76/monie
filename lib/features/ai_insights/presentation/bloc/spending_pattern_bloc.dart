@@ -30,8 +30,9 @@ class SpendingPatternBloc
       emit(SpendingPatternLoading());
       debugPrint('📊 SpendingPatternBloc: Starting analysis...');
 
-      // Get transactions for the period
+      // Get transactions for the period filtered by userId
       final transactions = await _transactionRepository.getTransactionsByDateRange(
+        event.userId,
         event.startDate,
         event.endDate,
       );

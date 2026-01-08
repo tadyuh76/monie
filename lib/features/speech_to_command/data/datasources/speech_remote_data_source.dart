@@ -74,11 +74,13 @@ class SpeechRemoteDataSourceImpl implements SpeechRemoteDataSource {
       },
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
-      partialResults: true,
       localeId: 'vi_VN', // Default to Vietnamese, can be made configurable
       onSoundLevelChange: (_) {},
-      cancelOnError: true,
-      listenMode: stt.ListenMode.confirmation,
+      listenOptions: stt.SpeechListenOptions(
+        partialResults: true,
+        cancelOnError: true,
+        listenMode: stt.ListenMode.confirmation,
+      ),
     );
   }
 

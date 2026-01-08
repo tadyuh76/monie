@@ -48,8 +48,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
 
-  // Initialize Firebase
-  await Firebase.initializeApp();
+  // Initialize Firebase (skip if GoogleService-Info.plist not found)
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+    debugPrint('Continuing without Firebase...');
+  }
 
   // Lock orientation to portrait
   await SystemChrome.setPreferredOrientations([
@@ -76,19 +81,24 @@ void main() async {
   // Initialize daily reminder alarm service
   final dailyReminderService = di.sl<DailyReminderAlarmService>();
   await dailyReminderService.initialize();
-  print('Daily reminder service initialized');
+  debugPrint('Daily reminder service initialized');
 
-  // Initialize notification service (FCM)
-  final notificationService = di.sl<NotificationService>();
-  await notificationService.initialize();
-  
-  // Request notification permissions
-  print('Requesting notification permissions...');
-  final hasPermission = await notificationService.requestPermission();
-  if (hasPermission) {
-    print('Permission granted!');
-  } else {
-    print('Permission denied');
+  // Initialize notification service (FCM) - skip if Firebase not available
+  try {
+    final notificationService = di.sl<NotificationService>();
+    await notificationService.initialize();
+    
+    // Request notification permissions
+    debugPrint('Requesting notification permissions...');
+    final hasPermission = await notificationService.requestPermission();
+    if (hasPermission) {
+      debugPrint('Permission granted!');
+    } else {
+      debugPrint('Permission denied');
+    }
+  } catch (e) {
+    debugPrint('FCM notification service failed: $e');
+    debugPrint('Continuing without push notifications...');
   }
 
   runApp(const MyApp());

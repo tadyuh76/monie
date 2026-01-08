@@ -1004,7 +1004,7 @@ class AddTransactionFormState extends State<AddTransactionForm> {
                   _isRecurring = value;
                 });
               },
-              activeThumbColor: AppColors.primary,
+              activeColor: AppColors.primary,
             ),
           ],
         ),

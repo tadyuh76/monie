@@ -103,14 +103,14 @@ class SpendingForecastPageState extends State<SpendingForecastPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Generating spending forecast...',
+            context.tr('Generating spending forecast...'),
             style: textTheme.titleMedium?.copyWith(
               color: isDarkMode ? Colors.white70 : Colors.black54,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Analyzing your spending patterns',
+            context.tr('Analyzing your spending patterns'),
             style: textTheme.bodySmall?.copyWith(
               color: isDarkMode ? Colors.white54 : Colors.black38,
             ),
@@ -243,7 +243,7 @@ class SpendingForecastPageState extends State<SpendingForecastPage> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Confidence: ${prediction.confidenceLabel}',
+              '${context.tr('confidence')}: ${prediction.confidenceLabel}',
               style: textTheme.bodyMedium?.copyWith(
                 color: confidenceColor,
                 fontWeight: FontWeight.w600,
@@ -297,10 +297,10 @@ class SpendingForecastPageState extends State<SpendingForecastPage> {
             : context.tr('stable');
 
     final trendDescription = prediction.trend == SpendingTrendType.increasing
-        ? 'Your spending is expected to increase compared to recent months.'
+        ? context.tr('Your spending is expected to increase compared to recent months.')
         : prediction.trend == SpendingTrendType.decreasing
-            ? 'Your spending is expected to decrease compared to recent months.'
-            : 'Your spending is expected to remain stable.';
+            ? context.tr('Your spending is expected to decrease compared to recent months.')
+            : context.tr('Your spending is expected to remain stable.');
 
     return buildCard(
       context,
@@ -554,7 +554,7 @@ class SpendingForecastPageState extends State<SpendingForecastPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Add more transactions to get AI-powered forecasts',
+              context.tr('Add more transactions to get AI-powered forecasts'),
               style: textTheme.bodyMedium?.copyWith(
                 color: isDarkMode ? Colors.white54 : Colors.black38,
               ),
@@ -585,7 +585,7 @@ class SpendingForecastPageState extends State<SpendingForecastPage> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Forecast Generation Failed',
+              context.tr('Forecast Generation Failed'),
               style: textTheme.titleMedium?.copyWith(
                 color: Colors.red[400],
               ),
@@ -602,7 +602,7 @@ class SpendingForecastPageState extends State<SpendingForecastPage> {
             ElevatedButton.icon(
               onPressed: refreshPrediction,
               icon: const Icon(Icons.refresh),
-              label: Text(context.tr('retry')),
+              label: Text(context.tr('Retry')),
             ),
           ],
         ),
@@ -613,13 +613,13 @@ class SpendingForecastPageState extends State<SpendingForecastPage> {
   String getPeriodLabel(String period) {
     switch (period) {
       case 'next_week':
-        return 'Next Week';
+        return context.tr('Next Week');
       case 'next_month':
-        return 'Next Month';
+        return context.tr('Next Month');
       case 'next_quarter':
-        return 'Next Quarter';
+        return context.tr('Next Quarter');
       default:
-        return 'Next Month';
+        return context.tr('Next Month');
     }
   }
 }

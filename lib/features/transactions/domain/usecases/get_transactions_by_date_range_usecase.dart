@@ -9,9 +9,10 @@ class GetTransactionsByDateRangeUseCase {
   GetTransactionsByDateRangeUseCase(this.repository);
 
   Future<List<Transaction>> call({
+    required String userId,
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    return await repository.getTransactionsByDateRange(startDate, endDate);
+    return await repository.getTransactionsByDateRange(userId, startDate, endDate);
   }
 }

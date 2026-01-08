@@ -402,13 +402,6 @@ class _BalanceChartWidgetState extends State<BalanceChartWidget> {
                                 lineTouchData: LineTouchData(
                                   enabled: true,
                                   touchTooltipData: LineTouchTooltipData(
-                                    tooltipBorderRadius: BorderRadius.circular(
-                                      12,
-                                    ),
-                                    tooltipPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
                                     getTooltipItems: (touchedSpots) {
                                       if (touchedSpots.isEmpty) return [];
                                       final spot = touchedSpots.first;

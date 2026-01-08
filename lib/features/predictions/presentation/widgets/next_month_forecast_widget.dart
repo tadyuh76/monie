@@ -138,30 +138,68 @@ class _NextMonthForecastWidgetState extends State<NextMonthForecastWidget> {
   }
 
   Widget _buildLoadingContent(bool isDarkMode, TextTheme textTheme) {
-    return SizedBox(
-      height: 80,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Shimmer for predicted amount
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.secondary,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildShimmerBox(isDarkMode, width: 60, height: 12),
+                const SizedBox(height: 4),
+                _buildShimmerBox(isDarkMode, width: 120, height: 28),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Generating forecast...',
-              style: textTheme.bodySmall?.copyWith(
-                color: isDarkMode ? Colors.white70 : Colors.black54,
-              ),
+            const Spacer(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildShimmerBox(isDarkMode, width: 80, height: 12),
+                const SizedBox(height: 4),
+                _buildShimmerBox(isDarkMode, width: 60, height: 16),
+              ],
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 16),
+        // Shimmer for confidence bar
+        _buildShimmerBox(isDarkMode, width: double.infinity, height: 6),
+        const SizedBox(height: 8),
+        _buildShimmerBox(isDarkMode, width: 150, height: 12),
+      ],
+    );
+  }
+
+  Widget _buildShimmerBox(bool isDarkMode, {required double width, required double height}) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.3, end: 0.7),
+      duration: const Duration(milliseconds: 800),
+      builder: (context, value, child) {
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            gradient: LinearGradient(
+              colors: isDarkMode
+                  ? [
+                      Colors.white.withValues(alpha: value * 0.1),
+                      Colors.white.withValues(alpha: value * 0.2),
+                      Colors.white.withValues(alpha: value * 0.1),
+                    ]
+                  : [
+                      Colors.grey.withValues(alpha: value * 0.2),
+                      Colors.grey.withValues(alpha: value * 0.3),
+                      Colors.grey.withValues(alpha: value * 0.2),
+                    ],
+            ),
+          ),
+        );
+      },
+      onEnd: () {},
     );
   }
 
@@ -236,7 +274,7 @@ class _NextMonthForecastWidgetState extends State<NextMonthForecastWidget> {
         // Progress bar
         if (percentOfBudget != null) ...[
           Text(
-            '${percentOfBudget.toStringAsFixed(0)}% of budget',
+            '${percentOfBudget.toStringAsFixed(0)}% ${context.tr('of budget')}',
             style: textTheme.bodySmall?.copyWith(
               color: isDarkMode ? Colors.white70 : Colors.black54,
             ),
@@ -328,7 +366,7 @@ class _NextMonthForecastWidgetState extends State<NextMonthForecastWidget> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Failed to generate forecast',
+              context.tr('Failed to generate forecast'),
               style: textTheme.bodyMedium?.copyWith(
                 color: Colors.red[400],
               ),
@@ -336,7 +374,7 @@ class _NextMonthForecastWidgetState extends State<NextMonthForecastWidget> {
           ),
           TextButton(
             onPressed: _loadPrediction,
-            child: const Text('Retry'),
+            child: Text(context.tr('Retry')),
           ),
         ],
       ),
@@ -361,7 +399,7 @@ class _NextMonthForecastWidgetState extends State<NextMonthForecastWidget> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Tap to generate spending forecast',
+              context.tr('Tap to generate spending forecast'),
               style: textTheme.bodyMedium?.copyWith(
                 color: isDarkMode ? Colors.white70 : Colors.black54,
               ),

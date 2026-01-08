@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/ai_chat/domain/entities/chat_message.dart';
@@ -80,25 +81,17 @@ class _AIChatPageState extends State<AIChatPage> {
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF667EEA),
-                    Color(0xFF764BA2),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.auto_awesome,
-                color: Colors.white,
-                size: 20,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
               ),
             ),
             const SizedBox(width: 12),
-            Text(context.tr('ai assistant')),
+            Text(context.tr('AI Assistant')),
           ],
         ),
         backgroundColor: Colors.transparent,
@@ -110,7 +103,7 @@ class _AIChatPageState extends State<AIChatPage> {
               context.read<AIChatBloc>().add(const ClearChatEvent());
               _initializeChat();
             },
-            tooltip: 'New conversation',
+            tooltip: context.tr('New conversation'),
           ),
         ],
       ),
@@ -183,14 +176,14 @@ class _AIChatPageState extends State<AIChatPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Start a conversation',
+            context.tr('Start a conversation'),
             style: textTheme.titleLarge?.copyWith(
               color: isDarkMode ? Colors.white : Colors.black87,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Ask me anything about your finances',
+            context.tr('Ask me anything about your finances'),
             style: textTheme.bodyMedium?.copyWith(
               color: isDarkMode ? Colors.white54 : Colors.black45,
             ),
@@ -216,21 +209,13 @@ class _AIChatPageState extends State<AIChatPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF667EEA),
-                    Color(0xFF764BA2),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.auto_awesome,
-                color: Colors.white,
-                size: 18,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 34,
+                height: 34,
+                fit: BoxFit.cover,
               ),
             ),
             const SizedBox(width: 8),
@@ -264,14 +249,55 @@ class _AIChatPageState extends State<AIChatPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    message.content,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: isUser
-                          ? Colors.white
-                          : (isDarkMode ? Colors.white : Colors.black87),
+                  if (isUser)
+                    Text(
+                      message.content,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                      ),
+                    )
+                  else
+                    MarkdownBody(
+                      data: message.content,
+                      selectable: true,
+                      styleSheet: MarkdownStyleSheet(
+                        p: textTheme.bodyMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        h1: textTheme.titleLarge?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        h2: textTheme.titleMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        h3: textTheme.titleSmall?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        strong: textTheme.bodyMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        em: textTheme.bodyMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        code: textTheme.bodySmall?.copyWith(
+                          color: isDarkMode ? Colors.greenAccent : Colors.green[800],
+                          backgroundColor: isDarkMode ? Colors.black26 : Colors.grey[200],
+                          fontFamily: 'monospace',
+                        ),
+                        codeblockDecoration: BoxDecoration(
+                          color: isDarkMode ? Colors.black26 : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        listBullet: textTheme.bodyMedium?.copyWith(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
                     ),
-                  ),
                   if (message.status == MessageStatus.error)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
@@ -285,7 +311,7 @@ class _AIChatPageState extends State<AIChatPage> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Failed to send',
+                            context.tr('Failed to send'),
                             style: textTheme.bodySmall?.copyWith(
                               color: Colors.red[400],
                             ),
@@ -321,21 +347,13 @@ class _AIChatPageState extends State<AIChatPage> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF667EEA),
-                  Color(0xFF764BA2),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.auto_awesome,
-              color: Colors.white,
-              size: 18,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              'assets/images/logo.png',
+              width: 34,
+              height: 34,
+              fit: BoxFit.cover,
             ),
           ),
           const SizedBox(width: 8),
@@ -359,10 +377,10 @@ class _AIChatPageState extends State<AIChatPage> {
 
   Widget _buildSuggestedQuestions(bool isDarkMode, TextTheme textTheme) {
     final suggestions = [
-      'How am I doing financially this month?',
-      'What are my top spending categories?',
-      'How can I save more money?',
-      'Analyze my budget progress',
+      context.tr('How am I doing financially this month?'),
+      context.tr('What are my top spending categories?'),
+      context.tr('How can I save more money?'),
+      context.tr('Analyze my budget progress'),
     ];
 
     return Container(

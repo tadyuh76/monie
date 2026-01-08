@@ -126,7 +126,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Analysis Period',
+            context.tr('Analysis Period'),
             style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDarkMode ? Colors.white : Colors.black87,
@@ -137,7 +137,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
             children: [
               Expanded(
                 child: buildPeriodButton(
-                  label: '1 Month',
+                  label: context.tr('1 Month'),
                   months: 1,
                   isDarkMode: isDarkMode,
                   textTheme: textTheme,
@@ -146,7 +146,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
               const SizedBox(width: 8),
               Expanded(
                 child: buildPeriodButton(
-                  label: '3 Months',
+                  label: context.tr('3 Months'),
                   months: 3,
                   isDarkMode: isDarkMode,
                   textTheme: textTheme,
@@ -155,7 +155,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
               const SizedBox(width: 8),
               Expanded(
                 child: buildPeriodButton(
-                  label: '6 Months',
+                  label: context.tr('6 Months'),
                   months: 6,
                   isDarkMode: isDarkMode,
                   textTheme: textTheme,
@@ -222,7 +222,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
           Icon(Icons.cached, size: 18, color: AppColors.primary),
           const SizedBox(width: 8),
           Text(
-            'Showing cached analysis',
+            context.tr('Showing cached analysis'),
             style: textTheme.bodySmall?.copyWith(
               color: isDarkMode ? Colors.white70 : Colors.black54,
             ),
@@ -247,14 +247,14 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Analyzing your spending patterns...',
+            context.tr('Analyzing your spending patterns...'),
             style: textTheme.titleMedium?.copyWith(
               color: isDarkMode ? Colors.white70 : Colors.black54,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'This may take a few seconds',
+            context.tr('This may take a few seconds'),
             style: textTheme.bodySmall?.copyWith(
               color: isDarkMode ? Colors.white54 : Colors.black38,
             ),
@@ -360,7 +360,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'Financial Health Score',
+            context.tr('Financial Health Score'),
             style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDarkMode ? Colors.white : Colors.black87,
@@ -443,7 +443,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'AI Analysis Summary',
+                  context.tr('AI Analysis Summary'),
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isDarkMode ? Colors.white : Colors.black87,
@@ -497,7 +497,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
 
     return buildCard(
       context,
-      title: 'Spending Overview',
+      title: context.tr('Spending Overview'),
       icon: Icons.account_balance_wallet,
       iconColor: AppColors.primary,
       isDarkMode: isDarkMode,
@@ -506,7 +506,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
         children: [
           buildOverviewRow(
             icon: Icons.payments,
-            label: 'Total Spending',
+            label: context.tr('Total Spending'),
             value: Formatters.formatCurrency(pattern.totalSpending),
             valueColor: AppColors.expense,
             isDarkMode: isDarkMode,
@@ -515,7 +515,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
           const Divider(height: 24),
           buildOverviewRow(
             icon: Icons.calendar_view_day,
-            label: 'Daily Average',
+            label: context.tr('Daily Average'),
             value: Formatters.formatCurrency(pattern.dailyAverage),
             valueColor: AppColors.expense,
             isDarkMode: isDarkMode,
@@ -524,7 +524,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
           const Divider(height: 24),
           buildOverviewRow(
             icon: Icons.category,
-            label: 'Top Category',
+            label: context.tr('Top Category'),
             value: pattern.topCategory,
             valueColor: AppColors.expense,
             isDarkMode: isDarkMode,
@@ -533,7 +533,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
           const Divider(height: 24),
           buildOverviewRow(
             icon: Icons.calendar_today,
-            label: 'Peak Spending Day',
+            label: context.tr('Peak Spending Day'),
             value: pattern.peakSpendingDay,
             valueColor: AppColors.expense,
             isDarkMode: isDarkMode,
@@ -542,7 +542,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
           const Divider(height: 24),
           buildOverviewRow(
             icon: Icons.access_time,
-            label: 'Peak Spending Hour',
+            label: context.tr('Peak Spending Hour'),
             value: pattern.peakSpendingHour,
             valueColor: AppColors.expense,
             isDarkMode: isDarkMode,
@@ -551,7 +551,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
           const Divider(height: 24),
           buildOverviewRow(
             icon: Icons.date_range,
-            label: 'Period',
+            label: context.tr('Period'),
             value: periodText,
             valueColor: isDarkMode ? Colors.white70 : Colors.black54,
             isDarkMode: isDarkMode,
@@ -625,7 +625,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
 
     return buildCard(
       context,
-      title: 'Category Breakdown',
+      title: context.tr('Category Breakdown'),
       icon: Icons.pie_chart,
       iconColor: Colors.blue,
       isDarkMode: isDarkMode,
@@ -728,14 +728,14 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
             : Colors.amber;
 
     final trendMessage = pattern.spendingTrend == SpendingTrend.increasing
-        ? 'Your spending is increasing'
+        ? context.tr('Your spending is increasing')
         : pattern.spendingTrend == SpendingTrend.decreasing
-            ? 'Your spending is decreasing'
-            : 'Your spending is stable';
+            ? context.tr('Your spending is decreasing')
+            : context.tr('Your spending is stable');
 
     return buildCard(
       context,
-      title: 'Spending Trend',
+      title: context.tr('Spending Trend'),
       icon: trendIcon,
       iconColor: trendColor,
       isDarkMode: isDarkMode,
@@ -786,7 +786,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Unusual Patterns Detected',
+                  context.tr('Unusual Patterns Detected'),
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isDarkMode ? Colors.white : Colors.black87,
@@ -963,7 +963,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Add more transactions to get AI-powered insights',
+            context.tr('Add more transactions to get AI-powered insights'),
             style: textTheme.bodyMedium?.copyWith(
               color: isDarkMode ? Colors.white54 : Colors.black38,
             ),
@@ -993,7 +993,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Analysis Failed',
+              context.tr('Analysis Failed'),
               style: textTheme.titleMedium?.copyWith(
                 color: Colors.red[400],
               ),
@@ -1010,7 +1010,7 @@ class SpendingAnalysisPageState extends State<SpendingAnalysisPage> {
             ElevatedButton.icon(
               onPressed: refreshAnalysis,
               icon: const Icon(Icons.refresh),
-              label: Text(context.tr('retry')),
+              label: Text(context.tr('Retry')),
             ),
           ],
         ),
