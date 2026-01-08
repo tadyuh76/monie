@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:monie/main.dart' show navigatorKey;
 
 /// Background message handler - must be top-level function
 @pragma('vm:entry-point')
@@ -40,8 +42,18 @@ class NotificationService {
       await _localNotifications.initialize(
         initSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
-          debugPrint('Notification tapped: ${response.payload}');
-          // TODO: Handle navigation based on payload
+          debugPrint('📱 Local notification tapped: ${response.payload}');
+
+          // Parse the payload and handle navigation
+          if (response.payload != null && response.payload!.isNotEmpty) {
+            try {
+              // The payload is a JSON string containing notification data
+              final Map<String, dynamic> data = jsonDecode(response.payload!);
+              _handleNotificationData(data);
+            } catch (e) {
+              debugPrint('⚠️ Error parsing notification payload: $e');
+            }
+          }
         },
       );
 
@@ -154,29 +166,45 @@ class NotificationService {
             presentSound: true,
           ),
         ),
-        payload: message.data.toString(),
+        payload: jsonEncode(message.data),
       );
 
       debugPrint('Notification displayed: ${notification.title}');
     }
   }
 
-  /// Handle notification tap
+  /// Handle notification tap from FCM
   void _handleNotificationTap(RemoteMessage message) {
-    final data = message.data;
-    
+    _handleNotificationData(message.data);
+  }
+
+  /// Handle navigation based on notification data
+  /// This is used by both FCM notifications and local notifications
+  void _handleNotificationData(Map<String, dynamic> data) {
     // Route based on notification type
     switch (data['type']) {
       case 'daily_reminder':
-        debugPrint('Navigate to home/transactions page');
-        // TODO: Navigate to appropriate screen
+        debugPrint('📱 Navigate to home/transactions page');
+        // Navigate to home page
+        navigatorKey.currentState?.pushNamed('/home');
         break;
       case 'group_transaction':
-        debugPrint('Navigate to group: ${data['group_id']}');
-        // TODO: Navigate to group detail page
+      case 'group_invitation':
+        final groupId = data['group_id'];
+        debugPrint('📱 Navigate to group: $groupId');
+
+        if (groupId != null && groupId.isNotEmpty) {
+          // Navigate to group detail page with group ID as argument
+          navigatorKey.currentState?.pushNamed(
+            '/group-details',
+            arguments: groupId,
+          );
+        } else {
+          debugPrint('⚠️ Group ID is missing in notification data');
+        }
         break;
       default:
-        debugPrint('Unknown notification type: ${data['type']}');
+        debugPrint('⚠️ Unknown notification type: ${data['type']}');
     }
   }
 

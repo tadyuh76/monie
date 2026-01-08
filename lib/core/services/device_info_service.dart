@@ -262,4 +262,97 @@ class DeviceInfoService {
     _cachedGoogleServicesAvailable = null;
     _cachedGoogleAppVersion = null;
   }
+
+  // ===== Diagnostic Methods =====
+
+  /// Get list of available speech recognition services
+  /// Returns list of speech recognizers installed on the device
+  Future<List<Map<String, String>>> getAvailableSpeechRecognizers() async {
+    try {
+      final result = await _channel.invokeMethod('getAvailableSpeechRecognizers');
+      if (result is List) {
+        return result.map((item) {
+          if (item is Map) {
+            return Map<String, String>.from(item.map(
+              (key, value) => MapEntry(key.toString(), value.toString()),
+            ));
+          }
+          return <String, String>{};
+        }).toList();
+      }
+      return [];
+    } on PlatformException catch (e) {
+      debugPrint('❌ Failed to get speech recognizers: ${e.message}');
+      return [];
+    }
+  }
+
+  /// Get detailed speech recognizer diagnostic information
+  /// Returns comprehensive info about speech recognition setup
+  Future<Map<String, dynamic>> getSpeechRecognizerDetails() async {
+    try {
+      final result = await _channel.invokeMethod('getSpeechRecognizerDetails');
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return {};
+    } on PlatformException catch (e) {
+      debugPrint('❌ Failed to get speech recognizer details: ${e.message}');
+      return {'error': e.message};
+    }
+  }
+
+  /// Print comprehensive diagnostic information
+  /// Useful for debugging speech recognition issues
+  Future<void> printDiagnostics() async {
+    debugPrint('═══════════════════════════════════════════════');
+    debugPrint('📊 DEVICE & SPEECH RECOGNITION DIAGNOSTICS');
+    debugPrint('═══════════════════════════════════════════════');
+
+    // Device info
+    debugPrint('📱 Device Information:');
+    debugPrint('   Manufacturer: ${getManufacturer()}');
+    debugPrint('   Model: ${getModel()}');
+    debugPrint('   Category: ${getDeviceCategoryName()}');
+    debugPrint('   Android Version: ${getAndroidVersion()}');
+    debugPrint('   Is Chinese OEM: ${isChineseOEM()}');
+
+    // Google Services
+    debugPrint('');
+    debugPrint('🔍 Google Services:');
+    final hasGoogle = await isGoogleSpeechServicesAvailable();
+    final googleVersion = await getGoogleAppVersion();
+    debugPrint('   Google App Installed: $hasGoogle');
+    debugPrint('   Google App Version: ${googleVersion ?? "Not installed"}');
+
+    // Battery optimization
+    debugPrint('');
+    debugPrint('🔋 Battery Optimization:');
+    final batteryOptimized = !(await isBatteryOptimizationIgnored());
+    debugPrint('   Battery Optimized: $batteryOptimized');
+    debugPrint('   (Should be false for speech to work)');
+
+    // Speech recognizers
+    debugPrint('');
+    debugPrint('🎤 Speech Recognition Services:');
+    final recognizers = await getAvailableSpeechRecognizers();
+    if (recognizers.isEmpty) {
+      debugPrint('   ❌ No speech recognizers found!');
+    } else {
+      debugPrint('   Found ${recognizers.length} service(s):');
+      for (final recognizer in recognizers) {
+        debugPrint('   - ${recognizer['appName']} (${recognizer['packageName']})');
+      }
+    }
+
+    // Detailed speech info
+    debugPrint('');
+    debugPrint('📋 Speech Recognizer Details:');
+    final details = await getSpeechRecognizerDetails();
+    details.forEach((key, value) {
+      debugPrint('   $key: $value');
+    });
+
+    debugPrint('═══════════════════════════════════════════════');
+  }
 }

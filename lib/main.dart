@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/network/supabase_client.dart';
+import 'package:monie/core/services/device_info_service.dart';
 import 'package:monie/core/themes/app_theme.dart';
 // import 'package:monie/core/themes/color_extensions.dart';
 import 'package:monie/di/injection.dart';
@@ -19,7 +20,6 @@ import 'package:monie/features/authentication/presentation/pages/auth_wrapper.da
 import 'package:monie/features/budgets/presentation/bloc/budgets_bloc.dart';
 import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 import 'package:monie/features/home/presentation/bloc/home_bloc.dart';
-import 'package:monie/features/home/presentation/pages/home_page.dart';
 import 'package:monie/core/widgets/main_screen.dart';
 import 'package:monie/features/notifications/presentation/bloc/notification_bloc.dart';
 import 'package:monie/features/predictions/presentation/bloc/prediction_bloc.dart';
@@ -43,6 +43,9 @@ import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.d
 // Global key for ScaffoldMessenger to manage snackbars app-wide
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+
+// Global key for Navigator to enable navigation from background/terminated state
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,6 +80,20 @@ void main() async {
 
   // Setup dependency injection
   await configureDependencies();
+
+  // Initialize DeviceInfoService early to cache device info
+  try {
+    final deviceInfoService = sl<DeviceInfoService>();
+    await deviceInfoService.initialize();
+    debugPrint('✅ DeviceInfoService initialized');
+    debugPrint('📱 Device: ${deviceInfoService.getManufacturer()} ${deviceInfoService.getModel()}');
+    debugPrint('📱 Category: ${deviceInfoService.getDeviceCategoryName()}');
+
+    // Print comprehensive diagnostics for speech recognition troubleshooting
+    await deviceInfoService.printDiagnostics();
+  } catch (e) {
+    debugPrint('⚠️ DeviceInfoService initialization failed: $e');
+  }
 
   // Initialize daily reminder alarm service
   final dailyReminderService = di.sl<DailyReminderAlarmService>();
@@ -197,6 +214,7 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeMode,
+            navigatorKey: navigatorKey,
             scaffoldMessengerKey: rootScaffoldMessengerKey,
             home: const AuthWrapper(),
             routes: {
@@ -233,8 +251,8 @@ class MyApp extends StatelessWidget {
               return null;
             },
             onUnknownRoute: (settings) {
-              // Fallback for unknown routes
-              return MaterialPageRoute(builder: (context) => const HomePage());
+              // Fallback for unknown routes - navigate to MainScreen with bottom nav
+              return MaterialPageRoute(builder: (context) => MainScreen());
             },
           );
         },

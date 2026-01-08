@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:monie/core/errors/failures.dart';
 import 'package:monie/core/services/gemini_service.dart';
 import 'package:monie/core/services/permission_service.dart';
+import 'package:monie/core/services/device_info_service.dart';
 import 'package:monie/features/speech_to_command/data/datasources/speech_remote_data_source.dart';
+import 'package:monie/features/speech_to_command/data/datasources/native_speech_data_source.dart';
 import 'package:monie/core/utils/command_parser.dart';
 import 'package:monie/features/speech_to_command/domain/entities/speech_command.dart';
 import 'package:monie/features/speech_to_command/domain/repositories/speech_repository.dart';
@@ -13,21 +15,30 @@ class SpeechRepositoryImpl implements SpeechRepository {
   final SpeechRemoteDataSource dataSource;
   final GeminiService? geminiService;
   final PermissionService permissionService;
+  final DeviceInfoService deviceInfoService;
   StreamController<String>? _speechStreamController;
 
   SpeechRepositoryImpl({
     required this.dataSource,
     required this.permissionService,
+    required this.deviceInfoService,
     this.geminiService,
   });
 
   @override
   Future<Either<Failure, bool>> isAvailable() async {
     try {
-      // First check permission
+      debugPrint('📱 Checking speech recognition availability...');
+
+      // Log device info for debugging
+      final deviceCategory = deviceInfoService.getDeviceCategory();
+      debugPrint('📱 Device: ${deviceInfoService.getManufacturer()} ${deviceInfoService.getModel()} (${deviceCategory.name})');
+
+      // 1. Check microphone permission
       final hasPermission =
           await permissionService.isMicrophonePermissionGranted();
       if (!hasPermission) {
+        debugPrint('❌ Microphone permission not granted');
         final isPermanent =
             await permissionService.isMicrophonePermissionPermanentlyDenied();
         if (isPermanent) {
@@ -35,19 +46,62 @@ class SpeechRepositoryImpl implements SpeechRepository {
         }
         return const Left(PermissionDeniedFailure());
       }
+      debugPrint('✅ Microphone permission granted');
 
-      // Then check service availability
+      // 2. Check Google Speech Services availability
+      final googleServicesAvailable =
+          await deviceInfoService.isGoogleSpeechServicesAvailable();
+      if (!googleServicesAvailable) {
+        debugPrint('❌ Google Speech Services not available');
+        return Left(GoogleSpeechServicesMissingFailure(
+          deviceCategory: deviceCategory,
+        ));
+      }
+      debugPrint('✅ Google Speech Services available');
+
+      // 3. Check OEM-specific requirements (only for Chinese OEMs)
+      if (deviceInfoService.isChineseOEM()) {
+        debugPrint('📱 Chinese OEM detected, checking additional permissions...');
+        final speechPermStatus =
+            await permissionService.checkSpeechPermissions();
+
+        if (!speechPermStatus.isReady) {
+          debugPrint('❌ OEM-specific permissions not satisfied');
+          debugPrint('   Issues: ${speechPermStatus.issues.length}');
+          for (final issue in speechPermStatus.issues) {
+            debugPrint('   - ${issue.title}: ${issue.description}');
+          }
+          return Left(ManufacturerRestrictionFailure(
+            deviceCategory: deviceCategory,
+            issues: speechPermStatus.issues,
+          ));
+        }
+        debugPrint('✅ OEM-specific permissions satisfied');
+      }
+
+      // 4. Test actual speech service initialization
       final available = await dataSource.isAvailable();
       if (!available) {
-        final error = (dataSource as SpeechRemoteDataSourceImpl).getLastError();
+        debugPrint('❌ Speech data source not available');
+
+        // Get error message from the appropriate data source type
+        String? error;
+        if (dataSource is SpeechRemoteDataSourceImpl) {
+          error = (dataSource as SpeechRemoteDataSourceImpl).getLastError();
+        } else if (dataSource is NativeSpeechDataSource) {
+          error = (dataSource as NativeSpeechDataSource).getLastError();
+        }
+
         if (error != null && error.contains('not available')) {
           return const Left(SpeechServiceUnavailableFailure());
         }
         return const Left(SpeechNotAvailableFailure());
       }
 
+      debugPrint('✅ Speech recognition fully available');
       return Right(available);
     } catch (e) {
+      debugPrint('❌ Error checking speech availability: $e');
       return Left(SpeechRecognitionFailure(
         message: 'Failed to check speech availability: $e',
       ));

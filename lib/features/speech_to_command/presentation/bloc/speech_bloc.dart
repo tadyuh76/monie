@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:monie/core/errors/failures.dart';
 import 'package:monie/core/services/permission_service.dart';
@@ -39,19 +40,48 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     on<ResetSpeechStateEvent>(_onResetSpeechState);
     on<RequestPermissionEvent>(_onRequestPermission);
     on<OpenAppSettingsEvent>(_onOpenAppSettings);
+    // Device-specific event handlers
+    on<RetryPermissionCheckEvent>(_onRetryPermissionCheck);
+    on<OpenGooglePlayStoreEvent>(_onOpenGooglePlayStore);
+    on<OpenManufacturerSettingsEvent>(_onOpenManufacturerSettings);
+    on<ExecutePermissionActionEvent>(_onExecutePermissionAction);
   }
 
   Future<void> _onStartListening(
     StartListeningEvent event,
     Emitter<SpeechState> emit,
   ) async {
+    // If already listening or processing, cancel first to avoid conflicts
+    if (state is SpeechListening ||
+        state is SpeechCheckingAvailability ||
+        state is CommandParsing) {
+      debugPrint('⚠️ Already in active state, canceling first...');
+      await _speechSubscription?.cancel();
+      _speechSubscription = null;
+      await _recognizeSpeech.repository.cancel();
+      // Small delay to ensure cleanup completes
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+
     emit(const SpeechCheckingAvailability());
 
     final result = await _recognizeSpeech(RecognizeSpeechParams());
 
     result.fold(
       (failure) {
-        if (failure is PermissionDeniedFailure) {
+        // Handle device-specific failures
+        if (failure is GoogleSpeechServicesMissingFailure) {
+          emit(GoogleServicesRequired(
+            isInstalled: false,
+            currentVersion: null,
+          ));
+        } else if (failure is ManufacturerRestrictionFailure) {
+          emit(ManufacturerRestriction(
+            deviceCategory: failure.deviceCategory,
+            issues: failure.issues,
+            currentStepIndex: 0,
+          ));
+        } else if (failure is PermissionDeniedFailure) {
           emit(PermissionRequired(
             message: failure.message,
             isPermanentlyDenied: false,
@@ -95,9 +125,14 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     StopListeningEvent event,
     Emitter<SpeechState> emit,
   ) async {
+    // Cancel BLoC's subscription first
     await _speechSubscription?.cancel();
     _speechSubscription = null;
-    
+
+    // Now stop the native service to prevent background listening
+    await _recognizeSpeech.repository.stopListening();
+    debugPrint('✅ Stopped listening - native service stopped');
+
     // If we have a result, keep it; otherwise reset
     if (state is! SpeechResultReceived) {
       emit(const SpeechInitial());
@@ -108,8 +143,14 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     CancelListeningEvent event,
     Emitter<SpeechState> emit,
   ) async {
+    // Cancel BLoC's subscription first
     await _speechSubscription?.cancel();
     _speechSubscription = null;
+
+    // Now cancel the native service
+    await _recognizeSpeech.repository.cancel();
+    debugPrint('✅ Cancelled listening - native service cancelled');
+
     _currentCommand = null;
     emit(const SpeechInitial());
   }
@@ -247,6 +288,58 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     Emitter<SpeechState> emit,
   ) async {
     await _permissionService.openAppSettings();
+  }
+
+  // ===== Device-Specific Event Handlers =====
+
+  /// Retry permission check after user returns from settings
+  Future<void> _onRetryPermissionCheck(
+    RetryPermissionCheckEvent event,
+    Emitter<SpeechState> emit,
+  ) async {
+    // Re-trigger the availability check
+    emit(const SpeechCheckingAvailability());
+    add(const StartListeningEvent());
+  }
+
+  /// Open Google Play Store to install/update Google app
+  Future<void> _onOpenGooglePlayStore(
+    OpenGooglePlayStoreEvent event,
+    Emitter<SpeechState> emit,
+  ) async {
+    // Open Play Store with Google app package
+    // This will be handled by the UI layer opening an external link
+    // The event is here for state tracking if needed
+  }
+
+  /// Open manufacturer-specific settings
+  Future<void> _onOpenManufacturerSettings(
+    OpenManufacturerSettingsEvent event,
+    Emitter<SpeechState> emit,
+  ) async {
+    switch (event.type) {
+      case SettingType.autoStart:
+        await _permissionService.openAutoStartSettings();
+        break;
+      case SettingType.batteryOptimization:
+        await _permissionService.openBatteryOptimizationSettings();
+        break;
+      case SettingType.microphone:
+        await _permissionService.openAppSettings();
+        break;
+      case SettingType.appDetails:
+        await _permissionService.openAppSettings();
+        break;
+    }
+  }
+
+  /// Execute a specific permission issue action
+  Future<void> _onExecutePermissionAction(
+    ExecutePermissionActionEvent event,
+    Emitter<SpeechState> emit,
+  ) async {
+    // Execute the action callback from the PermissionIssue
+    await event.issue.action();
   }
 
   @override

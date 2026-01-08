@@ -68,6 +68,12 @@ class DeviceInfoChannel(private val context: Context) : MethodCallHandler {
                 openManufacturerPermissionSettings()
                 result.success(null)
             }
+            "getAvailableSpeechRecognizers" -> {
+                result.success(getAvailableSpeechRecognizers())
+            }
+            "getSpeechRecognizerDetails" -> {
+                result.success(getSpeechRecognizerDetails())
+            }
             else -> {
                 result.notImplemented()
             }
@@ -299,5 +305,82 @@ class DeviceInfoChannel(private val context: Context) : MethodCallHandler {
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error opening app settings", e)
         }
+    }
+
+    /**
+     * Get list of available speech recognition services
+     * This helps diagnose which speech engines are installed on the device
+     */
+    private fun getAvailableSpeechRecognizers(): List<Map<String, String>> {
+        val recognizers = mutableListOf<Map<String, String>>()
+
+        try {
+            val packageManager = context.packageManager
+            val intent = Intent(android.speech.RecognitionService.SERVICE_INTERFACE)
+            val services = packageManager.queryIntentServices(intent, 0)
+
+            Log.d(TAG, "🔍 Found ${services.size} speech recognition services")
+
+            for (service in services) {
+                val packageName = service.serviceInfo.packageName
+                val serviceName = service.serviceInfo.name
+                val appName = service.serviceInfo.loadLabel(packageManager).toString()
+
+                recognizers.add(mapOf(
+                    "packageName" to packageName,
+                    "serviceName" to serviceName,
+                    "appName" to appName
+                ))
+
+                Log.d(TAG, "  - $appName ($packageName)")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error getting speech recognizers", e)
+        }
+
+        return recognizers
+    }
+
+    /**
+     * Get detailed information about speech recognition setup
+     */
+    private fun getSpeechRecognizerDetails(): Map<String, Any> {
+        val details = mutableMapOf<String, Any>()
+
+        try {
+            // Check if speech recognition intent is supported
+            val packageManager = context.packageManager
+            val recognizerIntent = Intent(android.speech.RecognitionService.SERVICE_INTERFACE)
+            val services = packageManager.queryIntentServices(recognizerIntent, 0)
+
+            details["hasRecognizer"] = services.isNotEmpty()
+            details["recognizerCount"] = services.size
+
+            // Check if Google app is installed
+            details["hasGoogleApp"] = isGoogleSpeechServicesAvailable()
+            details["googleAppVersion"] = getGoogleAppVersion() ?: "Not installed"
+
+            // Get default recognizer (if any)
+            try {
+                val defaultRecognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(context)
+                details["hasDefaultRecognizer"] = defaultRecognizer != null
+                defaultRecognizer?.destroy()
+            } catch (e: Exception) {
+                details["hasDefaultRecognizer"] = false
+                details["defaultRecognizerError"] = e.message ?: "Unknown error"
+            }
+
+            // Device info
+            details["manufacturer"] = Build.MANUFACTURER
+            details["model"] = Build.MODEL
+            details["androidVersion"] = Build.VERSION.SDK_INT
+
+            Log.d(TAG, "📊 Speech recognizer details: $details")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error getting speech recognizer details", e)
+            details["error"] = e.message ?: "Unknown error"
+        }
+
+        return details
     }
 }

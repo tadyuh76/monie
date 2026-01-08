@@ -349,14 +349,36 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         'role': role,
       });
 
-      // TODO: Send notification to the user when FCM is implemented
-      // await supabase.from('notifications').insert({
-      //   'user_id': userId,
-      //   'type': 'group_invitation',
-      //   'title': 'New Group Invitation',
-      //   'message': 'You have been added to a new group',
-      //   'created_at': DateTime.now().toIso8601String(),
-      // });
+      // Get group name for notification
+      final groupData = await supabase
+          .from('groups')
+          .select('name')
+          .eq('group_id', groupId)
+          .single();
+
+      final groupName = groupData['name'];
+
+      // Create in-app notification
+      await supabase.from('notifications').insert({
+        'user_id': userId,
+        'type': 'group_invitation',
+        'title': 'New Group Invitation',
+        'message': 'You have been added to "$groupName"',
+        'is_read': false,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      // Send push notification to the new member
+      await _sendGroupNotification(
+        userIds: [userId],
+        title: 'New Group Invitation',
+        body: 'You have been added to "$groupName"',
+        data: {
+          'type': 'group_transaction',
+          'group_id': groupId,
+          'group_name': groupName,
+        },
+      );
 
       return true;
     } catch (e) {

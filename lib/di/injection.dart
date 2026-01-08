@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/services/gemini_service.dart';
 import 'package:monie/core/services/permission_service.dart';
+import 'package:monie/core/services/device_info_service.dart';
 import 'package:monie/features/account/data/datasources/account_remote_data_source.dart';
 import 'package:monie/features/account/data/repositories/account_repository_impl.dart';
 import 'package:monie/features/account/domain/repositories/account_repository.dart';
@@ -83,12 +85,14 @@ import '../features/transactions/data/repositories/category_repository_impl.dart
 import '../features/transactions/domain/repositories/category_repository.dart';
 
 import 'package:monie/features/speech_to_command/data/datasources/speech_remote_data_source.dart';
+import 'package:monie/features/speech_to_command/data/datasources/native_speech_data_source.dart';
 import 'package:monie/features/speech_to_command/data/repositories/speech_repository_impl.dart';
 import 'package:monie/features/speech_to_command/domain/repositories/speech_repository.dart';
 import 'package:monie/features/speech_to_command/domain/usecases/recognize_speech_usecase.dart';
 import 'package:monie/features/speech_to_command/domain/usecases/parse_command_usecase.dart';
 import 'package:monie/features/speech_to_command/domain/usecases/create_transaction_from_command_usecase.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
+import 'package:monie/core/services/native_voice_recognition_service.dart';
 
 final sl = GetIt.instance;
 
@@ -309,8 +313,13 @@ Future<void> configureDependencies() async {
   // Gemini Service (Singleton)
   sl.registerLazySingleton<GeminiService>(() => GeminiService.instance);
 
-  // Permission Service
-  sl.registerLazySingleton<PermissionService>(() => PermissionService());
+  // Device Info Service (no dependencies)
+  sl.registerLazySingleton<DeviceInfoService>(() => DeviceInfoService());
+
+  // Permission Service (depends on DeviceInfoService)
+  sl.registerLazySingleton<PermissionService>(
+    () => PermissionService(deviceInfoService: sl<DeviceInfoService>()),
+  );
 
   // AI Insights Feature
   sl.registerLazySingleton<AIInsightsDataSource>(
@@ -357,14 +366,34 @@ Future<void> configureDependencies() async {
   );
 
   // Speech to Command Feature
+
+  // Register native voice recognition service for Vivo/OEM devices
+  sl.registerLazySingleton<NativeVoiceRecognitionService>(
+    () => NativeVoiceRecognitionService(),
+  );
+
+  // Register speech data source - use native implementation on Vivo devices
   sl.registerLazySingleton<SpeechRemoteDataSource>(
-    () => SpeechRemoteDataSourceImpl(),
+    () {
+      final deviceInfoService = sl<DeviceInfoService>();
+
+      // Use native implementation for Vivo/Oppo devices as speech_to_text plugin fails
+      if (deviceInfoService.isVivoDevice() || deviceInfoService.isOppoDevice()) {
+        debugPrint('📱 Using native speech recognition for ${deviceInfoService.getManufacturer()} device');
+        return NativeSpeechDataSource(sl<NativeVoiceRecognitionService>());
+      }
+
+      // Use standard speech_to_text plugin for other devices
+      debugPrint('📱 Using speech_to_text plugin for ${deviceInfoService.getManufacturer()} device');
+      return SpeechRemoteDataSourceImpl();
+    },
   );
 
   sl.registerLazySingleton<SpeechRepository>(
     () => SpeechRepositoryImpl(
       dataSource: sl(),
       permissionService: sl<PermissionService>(),
+      deviceInfoService: sl<DeviceInfoService>(),
       geminiService: sl<GeminiService>(),
     ),
   );

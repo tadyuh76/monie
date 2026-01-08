@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
+import 'package:monie/core/services/device_info_service.dart';
+import 'package:monie/core/services/permission_service.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_event.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_state.dart';
@@ -27,6 +29,10 @@ class CommandResultWidget extends StatelessWidget {
           return _buildSuccess(context, state.transaction);
         } else if (state is SpeechError) {
           return _buildError(context, state.message, null);
+        } else if (state is GoogleServicesRequired) {
+          return _buildGoogleServicesError(context, state);
+        } else if (state is ManufacturerRestriction) {
+          return _buildManufacturerRestrictionError(context, state);
         } else if (state is SpeechNotAvailable) {
           return _buildError(context, state.message, null);
         }
@@ -578,6 +584,258 @@ class CommandResultWidget extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ===== Device-Specific Error UI =====
+
+  /// Build Google Services error UI
+  Widget _buildGoogleServicesError(BuildContext context, GoogleServicesRequired state) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 48,
+            color: Colors.orange,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Google App Required',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Speech recognition requires the Google app to be installed and updated.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () async {
+              const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.google.android.googlequicksearchbox';
+              final uri = Uri.parse(playStoreUrl);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            icon: const Icon(Icons.download, size: 18),
+            label: const Text('Get Google App'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () {
+              context.read<SpeechBloc>().add(const RetryPermissionCheckEvent());
+            },
+            child: const Text('I\'ve installed it - Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build manufacturer restriction error with guided steps
+  Widget _buildManufacturerRestrictionError(BuildContext context, ManufacturerRestriction state) {
+    final currentIssue = state.currentIssue;
+    final isCritical = currentIssue.severity == IssueSeverity.critical;
+
+    // Get device-specific color
+    Color deviceColor = AppColors.primary;
+    if (state.deviceCategory == DeviceCategory.vivo) {
+      deviceColor = Colors.blue;
+    } else if (state.deviceCategory == DeviceCategory.oppo) {
+      deviceColor = Colors.green;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: deviceColor.withOpacity(0.3)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(
+                isCritical ? Icons.error_outline : Icons.info_outline,
+                size: 24,
+                color: isCritical ? Colors.orange : Colors.blue,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      state.deviceCategory == DeviceCategory.vivo
+                          ? 'Vivo Settings Required'
+                          : state.deviceCategory == DeviceCategory.oppo
+                              ? 'Oppo Settings Required'
+                              : 'Device Settings Required',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if (state.totalSteps > 1)
+                      Text(
+                        'Step ${state.currentStepIndex + 1} of ${state.totalSteps}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Current permission step card
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isCritical ? Colors.orange.withOpacity(0.5) : Colors.blue.withOpacity(0.5),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: isCritical ? Colors.orange : Colors.blue,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${state.currentStepIndex + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        currentIssue.title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  currentIssue.description,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    context.read<SpeechBloc>().add(
+                          ExecutePermissionActionEvent(issue: currentIssue),
+                        );
+                  },
+                  icon: const Icon(Icons.settings, size: 18),
+                  label: Text(currentIssue.actionLabel),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: deviceColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Retry button
+          OutlinedButton.icon(
+            onPressed: () {
+              context.read<SpeechBloc>().add(const RetryPermissionCheckEvent());
+            },
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Test Again'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: deviceColor,
+              side: BorderSide(color: deviceColor.withOpacity(0.5)),
+            ),
+          ),
+
+          // Show remaining steps indicator
+          if (state.hasMoreSteps) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.arrow_forward, size: 14, color: Colors.blue),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${state.totalSteps - state.currentStepIndex - 1} more step${state.totalSteps - state.currentStepIndex - 1 > 1 ? 's' : ''} after this',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

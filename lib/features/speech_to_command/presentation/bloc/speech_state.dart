@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:monie/features/speech_to_command/domain/entities/speech_command.dart';
 import 'package:monie/features/transactions/domain/entities/transaction.dart';
+import 'package:monie/core/services/device_info_service.dart';
+import 'package:monie/core/services/permission_service.dart';
 
 abstract class SpeechState extends Equatable {
   const SpeechState();
@@ -136,5 +138,72 @@ class PermissionRequired extends SpeechState {
 
   @override
   List<Object?> get props => [message, isPermanentlyDenied];
+}
+
+// ===== Device-Specific States =====
+
+/// Google Speech Services (Google app) is required
+class GoogleServicesRequired extends SpeechState {
+  final bool isInstalled;
+  final String? currentVersion;
+
+  const GoogleServicesRequired({
+    required this.isInstalled,
+    this.currentVersion,
+  });
+
+  @override
+  List<Object?> get props => [isInstalled, currentVersion];
+}
+
+/// Manufacturer-specific restrictions detected (Vivo/Oppo/Xiaomi)
+class ManufacturerRestriction extends SpeechState {
+  final DeviceCategory deviceCategory;
+  final List<PermissionIssue> issues;
+  final int currentStepIndex;
+
+  const ManufacturerRestriction({
+    required this.deviceCategory,
+    required this.issues,
+    this.currentStepIndex = 0,
+  });
+
+  @override
+  List<Object?> get props => [deviceCategory, issues, currentStepIndex];
+
+  /// Get current issue being addressed
+  PermissionIssue get currentIssue => issues[currentStepIndex];
+
+  /// Check if there are more steps
+  bool get hasMoreSteps => currentStepIndex < issues.length - 1;
+
+  /// Get total number of steps
+  int get totalSteps => issues.length;
+
+  /// Copy with updated step index
+  ManufacturerRestriction copyWithNextStep() {
+    if (!hasMoreSteps) return this;
+    return ManufacturerRestriction(
+      deviceCategory: deviceCategory,
+      issues: issues,
+      currentStepIndex: currentStepIndex + 1,
+    );
+  }
+}
+
+/// Multi-step permission setup flow
+class PermissionSetupRequired extends SpeechState {
+  final List<PermissionIssue> issues;
+  final int currentStep;
+  final int totalSteps;
+
+  const PermissionSetupRequired({
+    required this.issues,
+    required this.currentStep,
+    required this.totalSteps,
+  });
+
+  @override
+  List<Object?> get props => [issues, currentStep, totalSteps];
 }
 
