@@ -50,3 +50,43 @@ class InvalidCommandFailure extends Failure {
 class SpeechRecognitionFailure extends Failure {
   const SpeechRecognitionFailure({required super.message});
 }
+
+/// Permission denied failure - user can retry
+class PermissionDeniedFailure extends Failure {
+  const PermissionDeniedFailure()
+      : super(
+            message:
+                'Microphone permission is required. Please grant permission to use voice commands.');
+}
+
+/// Permission permanently denied - user must go to settings
+class PermissionPermanentlyDeniedFailure extends Failure {
+  const PermissionPermanentlyDeniedFailure()
+      : super(
+            message:
+                'Microphone permission was permanently denied. Please enable it in Settings > Apps > Monie > Permissions.');
+}
+
+/// Speech service not available on device
+class SpeechServiceUnavailableFailure extends Failure {
+  const SpeechServiceUnavailableFailure()
+      : super(
+            message:
+                'Speech recognition service is not available. Please ensure Google app is installed and updated.');
+}
+
+/// Locale not available failure with fallback suggestion
+class LocaleNotAvailableFailure extends Failure {
+  final String requestedLocale;
+  final String fallbackLocale;
+
+  const LocaleNotAvailableFailure({
+    required this.requestedLocale,
+    required this.fallbackLocale,
+  }) : super(
+            message:
+                'Language "$requestedLocale" is not available. Using "$fallbackLocale" instead.');
+
+  @override
+  List<Object> get props => [message, requestedLocale, fallbackLocale];
+}

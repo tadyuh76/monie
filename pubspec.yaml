@@ -52,7 +52,7 @@ dependencies:
   timezone: ^0.9.4
   google_fonts: ^6.2.1
   flutter_svg: ^2.1.0
-  intl: ^0.19.0
+  intl: ^0.20.2
   image_picker: ^1.0.7
 
   # Storage
@@ -77,6 +77,7 @@ dependencies:
   
   # Speech recognition
   speech_to_text: ^7.0.0
+  permission_handler: ^11.3.1
 
   # Google Sign-In
   google_sign_in: ^6.2.1

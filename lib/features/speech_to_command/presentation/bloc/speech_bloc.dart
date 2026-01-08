@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:monie/core/errors/failures.dart';
+import 'package:monie/core/services/permission_service.dart';
 import 'package:monie/features/speech_to_command/domain/entities/speech_command.dart';
 import 'package:monie/features/speech_to_command/domain/usecases/create_transaction_from_command_usecase.dart';
 import 'package:monie/features/speech_to_command/domain/usecases/parse_command_usecase.dart';
@@ -11,6 +13,7 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
   final RecognizeSpeech _recognizeSpeech;
   final ParseCommand _parseCommand;
   final CreateTransactionFromCommand? _createTransactionFromCommand;
+  final PermissionService _permissionService;
 
   StreamSubscription<String>? _speechSubscription;
   SpeechCommand? _currentCommand;
@@ -19,9 +22,11 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
   SpeechBloc({
     required RecognizeSpeech recognizeSpeech,
     required ParseCommand parseCommand,
+    required PermissionService permissionService,
     CreateTransactionFromCommand? createTransactionFromCommand,
   })  : _recognizeSpeech = recognizeSpeech,
         _parseCommand = parseCommand,
+        _permissionService = permissionService,
         _createTransactionFromCommand = createTransactionFromCommand,
         super(const SpeechInitial()) {
     on<StartListeningEvent>(_onStartListening);
@@ -32,6 +37,8 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     on<CreateTransactionFromCommandEvent>(_onCreateTransactionFromCommand);
     on<OpenTransactionFormEvent>(_onOpenTransactionForm);
     on<ResetSpeechStateEvent>(_onResetSpeechState);
+    on<RequestPermissionEvent>(_onRequestPermission);
+    on<OpenAppSettingsEvent>(_onOpenAppSettings);
   }
 
   Future<void> _onStartListening(
@@ -39,12 +46,24 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     Emitter<SpeechState> emit,
   ) async {
     emit(const SpeechCheckingAvailability());
-    
+
     final result = await _recognizeSpeech(RecognizeSpeechParams());
-    
+
     result.fold(
       (failure) {
-        emit(SpeechNotAvailable(failure.message));
+        if (failure is PermissionDeniedFailure) {
+          emit(PermissionRequired(
+            message: failure.message,
+            isPermanentlyDenied: false,
+          ));
+        } else if (failure is PermissionPermanentlyDeniedFailure) {
+          emit(PermissionRequired(
+            message: failure.message,
+            isPermanentlyDenied: true,
+          ));
+        } else {
+          emit(SpeechNotAvailable(failure.message));
+        }
       },
       (speechStream) {
         emit(const SpeechListening());
@@ -188,6 +207,46 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     _speechSubscription = null;
     _currentCommand = null;
     emit(const SpeechInitial());
+  }
+
+  Future<void> _onRequestPermission(
+    RequestPermissionEvent event,
+    Emitter<SpeechState> emit,
+  ) async {
+    emit(const SpeechCheckingAvailability());
+
+    // Request permission
+    final granted = await _permissionService.requestMicrophonePermission();
+
+    if (granted) {
+      // Permission granted, try to start listening
+      emit(const SpeechInitial());
+      add(const StartListeningEvent());
+    } else {
+      // Check if permanently denied
+      final isPermanent =
+          await _permissionService.isMicrophonePermissionPermanentlyDenied();
+      if (isPermanent) {
+        emit(const PermissionRequired(
+          message:
+              'Microphone permission was permanently denied. Please enable it in Settings > Apps > Monie > Permissions.',
+          isPermanentlyDenied: true,
+        ));
+      } else {
+        emit(const PermissionRequired(
+          message:
+              'Microphone permission is required. Please grant permission to use voice commands.',
+          isPermanentlyDenied: false,
+        ));
+      }
+    }
+  }
+
+  Future<void> _onOpenAppSettings(
+    OpenAppSettingsEvent event,
+    Emitter<SpeechState> emit,
+  ) async {
+    await _permissionService.openAppSettings();
   }
 
   @override

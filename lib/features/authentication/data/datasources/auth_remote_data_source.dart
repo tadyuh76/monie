@@ -1,5 +1,6 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:monie/core/errors/failures.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/features/authentication/data/models/user_model.dart';
@@ -388,61 +389,74 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> signInWithGoogle() async {
     try {
-      // Web client ID from Google Cloud Console - must match Supabase config
-      const webClientId = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
-      // iOS client ID from GoogleService-Info.plist
-      const iosClientId = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com';
+      debugPrint('🔐 Google Sign In: Starting Supabase native OAuth flow...');
 
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId: iosClientId,
-        serverClientId: webClientId,
-        scopes: ['email', 'profile'],
+      // Use Supabase's native OAuth - no need for google_sign_in package!
+      // Supabase handles the entire OAuth flow including redirects
+      final response = await supabaseClient.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'com.tadyuh.monie://login-callback',
+        authScreenLaunchMode: LaunchMode.externalApplication,
       );
 
-      // Sign out first to allow account selection
-      await googleSignIn.signOut();
+      if (!response) {
+        throw const AuthFailure(
+          message: 'Failed to initiate Google sign in. Please try again.',
+        );
+      }
 
-      final googleUser = await googleSignIn.signIn();
+      debugPrint('✅ Google Sign In: OAuth flow initiated successfully');
 
-      if (googleUser == null) {
+      // Note: The actual sign-in completion is handled by Supabase's auth state listener
+      // The user will be redirected back to the app after signing in with Google
+      // We need to wait for the auth state to change
+
+      // Wait for auth state change (with timeout)
+      final completer = Completer<User?>();
+      late final StreamSubscription<AuthState> subscription;
+
+      subscription = supabaseClient.auth.onAuthStateChange.listen((data) {
+        final user = data.session?.user;
+        if (user != null && !completer.isCompleted) {
+          completer.complete(user);
+          subscription.cancel();
+        }
+      });
+
+      // Wait up to 60 seconds for user to complete sign-in
+      final user = await completer.future.timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          subscription.cancel();
+          throw const AuthFailure(
+            message: 'Google sign in timed out. Please try again.',
+          );
+        },
+      );
+
+      if (user == null) {
         throw const AuthFailure(message: 'Google sign in was cancelled');
       }
 
-      final googleAuth = await googleUser.authentication;
-      final idToken = googleAuth.idToken;
-      final accessToken = googleAuth.accessToken;
-
-      if (idToken == null) {
-        throw const AuthFailure(message: 'Failed to get Google ID token');
-      }
-
-      debugPrint('🔐 Google Sign In: Got tokens, signing in with Supabase...');
-
-      // Sign in to Supabase with Google credentials
-      final response = await supabaseClient.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
-        accessToken: accessToken,
-      );
-
-      if (response.user == null) {
-        throw const AuthFailure(message: 'Failed to sign in with Google');
-      }
-
-      debugPrint('✅ Google Sign In: Supabase auth successful');
+      debugPrint('✅ Google Sign In: User authenticated');
 
       // Create a UserModel from the Supabase user
-      UserModel user = UserModel.fromSupabaseUser(response.user!);
+      UserModel userModel = UserModel.fromSupabaseUser(user);
 
       // Ensure user data is in the users table
       try {
-        final displayName = googleUser.displayName ?? 
-            googleUser.email.split('@').first;
-        final photoUrl = googleUser.photoUrl;
+        // Extract display name and photo from user metadata
+        final metadata = user.userMetadata ?? {};
+        final displayName = metadata['full_name'] as String? ??
+            metadata['name'] as String? ??
+            user.email?.split('@').first ??
+            'User';
+        final photoUrl = metadata['avatar_url'] as String? ??
+            metadata['picture'] as String?;
 
         await supabaseClient.client.from('users').upsert({
-          'user_id': response.user!.id,
-          'email': googleUser.email,
+          'user_id': user.id,
+          'email': user.email,
           'display_name': displayName,
           'profile_image_url': photoUrl,
           'color_mode': 'dark',
@@ -450,23 +464,22 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         }, onConflict: 'user_id');
 
         // Fetch the latest user data
-        final userData =
-            await supabaseClient.client
-                .from('users')
-                .select()
-                .eq('user_id', response.user!.id)
-                .single();
+        final userData = await supabaseClient.client
+            .from('users')
+            .select()
+            .eq('user_id', user.id)
+            .single();
 
-        user = UserModel(
-          id: user.id,
-          email: user.email,
+        userModel = UserModel(
+          id: userModel.id,
+          email: userModel.email,
           displayName: userData['display_name'] ?? displayName,
           profileImageUrl: userData['profile_image_url'] ?? photoUrl,
           colorMode: userData['color_mode'] ?? 'dark',
           language: userData['language'] ?? 'en',
           emailVerified: true, // Google accounts are always verified
-          createdAt: user.createdAt,
-          lastSignInAt: user.lastSignInAt,
+          createdAt: userModel.createdAt,
+          lastSignInAt: userModel.lastSignInAt,
         );
 
         debugPrint('✅ Google Sign In: User data saved to database');
@@ -475,7 +488,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         // Continue with basic user data
       }
 
-      return user;
+      return userModel;
     } on AuthException catch (e) {
       debugPrint('❌ Google Sign In Auth Error: ${e.message}');
       throw AuthFailure(message: e.message);

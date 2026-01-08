@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/core/utils/formatters.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
+import 'package:monie/features/speech_to_command/presentation/bloc/speech_event.dart';
 import 'package:monie/features/speech_to_command/presentation/bloc/speech_state.dart';
 
 class CommandResultWidget extends StatelessWidget {
@@ -13,7 +14,9 @@ class CommandResultWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<SpeechBloc, SpeechState>(
       builder: (context, state) {
-        if (state is SpeechResultReceived) {
+        if (state is PermissionRequired) {
+          return _buildPermissionRequired(context, state);
+        } else if (state is SpeechResultReceived) {
           return _buildResultText(context, state.text, null);
         } else if (state is CommandParsed) {
           return _buildParsedCommand(context, state);
@@ -294,6 +297,81 @@ class CommandResultWidget extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPermissionRequired(
+      BuildContext context, PermissionRequired state) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary,
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            state.isPermanentlyDenied ? Icons.settings : Icons.mic_off,
+            size: 64,
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            state.isPermanentlyDenied
+                ? 'Permission Required'
+                : 'Microphone Access Needed',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            state.message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                if (state.isPermanentlyDenied) {
+                  context.read<SpeechBloc>().add(const OpenAppSettingsEvent());
+                } else {
+                  context
+                      .read<SpeechBloc>()
+                      .add(const RequestPermissionEvent());
+                }
+              },
+              icon: Icon(
+                state.isPermanentlyDenied ? Icons.settings : Icons.mic,
+              ),
+              label: Text(
+                state.isPermanentlyDenied ? 'Open Settings' : 'Grant Permission',
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ],

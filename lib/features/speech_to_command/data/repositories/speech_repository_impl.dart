@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:monie/core/errors/failures.dart';
 import 'package:monie/core/services/gemini_service.dart';
+import 'package:monie/core/services/permission_service.dart';
 import 'package:monie/features/speech_to_command/data/datasources/speech_remote_data_source.dart';
 import 'package:monie/core/utils/command_parser.dart';
 import 'package:monie/features/speech_to_command/domain/entities/speech_command.dart';
@@ -11,17 +12,40 @@ import 'package:monie/features/speech_to_command/domain/repositories/speech_repo
 class SpeechRepositoryImpl implements SpeechRepository {
   final SpeechRemoteDataSource dataSource;
   final GeminiService? geminiService;
+  final PermissionService permissionService;
   StreamController<String>? _speechStreamController;
 
   SpeechRepositoryImpl({
     required this.dataSource,
+    required this.permissionService,
     this.geminiService,
   });
 
   @override
   Future<Either<Failure, bool>> isAvailable() async {
     try {
+      // First check permission
+      final hasPermission =
+          await permissionService.isMicrophonePermissionGranted();
+      if (!hasPermission) {
+        final isPermanent =
+            await permissionService.isMicrophonePermissionPermanentlyDenied();
+        if (isPermanent) {
+          return const Left(PermissionPermanentlyDeniedFailure());
+        }
+        return const Left(PermissionDeniedFailure());
+      }
+
+      // Then check service availability
       final available = await dataSource.isAvailable();
+      if (!available) {
+        final error = (dataSource as SpeechRemoteDataSourceImpl).getLastError();
+        if (error != null && error.contains('not available')) {
+          return const Left(SpeechServiceUnavailableFailure());
+        }
+        return const Left(SpeechNotAvailableFailure());
+      }
+
       return Right(available);
     } catch (e) {
       return Left(SpeechRecognitionFailure(
@@ -33,11 +57,31 @@ class SpeechRepositoryImpl implements SpeechRepository {
   @override
   Future<Either<Failure, void>> initialize() async {
     try {
+      // Check permission first
+      final hasPermission =
+          await permissionService.isMicrophonePermissionGranted();
+      if (!hasPermission) {
+        // Try to request permission
+        final granted = await permissionService.requestMicrophonePermission();
+        if (!granted) {
+          final isPermanent =
+              await permissionService.isMicrophonePermissionPermanentlyDenied();
+          if (isPermanent) {
+            return const Left(PermissionPermanentlyDeniedFailure());
+          }
+          return const Left(PermissionDeniedFailure());
+        }
+      }
+
       final initialized = await dataSource.initialize();
       if (initialized) {
         return const Right(null);
       } else {
-        return Left(SpeechNotAvailableFailure());
+        final error = (dataSource as SpeechRemoteDataSourceImpl).getLastError();
+        if (error != null && error.contains('not available')) {
+          return const Left(SpeechServiceUnavailableFailure());
+        }
+        return const Left(SpeechNotAvailableFailure());
       }
     } catch (e) {
       return Left(SpeechRecognitionFailure(

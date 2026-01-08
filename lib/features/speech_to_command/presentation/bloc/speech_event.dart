@@ -55,3 +55,13 @@ class ResetSpeechStateEvent extends SpeechEvent {
   const ResetSpeechStateEvent();
 }
 
+/// Event to request microphone permission
+class RequestPermissionEvent extends SpeechEvent {
+  const RequestPermissionEvent();
+}
+
+/// Event to open app settings for manual permission grant
+class OpenAppSettingsEvent extends SpeechEvent {
+  const OpenAppSettingsEvent();
+}
+

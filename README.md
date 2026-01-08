@@ -11,16 +11,23 @@ Monie is a mobile application designed to help users, particularly students and 
 
 The application includes the following core features:
 
-- **User Authentication:** Secure sign-up and login functionality.
+- **User Authentication:** Secure sign-up, login, and Google Sign-In (Supabase OAuth).
   - (Located in `lib/features/authentication/`)
 - **Transaction Management:** Easily add, edit, and view income and expense transactions.
   - (Located in `lib/features/transactions/`)
+- **Speech to Command:** Add transactions using voice commands with AI-powered parsing (Vietnamese & English).
+  - (Located in `lib/features/speech_to_command/`)
+  - Powered by Google Gemini for intelligent command parsing
+- **Daily Reminders:** Schedule daily notifications to track expenses with exact alarm support.
+  - (Located in `lib/features/daily_reminder/`)
 - **Budgeting:** Create and manage budgets for different spending categories.
   - (Located in `lib/features/budgets/`)
 - **Account Management:** Manage user profile and linked accounts (if applicable).
   - (Located in `lib/features/account/`)
-- **Group Spending (if applicable):** Functionality to manage shared expenses within groups.
+- **Group Spending:** Functionality to manage shared expenses within groups.
   - (Located in `lib/features/groups/`)
+- **Push Notifications:** Real-time notifications via Firebase Cloud Messaging.
+  - (Located in `lib/core/services/notification_service.dart`)
 - **Home Dashboard:** An overview of financial status, recent transactions, and budget progress.
   - (Located in `lib/features/home/`)
 - **Application Settings:** Customize app preferences, notifications, and themes.
@@ -40,6 +47,11 @@ Monie is built with a modern tech stack and follows a robust architectural patte
 - **Dependency Injection:** Using `get_it` (inferred from `lib/di/injection.dart` and `injection_container.dart`).
 - **Routing:** (Specify your routing solution here, e.g., GoRouter, AutoRoute, or Flutter's Navigator 2.0)
 - **Database:** Supabase (PostgreSQL)
+- **Backend:** Supabase for authentication, database, and real-time features
+- **Push Notifications:** Firebase Cloud Messaging (FCM)
+- **AI Integration:** Google Gemini API for voice command parsing
+- **Speech Recognition:** speech_to_text package with Vietnamese & English support
+- **Local Notifications:** flutter_local_notifications with exact alarm support
 - **Asset Management:** Utilizes Flutter's asset system, with generated asset references in `lib/gen/assets.gen.dart`.
 
 ## Project Structure
@@ -116,12 +128,30 @@ Follow these instructions to get the project up and running on your local machin
     ```
 
 3.  **Environment Variables:**
-    This project uses a `.env` file for managing sensitive information and environment-specific configurations, particularly for Supabase. - Create a file named `.env` in the root of the project. - Add your Supabase URL and Anon Key:
-    `env
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_ANON_KEY=your-supabase-anon-key
-`
+    This project uses a `.env` file for managing sensitive information and environment-specific configurations.
+
+    Create a file named `.env` in the root of the project with the following variables:
+
+    ```env
+    SUPABASE_URL=https://your-project-id.supabase.co
+    SUPABASE_ANON_KEY=your-supabase-anon-key
+    GEMINI_API_KEY=your-gemini-api-key
+    GOOGLE_APPLICATION_CREDENTIALS=./push-notify/push-notify-key.json
+    ```
+
     _Note: The `.env` file is included in `.gitignore` and should not be committed to version control._
+
+4.  **Firebase Setup (for Push Notifications):**
+    - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
+    - Add Android/iOS apps to your Firebase project
+    - Download `google-services.json` (Android) and place in `android/app/`
+    - Download `GoogleService-Info.plist` (iOS) and place in `ios/Runner/`
+    - Enable Cloud Messaging in Firebase Console
+
+5.  **Supabase Google OAuth Setup (Optional):**
+    - Follow the guide in `SUPABASE_OAUTH_SETUP.md` for Google Sign-In configuration
+    - Requires setting up OAuth credentials in Google Cloud Console
+    - Configure redirect URLs in Supabase Dashboard
 
 ### Running the App
 

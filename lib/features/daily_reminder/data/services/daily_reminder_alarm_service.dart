@@ -1,11 +1,36 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 
 class DailyReminderAlarmService {
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   static const String _channelId = 'daily_reminder_channel';
+
+  /// Check if exact alarms can be scheduled (Android 12+)
+  Future<bool> canScheduleExactAlarms() async {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      // Check if we have permission to schedule exact alarms
+      final status = await Permission.scheduleExactAlarm.status;
+      return status.isGranted;
+    }
+    return true; // iOS doesn't need this permission
+  }
+
+  /// Request exact alarm permission (Android 12+)
+  Future<bool> requestExactAlarmPermission() async {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final status = await Permission.scheduleExactAlarm.request();
+      if (status.isDenied) {
+        debugPrint('⚠️ Exact alarm permission denied - will use inexact alarms');
+        debugPrint('💡 User can enable in: Settings > Apps > Monie > Alarms & reminders');
+        return false;
+      }
+      return status.isGranted;
+    }
+    return true; // iOS doesn't need this permission
+  }
   
   /// Initialize timezone data
   Future<void> initialize() async {
@@ -69,20 +94,30 @@ class DailyReminderAlarmService {
     try {
       // Cancel only this specific notification ID before rescheduling
       await _notifications.cancel(id);
-      
+
+      // Check for exact alarm permission on Android 12+
+      final canUseExactAlarms = await canScheduleExactAlarms();
+      if (!canUseExactAlarms && defaultTargetPlatform == TargetPlatform.android) {
+        debugPrint('⚠️ Exact alarm permission not granted - requesting permission');
+        final granted = await requestExactAlarmPermission();
+        if (!granted) {
+          debugPrint('⚠️ Will use inexact alarms - notifications may be delayed');
+        }
+      }
+
       // Detect timezone
       final locationName = _detectTimezone();
       final location = tz.getLocation(locationName);
-      
+
       // Calculate next occurrence
       final now = tz.TZDateTime.now(location);
       var scheduledDate = tz.TZDateTime(location, now.year, now.month, now.day, hour, minute);
-      
+
       // If the time has passed today, schedule for tomorrow
       if (scheduledDate.isBefore(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
-      
+
       // Configure notification details
       const androidDetails = AndroidNotificationDetails(
         _channelId,
@@ -94,52 +129,43 @@ class DailyReminderAlarmService {
         enableVibration: true,
         playSound: true,
       );
-      
+
       const iosDetails = DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
       );
-      
+
       const notificationDetails = NotificationDetails(
         android: androidDetails,
         iOS: iosDetails,
       );
-      
-      // Try exact alarm first
-      try {
-        await _notifications.zonedSchedule(
-          id,
-          'Daily Reminder',
-          'Don\'t forget to track your expenses today!',
-          scheduledDate,
-          notificationDetails,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-          matchDateTimeComponents: DateTimeComponents.time, // Repeat daily
-        );
-        
-        // Verify the notification was scheduled
-        final pending = await _notifications.pendingNotificationRequests();
-        debugPrint('Notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
-        debugPrint('Total pending notifications: ${pending.length}');
-      } catch (e) {
-        // Fallback to inexact alarm (Android 12+ compatibility)
-        await _notifications.zonedSchedule(
-          id,
-          'Daily Reminder',
-          'Don\'t forget to track your expenses today!',
-          scheduledDate,
-          notificationDetails,
-          androidScheduleMode: AndroidScheduleMode.inexact,
-          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-          matchDateTimeComponents: DateTimeComponents.time, // Repeat daily
-        );
-        
-        // Verify the notification was scheduled
-        final pending = await _notifications.pendingNotificationRequests();
-        debugPrint('Inexact notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
-        debugPrint('Total pending notifications: ${pending.length}');
+
+      // Determine which schedule mode to use
+      final canUseExact = await canScheduleExactAlarms();
+      final scheduleMode = canUseExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+
+      await _notifications.zonedSchedule(
+        id,
+        'Daily Reminder',
+        'Don\'t forget to track your expenses today!',
+        scheduledDate,
+        notificationDetails,
+        androidScheduleMode: scheduleMode,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time, // Repeat daily
+      );
+
+      // Verify the notification was scheduled
+      final pending = await _notifications.pendingNotificationRequests();
+      final modeStr = canUseExact ? 'Exact' : 'Inexact';
+      debugPrint('✅ $modeStr notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+      debugPrint('📋 Total pending notifications: ${pending.length}');
+
+      if (!canUseExact) {
+        debugPrint('💡 For exact timing, enable: Settings > Apps > Monie > Alarms & reminders');
       }
     } catch (e) {
       rethrow;

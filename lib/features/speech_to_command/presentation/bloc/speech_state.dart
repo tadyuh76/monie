@@ -124,3 +124,17 @@ class SpeechError extends SpeechState {
   List<Object?> get props => [message];
 }
 
+/// Permission required state - show permission request prompt
+class PermissionRequired extends SpeechState {
+  final String message;
+  final bool isPermanentlyDenied;
+
+  const PermissionRequired({
+    required this.message,
+    this.isPermanentlyDenied = false,
+  });
+
+  @override
+  List<Object?> get props => [message, isPermanentlyDenied];
+}
+

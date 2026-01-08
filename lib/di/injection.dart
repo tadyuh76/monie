@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/services/gemini_service.dart';
+import 'package:monie/core/services/permission_service.dart';
 import 'package:monie/features/account/data/datasources/account_remote_data_source.dart';
 import 'package:monie/features/account/data/repositories/account_repository_impl.dart';
 import 'package:monie/features/account/domain/repositories/account_repository.dart';
@@ -308,6 +309,9 @@ Future<void> configureDependencies() async {
   // Gemini Service (Singleton)
   sl.registerLazySingleton<GeminiService>(() => GeminiService.instance);
 
+  // Permission Service
+  sl.registerLazySingleton<PermissionService>(() => PermissionService());
+
   // AI Insights Feature
   sl.registerLazySingleton<AIInsightsDataSource>(
     () => AIInsightsDataSource(sl()),
@@ -360,6 +364,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<SpeechRepository>(
     () => SpeechRepositoryImpl(
       dataSource: sl(),
+      permissionService: sl<PermissionService>(),
       geminiService: sl<GeminiService>(),
     ),
   );
@@ -374,6 +379,7 @@ Future<void> configureDependencies() async {
     () => SpeechBloc(
       recognizeSpeech: sl(),
       parseCommand: sl(),
+      permissionService: sl<PermissionService>(),
       createTransactionFromCommand: sl(),
     ),
   );
