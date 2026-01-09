@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:async' show StreamController, TimeoutException;
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:monie/core/errors/failures.dart';
@@ -255,9 +255,12 @@ class SpeechRepositoryImpl implements SpeechRepository {
   }
 
   /// Parse voice command using Gemini AI
+  /// Uses a 5-second timeout to prevent blocking the fallback parser
   Future<SpeechCommand?> _parseWithGemini(String text) async {
     try {
-      final result = await geminiService!.parseVoiceCommand(text);
+      final result = await geminiService!
+          .parseVoiceCommand(text)
+          .timeout(const Duration(seconds: 5));
 
       if (result == null) return null;
 
@@ -282,6 +285,9 @@ class SpeechRepositoryImpl implements SpeechRepository {
         date: parsedDate,
         confidence: (result['confidence'] as num?)?.toDouble() ?? 0.8,
       );
+    } on TimeoutException {
+      debugPrint('⚠️ Gemini parsing timed out, falling back to local parser');
+      return null;
     } catch (e) {
       debugPrint('❌ Gemini parsing failed: $e');
       return null;

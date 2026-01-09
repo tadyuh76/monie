@@ -96,6 +96,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Launcher icons
+  flutter_launcher_icons: ^0.14.3
+
   # Code generation
   build_runner: ^2.4.8
   injectable_generator: ^2.4.2
@@ -152,3 +155,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Launcher icons configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "Monie Logo.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true

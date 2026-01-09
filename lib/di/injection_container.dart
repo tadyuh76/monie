@@ -46,6 +46,17 @@ import 'package:monie/features/daily_reminder/domain/usecases/get_all_reminders.
 import 'package:monie/features/daily_reminder/domain/usecases/update_reminder.dart';
 import 'package:monie/features/daily_reminder/presentation/bloc/daily_reminder_bloc.dart';
 
+// Speech to Command imports
+import 'package:monie/core/services/device_info_service.dart';
+import 'package:monie/core/services/gemini_service.dart';
+import 'package:monie/core/services/permission_service.dart';
+import 'package:monie/features/speech_to_command/data/datasources/speech_remote_data_source.dart';
+import 'package:monie/features/speech_to_command/data/repositories/speech_repository_impl.dart';
+import 'package:monie/features/speech_to_command/domain/repositories/speech_repository.dart';
+import 'package:monie/features/speech_to_command/domain/usecases/parse_command_usecase.dart';
+import 'package:monie/features/speech_to_command/domain/usecases/recognize_speech_usecase.dart';
+import 'package:monie/features/speech_to_command/presentation/bloc/speech_bloc.dart';
+
 // Service locator instance
 final sl = GetIt.instance;
 
@@ -65,6 +76,7 @@ void setup() {
   _setupGroupsFeature();
   _setupNotificationsFeature();
   _setupDailyReminderFeature();
+  _setupSpeechFeature();
 }
 
 // Auth Feature
@@ -201,5 +213,47 @@ void _setupDailyReminderFeature() {
   // Data sources
   sl.registerLazySingleton<DailyReminderLocalDataSource>(
     () => DailyReminderLocalDataSource(),
+  );
+}
+
+// Speech to Command Feature
+void _setupSpeechFeature() {
+  // Core Services (if not already registered)
+  if (!sl.isRegistered<DeviceInfoService>()) {
+    sl.registerLazySingleton<DeviceInfoService>(() => DeviceInfoService());
+  }
+
+  if (!sl.isRegistered<PermissionService>()) {
+    sl.registerLazySingleton<PermissionService>(
+      () => PermissionService(deviceInfoService: sl()),
+    );
+  }
+
+  // Data sources
+  sl.registerLazySingleton<SpeechRemoteDataSource>(
+    () => SpeechRemoteDataSourceImpl(),
+  );
+
+  // Repository
+  sl.registerLazySingleton<SpeechRepository>(
+    () => SpeechRepositoryImpl(
+      dataSource: sl(),
+      permissionService: sl(),
+      deviceInfoService: sl(),
+      geminiService: GeminiService.instance,
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => RecognizeSpeech(sl()));
+  sl.registerLazySingleton(() => ParseCommand(sl()));
+
+  // BLoC
+  sl.registerFactory(
+    () => SpeechBloc(
+      recognizeSpeech: sl(),
+      parseCommand: sl(),
+      permissionService: sl(),
+    ),
   );
 }
