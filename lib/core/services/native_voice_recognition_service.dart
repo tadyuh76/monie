@@ -21,45 +21,76 @@ class NativeVoiceRecognitionService {
   Future<void> _handleMethodCall(MethodCall call) async {
     switch (call.method) {
       case 'onResult':
-        final args = call.arguments as Map;
-        final text = args['text'] as String;
-        final isFinal = args['isFinal'] as bool;
+        final args = call.arguments as Map?;
+        if (args == null) {
+          debugPrint('⚠️ Voice result: null args received');
+          return;
+        }
+        final text = args['text'] as String? ?? '';
+        final isFinal = args['isFinal'] as bool? ?? false;
 
         debugPrint('🎤 Voice result: $text (final: $isFinal)');
-        _resultController?.add(text);
+
+        // Only add if controller exists and is not closed
+        final controller = _resultController;
+        if (controller != null && !controller.isClosed) {
+          controller.add(text);
+        }
 
         if (isFinal) {
           // Delay closing to allow listeners to process the result
           // This prevents the race condition where stream closes before listeners receive data
           await Future.delayed(const Duration(milliseconds: 100));
           _isListening = false;
-          await _resultController?.close();
+          if (_resultController != null && !_resultController!.isClosed) {
+            await _resultController?.close();
+          }
           _resultController = null;
           debugPrint('✅ Stream closed after result delivery');
         }
         break;
 
       case 'onError':
-        final args = call.arguments as Map;
-        final error = args['error'] as String;
-        final errorCode = args['errorCode'] as int;
+        final args = call.arguments as Map?;
+        if (args == null) {
+          debugPrint('⚠️ Voice error: null args received');
+          return;
+        }
+        final error = args['error'] as String? ?? 'Unknown error';
+        final errorCode = args['errorCode'] as int? ?? -1;
 
         debugPrint('❌ Voice error: $error (code: $errorCode)');
-        _resultController?.addError(error);
+
+        // Only add error if controller exists and is not closed
+        final errorController = _resultController;
+        if (errorController != null && !errorController.isClosed) {
+          errorController.addError(error);
+        }
 
         // Delay closing to allow error listeners to process
         await Future.delayed(const Duration(milliseconds: 50));
         _isListening = false;
-        await _resultController?.close();
+        if (_resultController != null && !_resultController!.isClosed) {
+          await _resultController?.close();
+        }
         _resultController = null;
         break;
 
       case 'onStatus':
-        final args = call.arguments as Map;
-        final status = args['status'] as String;
+        final args = call.arguments as Map?;
+        if (args == null) {
+          debugPrint('⚠️ Voice status: null args received');
+          return;
+        }
+        final status = args['status'] as String? ?? 'unknown';
 
         debugPrint('📊 Voice status: $status');
-        _statusController?.add(status);
+
+        // Only add if controller exists and is not closed
+        final statusController = _statusController;
+        if (statusController != null && !statusController.isClosed) {
+          statusController.add(status);
+        }
 
         if (status == 'done') {
           _isListening = false;

@@ -147,25 +147,39 @@ class SpeechRepositoryImpl implements SpeechRepository {
   @override
   Future<Either<Failure, Stream<String>>> startListening() async {
     try {
+      // Clean up any existing controller
       _speechStreamController?.close();
       _speechStreamController = StreamController<String>.broadcast();
 
+      // Capture the stream BEFORE setting up callbacks
+      // This prevents the race condition where onDone nullifies the controller
+      // before we can return the stream
+      final stream = _speechStreamController!.stream;
+
       await dataSource.startListening(
         onResult: (text) {
-          _speechStreamController?.add(text);
+          // Only add if controller is still open
+          if (_speechStreamController != null &&
+              !_speechStreamController!.isClosed) {
+            _speechStreamController?.add(text);
+          }
         },
         onDone: () {
+          // Close the controller but the stream reference is already captured
           _speechStreamController?.close();
           _speechStreamController = null;
         },
         onError: (error) {
-          _speechStreamController?.addError(error);
+          if (_speechStreamController != null &&
+              !_speechStreamController!.isClosed) {
+            _speechStreamController?.addError(error);
+          }
           _speechStreamController?.close();
           _speechStreamController = null;
         },
       );
 
-      return Right(_speechStreamController!.stream);
+      return Right(stream);
     } catch (e) {
       _speechStreamController?.close();
       _speechStreamController = null;

@@ -19,6 +19,8 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
   StreamSubscription<String>? _speechSubscription;
   SpeechCommand? _currentCommand;
   String? _currentOriginalText;
+  // Track if we received a result (to handle onDone race condition)
+  bool _receivedResult = false;
 
   SpeechBloc({
     required RecognizeSpeech recognizeSpeech,
@@ -96,25 +98,31 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
         }
       },
       (speechStream) {
+        // Reset the flag when starting a new listening session
+        _receivedResult = false;
         emit(const SpeechListening());
         _speechSubscription?.cancel();
         _speechSubscription = speechStream.listen(
           (text) {
             if (text.isNotEmpty) {
+              debugPrint('🎤 BLoC received text: $text');
+              _receivedResult = true;
               add(SpeechResultReceivedEvent(text));
             }
           },
           onError: (error) {
+            debugPrint('❌ BLoC stream error: $error');
             emit(SpeechError(error.toString()));
           },
           onDone: () {
-            // Stream is done, but we keep the state as SpeechResultReceived
-            // if we have text, otherwise reset
-            if (state is SpeechResultReceived) {
-              // Keep the result
-            } else {
+            debugPrint('✅ BLoC stream done, receivedResult: $_receivedResult');
+            // Only reset to initial if we didn't receive any result
+            // The _receivedResult flag prevents race condition where onDone
+            // runs before the SpeechResultReceivedEvent is processed
+            if (!_receivedResult) {
               emit(const SpeechInitial());
             }
+            // If we received a result, the event will handle state transitions
           },
         );
       },
@@ -159,9 +167,11 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
     SpeechResultReceivedEvent event,
     Emitter<SpeechState> emit,
   ) async {
+    debugPrint('🎤 BLoC processing SpeechResultReceivedEvent: ${event.text}');
     emit(SpeechResultReceived(event.text));
-    
+
     // Automatically parse the command
+    debugPrint('🔄 BLoC adding ParseCommandEvent');
     add(ParseCommandEvent(event.text));
   }
 

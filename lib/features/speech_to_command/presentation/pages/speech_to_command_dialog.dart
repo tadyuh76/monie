@@ -37,13 +37,14 @@ class _PreFillTransaction {
   });
 }
 
-void _openTransactionFormWithCommand(BuildContext context, SpeechCommand command) {
-  // Get required blocs from the parent context before dialog was closed
-  final transactionBloc = context.read<TransactionBloc>();
-  final accountBloc = context.read<AccountBloc>();
-  final budgetsBloc = context.read<BudgetsBloc>();
-  final authBloc = context.read<AuthBloc>();
-
+void _openTransactionFormWithCommand(
+  BuildContext dialogContext,
+  SpeechCommand command,
+  TransactionBloc transactionBloc,
+  AccountBloc accountBloc,
+  BudgetsBloc budgetsBloc,
+  AuthBloc authBloc,
+) {
   // Create pre-fill transaction object
   final preFillTransaction = _PreFillTransaction(
     title: command.description,
@@ -56,11 +57,15 @@ void _openTransactionFormWithCommand(BuildContext context, SpeechCommand command
   );
 
   // Use a post-frame callback to ensure the dialog is fully closed
+  // We need to get the root navigator context, not the dialog context
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (!context.mounted) return;
+    // Get the root navigator context which survives the dialog closing
+    final navigatorContext = Navigator.of(dialogContext, rootNavigator: true).context;
+
+    if (!navigatorContext.mounted) return;
 
     showModalBottomSheet(
-      context: context,
+      context: navigatorContext,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext modalContext) {
@@ -97,15 +102,25 @@ void _openTransactionFormWithCommand(BuildContext context, SpeechCommand command
   });
 }
 
-class SpeechToCommandDialog extends StatelessWidget {
+class SpeechToCommandDialog extends StatefulWidget {
   const SpeechToCommandDialog({super.key});
+
+  @override
+  State<SpeechToCommandDialog> createState() => _SpeechToCommandDialogState();
+}
+
+class _SpeechToCommandDialogState extends State<SpeechToCommandDialog> {
+  // Track whether we're closing to open a form (intentional close)
+  // vs user-initiated close (back button, X button)
+  bool _isClosingForForm = false;
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop) {
-          // Dialog is being closed (via back button or other means), cancel listening
+        if (didPop && !_isClosingForForm) {
+          // Only cancel listening for user-initiated closes (back button)
+          // Don't cancel when closing to open the transaction form
           context.read<SpeechBloc>().add(const CancelListeningEvent());
         }
       },
@@ -121,10 +136,26 @@ class SpeechToCommandDialog extends StatelessWidget {
               }
             });
           } else if (state is CommandReadyForForm) {
+            // Mark that we're closing intentionally to open the form
+            _isClosingForForm = true;
+
+            // Capture BLoCs BEFORE closing the dialog (while context is still valid)
+            final transactionBloc = context.read<TransactionBloc>();
+            final accountBloc = context.read<AccountBloc>();
+            final budgetsBloc = context.read<BudgetsBloc>();
+            final authBloc = context.read<AuthBloc>();
+
             // Close dialog and open transaction form with pre-filled data
             Navigator.of(context).pop();
             context.read<SpeechBloc>().add(const ResetSpeechStateEvent());
-            _openTransactionFormWithCommand(context, state.command);
+            _openTransactionFormWithCommand(
+              context,
+              state.command,
+              transactionBloc,
+              accountBloc,
+              budgetsBloc,
+              authBloc,
+            );
           }
         },
         child: Dialog(
