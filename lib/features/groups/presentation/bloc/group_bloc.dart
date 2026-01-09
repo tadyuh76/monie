@@ -176,30 +176,41 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     CalculateDebtsEvent event,
     Emitter<GroupState> emit,
   ) async {
-    // Check initial state but don't store it - we'll check again before emitting
-    final initialHasState = state is SingleGroupLoaded;
+    // Don't change loading state - just calculate and update debts
     
-    if (!initialHasState) {
-      emit(const GroupLoading());
-    }
-
+    print('[GroupBloc] _onCalculateDebts: Starting for groupId ${event.groupId}');
+    print('[GroupBloc] Current state: ${state.runtimeType}');
+    
     // Calculate debts
     final debtsResult = await calculateDebts(
       calc.GroupIdParams(groupId: event.groupId),
     );
 
     debtsResult.fold(
-      (failure) => emit(GroupError(message: failure.message)),
+      (failure) {
+        print('[GroupBloc] _onCalculateDebts: Failed - ${failure.message}');
+        // Only emit error if we don't have any state yet
+        if (state is! SingleGroupLoaded) {
+          emit(GroupError(message: failure.message));
+        }
+      },
       (debts) {
-        // Get the CURRENT state at emit time, not the old state from when started
+        print('[GroupBloc] _onCalculateDebts: Success - ${debts.length} debts calculated');
+        // Get the CURRENT state at emit time
         final currentState = state;
         
         if (currentState is SingleGroupLoaded && currentState.group.id == event.groupId) {
+          print('[GroupBloc] _onCalculateDebts: Emitting updated state with debts');
           // Update existing state with debts
           emit(currentState.copyWith(debts: debts));
+        } else if (currentState is GroupLoading || currentState is GroupInitial) {
+          print('[GroupBloc] _onCalculateDebts: State is still loading, skipping');
+          // Wait - the group is still loading, CalculateDebts will be called again
+        } else {
+          print('[GroupBloc] _onCalculateDebts: State is ${currentState.runtimeType}, not emitting');
         }
-        // If no state yet, wait - the group is still loading
-        // Don't create a new state that might overwrite data loaded by other events
+        // If state is something else (like GroupOperationSuccess), 
+        // the debts will be loaded when GetGroupByIdEvent is processed
       },
     );
   }
@@ -248,10 +259,8 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
     result.fold((failure) => emit(GroupError(message: failure.message)), (
       transaction,
     ) {
-      // Always emit GroupOperationSuccess to close dialogs/pages
-      emit(const GroupOperationSuccess(message: 'Expense added successfully'));
-      
-      // Then refresh data based on current state
+      // Don't emit GroupOperationSuccess yet - wait for data to reload
+      // Instead, refresh data first based on current state
       if (currentState is GroupsLoaded) {
         // Refresh the groups list
         add(const GetGroupsEvent());
@@ -260,11 +269,14 @@ class GroupBloc extends Bloc<GroupEvent, GroupState> {
         add(GetGroupByIdEvent(groupId: event.groupId));
         add(GetGroupTransactionsEvent(groupId: event.groupId));
         add(GetGroupMembersEvent(groupId: event.groupId));
-        add(CalculateDebtsEvent(groupId: event.groupId));
+        // Calculate debts will be triggered by GetGroupByIdEvent
       } else {
         // Default: refresh groups
         add(const GetGroupsEvent());
       }
+      
+      // Now emit success after events are queued
+      emit(const GroupOperationSuccess(message: 'Expense added successfully'));
     });
   }
 

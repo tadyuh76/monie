@@ -23,8 +23,8 @@ class DailyReminderAlarmService {
     if (defaultTargetPlatform == TargetPlatform.android) {
       final status = await Permission.scheduleExactAlarm.request();
       if (status.isDenied) {
-        debugPrint('⚠️ Exact alarm permission denied - will use inexact alarms');
-        debugPrint('💡 User can enable in: Settings > Apps > Monie > Alarms & reminders');
+        debugPrint('Exact alarm permission denied - will use inexact alarms');
+        debugPrint('User can enable in: Settings > Apps > Monie > Alarms & reminders');
         return false;
       }
       return status.isGranted;
@@ -98,10 +98,10 @@ class DailyReminderAlarmService {
       // Check for exact alarm permission on Android 12+
       final canUseExactAlarms = await canScheduleExactAlarms();
       if (!canUseExactAlarms && defaultTargetPlatform == TargetPlatform.android) {
-        debugPrint('⚠️ Exact alarm permission not granted - requesting permission');
+        debugPrint('Exact alarm permission not granted - requesting permission');
         final granted = await requestExactAlarmPermission();
         if (!granted) {
-          debugPrint('⚠️ Will use inexact alarms - notifications may be delayed');
+          debugPrint('Will use inexact alarms - notifications may be delayed');
         }
       }
 
@@ -158,14 +158,19 @@ class DailyReminderAlarmService {
         matchDateTimeComponents: DateTimeComponents.time, // Repeat daily
       );
 
-      // Verify the notification was scheduled
-      final pending = await _notifications.pendingNotificationRequests();
-      final modeStr = canUseExact ? 'Exact' : 'Inexact';
-      debugPrint('✅ $modeStr notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
-      debugPrint('📋 Total pending notifications: ${pending.length}');
+      // Verify the notification was scheduled - wrap in try-catch
+      try {
+        final pending = await _notifications.pendingNotificationRequests();
+        final modeStr = canUseExact ? 'Exact' : 'Inexact';
+        debugPrint('$modeStr notification scheduled - ID: $id at ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+        debugPrint('Total pending notifications: ${pending.length}');
+      } catch (e) {
+        debugPrint('Could not verify scheduled notification: $e');
+        // Continue even if verification fails
+      }
 
       if (!canUseExact) {
-        debugPrint('💡 For exact timing, enable: Settings > Apps > Monie > Alarms & reminders');
+        debugPrint('For exact timing, enable: Settings > Apps > Monie > Alarms & reminders');
       }
     } catch (e) {
       rethrow;
@@ -176,10 +181,17 @@ class DailyReminderAlarmService {
   Future<void> cancelAlarm(int id) async {
     try {
       await _notifications.cancel(id);
-      final pending = await _notifications.pendingNotificationRequests();
-      debugPrint('Cancelled alarm ID: $id, Remaining: ${pending.length}');
+      
+      // Try to get pending notifications, but don't fail if it errors
+      try {
+        final pending = await _notifications.pendingNotificationRequests();
+        debugPrint('Cancelled alarm ID: $id, Remaining: ${pending.length}');
+      } catch (e) {
+        debugPrint('Could not verify remaining notifications: $e');
+      }
     } catch (e) {
-      rethrow;
+      debugPrint('Error cancelling alarm: $e');
+      // Don't rethrow - allow app to continue
     }
   }
   
@@ -189,7 +201,9 @@ class DailyReminderAlarmService {
       await _notifications.cancelAll();
       debugPrint('All alarms cancelled');
     } catch (e) {
-      rethrow;
+      // Catch native plugin errors and log instead of rethrowing
+      debugPrint('Error cancelling all alarms: $e');
+      // Don't rethrow - allow app to continue even if cancelAll fails
     }
   }
 }

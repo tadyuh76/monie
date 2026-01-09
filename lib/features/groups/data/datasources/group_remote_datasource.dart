@@ -358,10 +358,10 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
 
       final groupName = groupData['name'];
 
-      // Create in-app notification
+      // Create in-app notification (use 'general' type as 'group_invitation' is not in DB constraint)
       await supabase.from('notifications').insert({
         'user_id': userId,
-        'type': 'group_invitation',
+        'type': 'general',
         'title': 'New Group Invitation',
         'message': 'You have been added to "$groupName"',
         'is_read': false,
@@ -460,6 +460,8 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
   @override
   Future<List<GroupDebtModel>> calculateDebts(String groupId) async {
     try {
+      debugPrint('[calculateDebts] Starting for groupId: $groupId');
+      
       // Get all approved transactions for this group
       final groupTransactions = await supabase
           .from('group_transactions')
@@ -467,7 +469,10 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
           .eq('group_id', groupId)
           .eq('status', 'approved'); // Only count approved transactions
 
+      debugPrint('[calculateDebts] Found ${groupTransactions.length} approved transactions');
+
       if (groupTransactions.isEmpty) {
+        debugPrint('[calculateDebts] No transactions, returning empty debts');
         return [];
       }
 
@@ -480,63 +485,104 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
           .select('transaction_id, user_id, amount')
           .inFilter('transaction_id', transactionIds);
 
+      debugPrint('[calculateDebts] Transaction details: ${transactions.length} transactions');
+      for (var t in transactions) {
+        debugPrint('  - userId: ${t['user_id']}, amount: ${t['amount']}');
+      }
+
       // Get group members with their details
       final members = await getGroupMembers(groupId);
+      debugPrint('[calculateDebts] Found ${members.length} members');
+      debugPrint('[calculateDebts] Found ${members.length} members');
 
       if (members.length < 2) {
+        debugPrint('[calculateDebts] Less than 2 members, returning empty debts');
         return []; // No debts if less than 2 members
       }
 
-      // Calculate each person's spending
-      Map<String, double> memberSpending = {};
+      // Calculate balance for each person
+      // Positive balance = paid more (others owe them)
+      // Negative balance = received more (they owe others)
+      Map<String, double> balances = {};
       Map<String, String> memberNames = {};
-      double totalSpent = 0;
+      double totalPaid = 0; // Total expenses (paid out)
+      double totalReceived = 0; // Total income (received)
 
-      // Initialize spending for each member
+      // Initialize balances for each member
       for (var member in members) {
-        memberSpending[member.userId] = 0;
+        balances[member.userId] = 0;
         memberNames[member.userId] =
             member.displayName ?? member.email.split('@')[0];
       }
+      debugPrint('[calculateDebts] Initialized balances for all members');
 
-      // Calculate what each person has spent (expenses are negative, income is positive)
+      // Calculate net balance for each person
+      // Expense (amount < 0): Person PAID money → they are owed
+      // Income (amount > 0): Person RECEIVED money → they owe
       for (var transaction in transactions) {
-        final amount = (transaction['amount'] as num).toDouble().abs();
+        final amount = (transaction['amount'] as num).toDouble();
         final userId = transaction['user_id'] as String;
 
-        if (memberSpending.containsKey(userId)) {
-          memberSpending[userId] = (memberSpending[userId] ?? 0) + amount;
-          totalSpent += amount;
+        if (balances.containsKey(userId)) {
+          if (amount < 0) {
+            // Expense: Person paid this amount
+            final paidAmount = amount.abs();
+            balances[userId] = (balances[userId] ?? 0) + paidAmount;
+            totalPaid += paidAmount;
+          } else {
+            // Income: Person received this amount
+            balances[userId] = (balances[userId] ?? 0) - amount;
+            totalReceived += amount;
+          }
         }
       }
 
-      // Calculate fair share per person
-      final fairShare = totalSpent / members.length;
+      debugPrint('[calculateDebts] After processing transactions:');
+      debugPrint('  totalPaid: $totalPaid, totalReceived: $totalReceived');
+      balances.forEach((userId, balance) {
+        debugPrint('  ${memberNames[userId]}: $balance');
+      });
 
-      // Calculate net balance for each person
-      Map<String, double> balances = {};
-      for (var member in members) {
-        final spent = memberSpending[member.userId] ?? 0;
-        balances[member.userId] =
-            spent - fairShare; // Positive = owed, Negative = owes
-      }
+      // Calculate fair share: (total paid + total received) / number of members
+      final totalAmount = totalPaid + totalReceived;
+      final fairShare = totalAmount / members.length;
+      debugPrint('[calculateDebts] fairShare: $fairShare');
+
+      // Adjust balances by fair share
+      // After adjustment:
+      // Positive = person paid more than fair share (others owe them) → CREDITOR
+      // Negative = person paid less than fair share (they owe others) → DEBTOR
+      balances.forEach((userId, balance) {
+        balances[userId] = balance - fairShare;
+      });
+
+      debugPrint('[calculateDebts] After adjusting by fair share:');
+      balances.forEach((userId, balance) {
+        debugPrint('  ${memberNames[userId]}: $balance');
+      });
+      debugPrint('[calculateDebts] After adjusting by fair share:');
+      balances.forEach((userId, balance) {
+        debugPrint('  ${memberNames[userId]}: $balance');
+      });
 
       // Convert balances to debt list using simplify debts algorithm
       List<GroupDebtModel> debts = [];
 
-      // Separate creditors (owed money) and debtors (omoney)
+      // Separate creditors (owed money) and debtors (owe money)
       List<MapEntry<String, double>> creditors = [];
       List<MapEntry<String, double>> debtors = [];
 
       balances.forEach((userId, balance) {
         if (balance > 0.01) {
-          // Owed money (creditor)
+          // Paid more than fair share → others owe them (creditor)
           creditors.add(MapEntry(userId, balance));
         } else if (balance < -0.01) {
-          // Owes money (debtor)
+          // Paid less than fair share → they owe others (debtor)
           debtors.add(MapEntry(userId, balance.abs()));
         }
       });
+
+      debugPrint('[calculateDebts] Creditors: ${creditors.length}, Debtors: ${debtors.length}');
 
       // Sort by amount descending
       creditors.sort((a, b) => b.value.compareTo(a.value));
@@ -557,6 +603,8 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
 
         if (settleAmount > 0.01) {
           // Create debt from debtor to creditor
+          debugPrint('[calculateDebts] Creating debt: ${memberNames[debtor.key]} owes ${memberNames[creditor.key]} \$${settleAmount.toStringAsFixed(2)}');
+          
           debts.add(
             GroupDebtModel(
               fromUserId: debtor.key,
@@ -579,6 +627,7 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
         if (debtors[debtorIndex].value < 0.01) debtorIndex++;
       }
 
+      debugPrint('[calculateDebts] Total debts created: ${debts.length}');
       return debts;
     } catch (e) {
       throw ServerException(message: e.toString());

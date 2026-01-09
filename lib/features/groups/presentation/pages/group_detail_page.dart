@@ -8,6 +8,7 @@ import 'package:monie/core/localization/app_localizations.dart';
 import 'package:monie/core/network/supabase_client.dart';
 import 'package:monie/core/themes/app_colors.dart';
 import 'package:monie/features/groups/domain/entities/expense_group.dart';
+import 'package:monie/features/groups/domain/entities/group_debt.dart';
 import 'package:monie/features/groups/domain/entities/group_transaction.dart';
 import 'package:monie/features/groups/presentation/bloc/group_bloc.dart';
 import 'package:monie/features/groups/presentation/bloc/group_event.dart';
@@ -1316,12 +1317,13 @@ class _GroupDetailPageState extends State<GroupDetailPage>
 
     return BlocBuilder<GroupBloc, GroupState>(
       buildWhen: (previous, current) {
-        // Only rebuild if have new transaction data for this group
+        // Rebuild if debts, transactions, or settled status changes
         if (current is SingleGroupLoaded &&
             current.group.id == widget.groupId) {
           if (previous is SingleGroupLoaded &&
               previous.group.id == widget.groupId) {
-            return previous.transactions != current.transactions ||
+            return previous.debts != current.debts ||
+                previous.transactions != current.transactions ||
                 previous.group.isSettled != current.group.isSettled;
           }
           return true;
@@ -1329,6 +1331,10 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         return false;
       },
       builder: (context, state) {
+        final debts =
+            state is SingleGroupLoaded && state.group.id == widget.groupId
+                ? state.debts
+                : null;
         final transactions =
             state is SingleGroupLoaded && state.group.id == widget.groupId
                 ? state.transactions
@@ -1337,6 +1343,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
         return _buildDebtsContent(
           context,
           group,
+          debts,
           transactions,
           isDarkMode,
           textTheme,
@@ -1348,124 +1355,23 @@ class _GroupDetailPageState extends State<GroupDetailPage>
   Widget _buildDebtsContent(
     BuildContext context,
     ExpenseGroup group,
+    List<GroupDebt>? debts,
     List<dynamic>? transactions,
     bool isDarkMode,
     TextTheme textTheme,
   ) {
-    // Calculate optimized debts between members
-    Map<String, double> netBalances =
-        {}; // Positive = owed money, Negative = owes money
-
-    // Create user ID to name mapping using the helper method
-    final userIdToName = _createUserIdToNameMapping(group);
-
-    // Initialize net balances for all known users
-    for (var userId in userIdToName.keys) {
-      netBalances[userId] = 0.0;
-    }
-
-    // If don't have proper user ID mapping, try to build it from transactions
-    if (transactions != null && transactions.isNotEmpty) {
-      for (var transaction in transactions) {
-        final payerId = transaction.paidByUserId;
-        if (payerId.isNotEmpty && !userIdToName.containsKey(payerId)) {
-          final displayName = transaction.paidByUserName;
-          userIdToName[payerId] = displayName;
-          netBalances[payerId] = 0.0;
-        }
-      }
-    }
-
-    // Calculate net balances based on approved transactions
-    if (transactions != null && transactions.isNotEmpty) {
-      for (var transaction in transactions) {
-        if (transaction.status == 'approved') {
-          final payerId = transaction.paidByUserId;
-          final amount = transaction.amount; // Use the actual signed amount
-          final memberCount = userIdToName.length;
-
-          if (memberCount > 0 && userIdToName.containsKey(payerId)) {
-            final amountPerPerson = amount / memberCount;
-
-            // For both income and expenses, the logic is the same:
-            // The payer gets credit for the full amount, others get their share deducted
-            netBalances[payerId] =
-                (netBalances[payerId] ?? 0) + amount - amountPerPerson;
-            for (var userId in userIdToName.keys) {
-              if (userId != payerId) {
-                netBalances[userId] =
-                    (netBalances[userId] ?? 0) - amountPerPerson;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Create optimized debt settlements using a greedy algorithm
-    List<Map<String, dynamic>> optimizedDebts = [];
-
-    // Separate creditors (positive balance) and debtors (negative balance)
-    List<MapEntry<String, double>> creditors = [];
-    List<MapEntry<String, double>> debtors = [];
-
-    for (var entry in netBalances.entries) {
-      if (entry.value > 0.01) {
-        // Small threshold to avoid floating point issues
-        creditors.add(entry);
-      } else if (entry.value < -0.01) {
-        debtors.add(
-          MapEntry(entry.key, -entry.value),
-        ); // Make positive for easier calculation
-      }
-    }
-
-    // Sort creditors and debtors by amount (largest first)
-    creditors.sort((a, b) => b.value.compareTo(a.value));
-    debtors.sort((a, b) => b.value.compareTo(a.value));
-
-    // Greedy algorithm to minimize number of transactions
-    int creditorIndex = 0;
-    int debtorIndex = 0;
-
-    while (creditorIndex < creditors.length && debtorIndex < debtors.length) {
-      final creditor = creditors[creditorIndex];
-      final debtor = debtors[debtorIndex];
-
-      final creditorAmount = creditor.value;
-      final debtorAmount = debtor.value;
-
-      final settlementAmount = math.min(creditorAmount, debtorAmount);
-
-      if (settlementAmount > 0.01) {
-        // Only add meaningful debts
-        optimizedDebts.add({
-          'debtorId': debtor.key,
-          'debtorName': userIdToName[debtor.key] ?? debtor.key,
-          'creditorId': creditor.key,
-          'creditorName': userIdToName[creditor.key] ?? creditor.key,
-          'amount': settlementAmount,
-        });
-      }
-
-      // Update remaining amounts
-      creditors[creditorIndex] = MapEntry(
-        creditor.key,
-        creditorAmount - settlementAmount,
-      );
-      debtors[debtorIndex] = MapEntry(
-        debtor.key,
-        debtorAmount - settlementAmount,
-      );
-
-      // Move to next creditor or debtor if current one is settled
-      if (creditors[creditorIndex].value <= 0.01) {
-        creditorIndex++;
-      }
-      if (debtors[debtorIndex].value <= 0.01) {
-        debtorIndex++;
-      }
-    }
+    print('[UI] _buildDebtsContent called with ${debts?.length ?? 0} debts');
+    
+    // Use debts from state (already calculated by BLoC)
+    final optimizedDebts = debts?.map((debt) => {
+      'debtorId': debt.fromUserId,
+      'debtorName': debt.fromUserName,
+      'creditorId': debt.toUserId,
+      'creditorName': debt.toUserName,
+      'amount': debt.amount,
+    }).toList() ?? [];
+    
+    print('[UI] Converted to ${optimizedDebts.length} optimized debts');
 
     // Build UI for debts
     List<Widget> debtWidgets = [];
@@ -1488,7 +1394,7 @@ class _GroupDetailPageState extends State<GroupDetailPage>
     if (optimizedDebts.isNotEmpty) {
       final totalDebtAmount = optimizedDebts.fold<double>(
         0.0,
-        (sum, debt) => sum + debt['amount'],
+        (sum, debt) => sum + (debt['amount'] as double),
       );
 
       debtWidgets.add(
@@ -1578,9 +1484,9 @@ class _GroupDetailPageState extends State<GroupDetailPage>
       bool hasDebts = optimizedDebts.isNotEmpty;
 
       for (var debt in optimizedDebts) {
-        final debtorName = debt['debtorName'];
-        final creditorName = debt['creditorName'];
-        final amount = debt['amount'];
+        final debtorName = debt['debtorName'] as String;
+        final creditorName = debt['creditorName'] as String;
+        final amount = debt['amount'] as double;
 
         // Show the debt card
         debtWidgets.add(
