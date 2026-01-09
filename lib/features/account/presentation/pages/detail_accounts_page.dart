@@ -604,81 +604,100 @@ class _DetailAccountsPageState extends State<DetailAccountsPage> {
                             ),
                           ),
                         )
-                        : Row(
-                          children: [
-                            // Pie Chart
-                            Expanded(
-                              flex: 3,
-                              child: PieChart(
-                                PieChartData(
-                                  sectionsSpace: 2,
-                                  centerSpaceRadius: 30,
-                                  sections:
-                                      categoryData.map((cat) {
-                                        return PieChartSectionData(
-                                          color: cat['color'],
-                                          value: cat['value'],
-                                          title: '',
-                                          radius: 100,
-                                          titlePositionPercentageOffset: 0.5,
-                                        );
-                                      }).toList(),
-                                  pieTouchData: PieTouchData(enabled: false),
-                                ),
-                              ),
-                            ),
+                        : LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Calculate available space for the pie chart
+                            // Account for padding (20*2=40) and legend flex ratio
+                            final availableHeight = constraints.maxHeight;
+                            final availableWidth = constraints.maxWidth * 0.6; // flex 3 out of 5
+                            final chartSize = (availableHeight < availableWidth
+                                ? availableHeight
+                                : availableWidth) - 20; // Extra margin
+                            final chartRadius = (chartSize / 2) - 25; // Subtract center radius and margin
 
-                            // Legend
-                            Expanded(
-                              flex: 2,
-                              child: ListView.builder(
-                                padding: EdgeInsets.zero,
-                                itemCount: categoryData.length,
-                                itemBuilder: (context, index) {
-                                  final category = categoryData[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 4,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 12,
-                                          height: 12,
-                                          decoration: BoxDecoration(
-                                            color: category['color'],
-                                            shape: BoxShape.circle,
-                                          ),
+                            return Row(
+                              children: [
+                                // Pie Chart
+                                Expanded(
+                                  flex: 3,
+                                  child: Center(
+                                    child: SizedBox(
+                                      height: chartSize,
+                                      width: chartSize,
+                                      child: PieChart(
+                                        PieChartData(
+                                          sectionsSpace: 2,
+                                          centerSpaceRadius: 25,
+                                          sections:
+                                              categoryData.map((cat) {
+                                                return PieChartSectionData(
+                                                  color: cat['color'],
+                                                  value: cat['value'],
+                                                  title: '',
+                                                  radius: chartRadius > 0 ? chartRadius : 60,
+                                                  titlePositionPercentageOffset: 0.5,
+                                                );
+                                              }).toList(),
+                                          pieTouchData: PieTouchData(enabled: false),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            category['name'],
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: textColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // Legend
+                                Expanded(
+                                  flex: 2,
+                                  child: ListView.builder(
+                                    padding: EdgeInsets.zero,
+                                    itemCount: categoryData.length,
+                                    itemBuilder: (context, index) {
+                                      final category = categoryData[index];
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 4,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 12,
+                                              height: 12,
+                                              decoration: BoxDecoration(
+                                                color: category['color'],
+                                                shape: BoxShape.circle,
+                                              ),
                                             ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                category['name'],
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: textColor,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              Formatters.formatCurrency(
+                                                category['value'],
+                                              ),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: textColor,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          Formatters.formatCurrency(
-                                            category['value'],
-                                          ),
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
               ),
 

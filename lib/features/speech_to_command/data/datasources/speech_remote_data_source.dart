@@ -11,6 +11,7 @@ abstract class SpeechRemoteDataSource {
     required Function(String text) onResult,
     required Function() onDone,
     required Function(String error) onError,
+    String? localeId,
   });
   Future<void> stopListening();
   Future<void> cancel();
@@ -96,6 +97,7 @@ class SpeechRemoteDataSourceImpl implements SpeechRemoteDataSource {
     required Function(String text) onResult,
     required Function() onDone,
     required Function(String error) onError,
+    String? localeId,
   }) async {
     if (!_isInitialized) {
       final initialized = await initialize();
@@ -105,12 +107,17 @@ class SpeechRemoteDataSourceImpl implements SpeechRemoteDataSource {
       }
     }
 
+    // Use provided locale or default to English (more universally available)
+    // Vietnamese requires language pack to be installed on the device
+    String effectiveLocaleId = localeId ?? 'en_US';
+
     // Check locale availability and use fallback if needed
-    String localeId = 'vi_VN';
-    if (!isLocaleAvailable(localeId)) {
-      debugPrint('⚠️ Vietnamese not available, falling back to English');
-      localeId = 'en_US';
+    if (!isLocaleAvailable(effectiveLocaleId)) {
+      debugPrint('⚠️ Locale $effectiveLocaleId not available, falling back to en_US');
+      effectiveLocaleId = 'en_US';
     }
+
+    debugPrint('🎤 Starting speech recognition with locale: $effectiveLocaleId');
 
     try {
       await _speech.listen(
@@ -125,7 +132,7 @@ class SpeechRemoteDataSourceImpl implements SpeechRemoteDataSource {
         },
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 3),
-        localeId: localeId,
+        localeId: effectiveLocaleId,
         onSoundLevelChange: (_) {},
         listenOptions: stt.SpeechListenOptions(
           partialResults: true,

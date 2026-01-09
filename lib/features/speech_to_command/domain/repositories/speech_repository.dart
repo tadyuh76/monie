@@ -11,7 +11,8 @@ abstract class SpeechRepository {
   Future<Either<Failure, void>> initialize();
 
   /// Start listening for speech input
-  Future<Either<Failure, Stream<String>>> startListening();
+  /// [localeId] - Language locale (e.g., 'vi_VN' for Vietnamese, 'en_US' for English)
+  Future<Either<Failure, Stream<String>>> startListening({String? localeId});
 
   /// Stop listening for speech input
   Future<Either<Failure, void>> stopListening();

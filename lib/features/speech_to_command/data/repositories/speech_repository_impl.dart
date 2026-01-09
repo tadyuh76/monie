@@ -145,7 +145,7 @@ class SpeechRepositoryImpl implements SpeechRepository {
   }
 
   @override
-  Future<Either<Failure, Stream<String>>> startListening() async {
+  Future<Either<Failure, Stream<String>>> startListening({String? localeId}) async {
     try {
       // Clean up any existing controller
       _speechStreamController?.close();
@@ -177,6 +177,7 @@ class SpeechRepositoryImpl implements SpeechRepository {
           _speechStreamController?.close();
           _speechStreamController = null;
         },
+        localeId: localeId,
       );
 
       return Right(stream);

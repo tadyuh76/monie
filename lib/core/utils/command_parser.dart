@@ -149,8 +149,19 @@ class CommandParser {
   }
 
   /// Extract amount from text
+  /// Handles Vietnamese and English number formats including:
+  /// - Plain numbers: 50000, 50.000, 50 000
+  /// - Shortcuts: 50k, 50K, 1tr, 1m, 1M
+  /// - Vietnamese words: 50 nghìn, 50 ngàn, 1 triệu, 2 trăm
+  /// - English words: 50 thousand, 1 million, 2 hundred
   static double? _extractAmount(String text) {
-    // Pattern for Vietnamese number format: "50000", "50.000", "50 000"
+    // First, try to match number with multiplier suffix/word
+    final amountWithMultiplier = _extractAmountWithMultiplier(text);
+    if (amountWithMultiplier != null && amountWithMultiplier > 0) {
+      return amountWithMultiplier;
+    }
+
+    // Fallback: Pattern for Vietnamese number format: "50000", "50.000", "50 000"
     final patterns = [
       RegExp(r'(\d{1,3}(?:[.\s]\d{3})*(?:\.\d+)?)'),
       RegExp(r'(\d+(?:\.\d+)?)'),
@@ -164,6 +175,53 @@ class CommandParser {
           final amount = double.tryParse(numberStr);
           if (amount != null && amount > 0) {
             return amount;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /// Extract amount with multiplier words/suffixes
+  /// Supports: k, K, nghìn, ngàn, thousand, tr, triệu, million, m, M, trăm, hundred
+  static double? _extractAmountWithMultiplier(String text) {
+    // Patterns for number + multiplier (handles both suffix and word forms)
+    final multiplierPatterns = [
+      // Vietnamese: "50k", "50K", "1tr", "1m", "1M" (suffix form, no space)
+      RegExp(r'(\d+(?:[.,]\d+)?)\s*(k|K|tr|triệu|m|M|nghìn|ngàn|trăm)\b', caseSensitive: false),
+      // Vietnamese with space: "50 nghìn", "1 triệu", "2 trăm"
+      RegExp(r'(\d+(?:[.,]\d+)?)\s+(nghìn|ngàn|triệu|trăm|thousand|million|hundred)\b', caseSensitive: false),
+      // English: "50 thousand", "1 million", "2 hundred"
+      RegExp(r'(\d+(?:[.,]\d+)?)\s+(thousand|million|hundred)\b', caseSensitive: false),
+    ];
+
+    // Multiplier values
+    const multipliers = {
+      'k': 1000.0,
+      'nghìn': 1000.0,
+      'ngàn': 1000.0,
+      'thousand': 1000.0,
+      'tr': 1000000.0,
+      'triệu': 1000000.0,
+      'm': 1000000.0,
+      'million': 1000000.0,
+      'trăm': 100.0,
+      'hundred': 100.0,
+    };
+
+    for (final pattern in multiplierPatterns) {
+      final match = pattern.firstMatch(text);
+      if (match != null) {
+        final numberStr = match.group(1)?.replaceAll(',', '.');
+        final multiplierKey = match.group(2)?.toLowerCase();
+
+        if (numberStr != null && multiplierKey != null) {
+          final baseAmount = double.tryParse(numberStr);
+          final multiplier = multipliers[multiplierKey];
+
+          if (baseAmount != null && multiplier != null) {
+            return baseAmount * multiplier;
           }
         }
       }

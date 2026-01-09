@@ -9,7 +9,14 @@ abstract class SpeechEvent extends Equatable {
 }
 
 class StartListeningEvent extends SpeechEvent {
-  const StartListeningEvent();
+  /// Language locale for speech recognition
+  /// 'vi_VN' for Vietnamese, 'en_US' for English
+  final String? localeId;
+
+  const StartListeningEvent({this.localeId});
+
+  @override
+  List<Object?> get props => [localeId];
 }
 
 class StopListeningEvent extends SpeechEvent {

@@ -310,20 +310,34 @@ Today's date is: ${today.toIso8601String().split('T')[0]}
 
 Voice command: "$voiceText"
 
-Context:
-- Vietnamese currency is typically in thousands (e.g., "50k" = 50,000 VND, "50 nghìn" = 50,000, "1 triệu" or "1tr" = 1,000,000)
-- Common expense keywords: chi, tiêu, mua, thanh toán, trả, spend, paid, bought, purchased
-- Common income keywords: thu, nhận, lương, tiền về, receive, got, earned, salary, income
+CRITICAL - Amount Parsing Rules:
+- "k", "K" = multiply by 1,000 (e.g., "50k" = 50,000)
+- "nghìn", "ngàn", "thousand" = multiply by 1,000 (e.g., "50 nghìn" = 50,000, "100 thousand" = 100,000)
+- "tr", "triệu", "m", "M", "million" = multiply by 1,000,000 (e.g., "1tr" = 1,000,000, "2 triệu" = 2,000,000)
+- "trăm", "hundred" = multiply by 100 (e.g., "5 trăm" = 500)
+- Numbers with dots as thousand separators: "50.000" = 50,000
 
-Available expense categories: Bills, Debt, Dining, Donate, Education, Electricity, Entertainment, Gifts, Groceries, Healthcare, Housing, Insurance, Investment, Loans, Pets, Rent, Saving, Shopping, Tax, Technology, Transport, Travel
+CRITICAL - Transaction Type Detection:
+- EXPENSE keywords (isIncome = false): chi, tiêu, mua, thanh toán, trả, spend, spent, paid, bought, purchased, pay
+- INCOME keywords (isIncome = true): thu, nhận, lương, tiền về, receive, received, got, earned, salary, income, bonus
 
-Available income categories: Salary, Scholarship, Insurance Payout, Family Support, Stock, Commission, Allowance
+Examples:
+- "chi 50k cho ăn uống" → amount: 50000, isIncome: false, category: "Dining"
+- "thu 500 nghìn tiền lương" → amount: 500000, isIncome: true, category: "Salary"
+- "spend 100 thousand on groceries" → amount: 100000, isIncome: false, category: "Groceries"
+- "received 1 million salary" → amount: 1000000, isIncome: true, category: "Salary"
+- "mua 200k đồ ăn" → amount: 200000, isIncome: false, category: "Dining"
+- "nhận 2 triệu học bổng" → amount: 2000000, isIncome: true, category: "Scholarship"
+
+Available EXPENSE categories: Bills, Debt, Dining, Donate, Education, Electricity, Entertainment, Gifts, Groceries, Healthcare, Housing, Insurance, Investment, Loans, Pets, Rent, Saving, Shopping, Tax, Technology, Transport, Travel
+
+Available INCOME categories: Salary, Scholarship, Insurance Payout, Family Support, Stock, Commission, Allowance
 
 Parse the command and extract:
-1. amount: The numerical amount (handle Vietnamese shortcuts like "50k" = 50000, "1tr" = 1000000, "50 nghìn" = 50000)
+1. amount: The FULL numerical amount after applying multipliers (NEVER return the base number without multiplier)
 2. category: Best matching category from the available lists above (use exact category name)
 3. description: A clean, short title/description for the transaction (what was bought/received)
-4. isIncome: true if it's income, false if expense
+4. isIncome: true if it's income (thu, nhận, receive, earned, salary), false if expense (chi, tiêu, mua, spend, paid)
 5. date: The date mentioned (use ISO format YYYY-MM-DD), or null if not mentioned. Handle relative dates like "yesterday", "hôm qua", "last week", "tuần trước"
 6. confidence: Your confidence in this parsing (0.0 to 1.0)
 ''';

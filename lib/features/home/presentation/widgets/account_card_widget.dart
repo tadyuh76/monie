@@ -166,7 +166,7 @@ class _AccountCardWidgetState extends State<AccountCardWidget>
               ),
               const SizedBox(height: 4),
               Text(
-                '${widget.account.transactionCount} ${widget.account.transactionCount == 1 ? 'transaction' : 'transactions'}',
+                '${widget.transactions.length} ${widget.transactions.length == 1 ? 'transaction' : 'transactions'}',
                 style: textTheme.bodyMedium?.copyWith(
                   color: isDarkMode ? AppColors.textSecondary : Colors.black54,
                   height: 1.5,

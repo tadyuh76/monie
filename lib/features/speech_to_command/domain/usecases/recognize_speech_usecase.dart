@@ -23,8 +23,8 @@ class RecognizeSpeech {
         return initResult.fold(
           (failure) => Left(failure),
           (_) async {
-            // Start listening
-            return await repository.startListening();
+            // Start listening with the specified locale
+            return await repository.startListening(localeId: params.localeId);
           },
         );
       },
@@ -33,7 +33,14 @@ class RecognizeSpeech {
 }
 
 class RecognizeSpeechParams extends Equatable {
+  /// Language locale for speech recognition
+  /// Default: 'vi_VN' (Vietnamese)
+  /// Other options: 'en_US' (English)
+  final String? localeId;
+
+  const RecognizeSpeechParams({this.localeId});
+
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [localeId];
 }
 

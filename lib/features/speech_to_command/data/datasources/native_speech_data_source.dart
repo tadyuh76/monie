@@ -66,6 +66,7 @@ class NativeSpeechDataSource implements SpeechRemoteDataSource {
     required Function(String text) onResult,
     required Function() onDone,
     required Function(String error) onError,
+    String? localeId,
   }) async {
     if (!_isInitialized) {
       final initialized = await initialize();
@@ -80,8 +81,10 @@ class NativeSpeechDataSource implements SpeechRemoteDataSource {
       await _streamSubscription?.cancel();
       _streamSubscription = null;
 
-      // Use Vietnamese by default, but could be made configurable
-      final stream = await _voiceService.startListening(localeId: 'vi_VN');
+      // Use provided locale or default to English
+      final effectiveLocaleId = localeId ?? 'en_US';
+      debugPrint('🎤 Starting native speech recognition with locale: $effectiveLocaleId');
+      final stream = await _voiceService.startListening(localeId: effectiveLocaleId);
 
       _streamSubscription = stream.listen(
         (text) {

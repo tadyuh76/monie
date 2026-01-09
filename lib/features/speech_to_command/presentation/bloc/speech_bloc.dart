@@ -67,7 +67,7 @@ class SpeechBloc extends Bloc<SpeechEvent, SpeechState> {
 
     emit(const SpeechCheckingAvailability());
 
-    final result = await _recognizeSpeech(RecognizeSpeechParams());
+    final result = await _recognizeSpeech(RecognizeSpeechParams(localeId: event.localeId));
 
     result.fold(
       (failure) {
