@@ -96,18 +96,37 @@ class AddTransactionFormState extends State<AddTransactionForm> {
     // If editing, prefill fields
     if (widget.transaction != null) {
       final t = widget.transaction;
-      _titleController.text = t.title ?? '';
-      _amountController.text =
-          t.amount != null ? t.amount.abs().toString() : '0';
-      _descriptionController.text = t.description ?? '';
-      _selectedDate = t.date ?? DateTime.now();
-      _selectedCategory =
-          t.categoryName != null ? {'name': t.categoryName} : null;
-      _transactionType =
-          (t.amount != null && t.amount < 0) ? 'expense' : 'income';
-      _selectedAccountId = t.accountId;
-      _selectedBudgetId = t.budgetId;
-      _isRecurring = t.isRecurring ?? false;
+      
+      // Support both Transaction object and Map<String, dynamic>
+      if (t is Map) {
+        // Handle Map input (from voice command)
+        _titleController.text = (t['title'] as String?) ?? '';
+        _amountController.text = 
+            t['amount'] != null ? (t['amount'] as num).abs().toString() : '0';
+        _descriptionController.text = (t['description'] as String?) ?? '';
+        _selectedDate = (t['date'] as DateTime?) ?? DateTime.now();
+        _selectedCategory = 
+            t['categoryName'] != null ? {'name': t['categoryName']} : null;
+        _transactionType = 
+            (t['amount'] != null && (t['amount'] as num) < 0) ? 'expense' : 'income';
+        _selectedAccountId = t['accountId'] as String?;
+        _selectedBudgetId = t['budgetId'] as String?;
+        _isRecurring = (t['isRecurring'] as bool?) ?? false;
+      } else {
+        // Handle Transaction object (original behavior)
+        _titleController.text = t.title ?? '';
+        _amountController.text =
+            t.amount != null ? t.amount.abs().toString() : '0';
+        _descriptionController.text = t.description ?? '';
+        _selectedDate = t.date ?? DateTime.now();
+        _selectedCategory =
+            t.categoryName != null ? {'name': t.categoryName} : null;
+        _transactionType =
+            (t.amount != null && t.amount < 0) ? 'expense' : 'income';
+        _selectedAccountId = t.accountId;
+        _selectedBudgetId = t.budgetId;
+        _isRecurring = t.isRecurring ?? false;
+      }
     }
 
     // Load user accounts when the form is initialized

@@ -16,27 +16,6 @@ import 'package:monie/features/transactions/presentation/bloc/transaction_bloc.d
 import 'package:monie/features/transactions/presentation/bloc/transaction_event.dart';
 import 'package:monie/features/transactions/presentation/widgets/add_transaction_form.dart';
 
-/// Helper class for pre-filling transaction form from voice command
-class _PreFillTransaction {
-  final String? title;
-  final double amount;
-  final String? description;
-  final DateTime date;
-  final String? categoryName;
-  final bool isRecurring;
-  final String? accountId;
-
-  _PreFillTransaction({
-    this.title,
-    required this.amount,
-    this.description,
-    required this.date,
-    this.categoryName,
-    this.isRecurring = false,
-    this.accountId,
-  });
-}
-
 void _openTransactionFormWithCommand(
   BuildContext dialogContext,
   SpeechCommand command,
@@ -45,16 +24,17 @@ void _openTransactionFormWithCommand(
   BudgetsBloc budgetsBloc,
   AuthBloc authBloc,
 ) {
-  // Create pre-fill transaction object
-  final preFillTransaction = _PreFillTransaction(
-    title: command.description,
-    amount: command.isIncome ? command.amount : -command.amount,
-    description: command.description,
-    date: command.date ?? DateTime.now(),
-    categoryName: command.categoryName,
-    isRecurring: false,
-    accountId: command.accountId,
-  );
+  // Create pre-fill transaction map (dynamic type that AddTransactionForm expects)
+  final preFillTransaction = {
+    'title': command.description ?? (command.isIncome ? 'Income' : 'Expense'),
+    'amount': command.isIncome ? command.amount : -command.amount,
+    'description': command.description,
+    'date': command.date ?? DateTime.now(),
+    'categoryName': command.categoryName,
+    'isRecurring': false,
+    'accountId': command.accountId,
+    'budgetId': null, // Add budgetId to avoid NoSuchMethodError
+  };
 
   // Use a post-frame callback to ensure the dialog is fully closed
   // We need to get the root navigator context, not the dialog context
