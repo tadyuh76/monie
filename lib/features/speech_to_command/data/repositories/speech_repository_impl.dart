@@ -28,17 +28,17 @@ class SpeechRepositoryImpl implements SpeechRepository {
   @override
   Future<Either<Failure, bool>> isAvailable() async {
     try {
-      debugPrint('📱 Checking speech recognition availability...');
+      debugPrint('Checking speech recognition availability...');
 
       // Log device info for debugging
       final deviceCategory = deviceInfoService.getDeviceCategory();
-      debugPrint('📱 Device: ${deviceInfoService.getManufacturer()} ${deviceInfoService.getModel()} (${deviceCategory.name})');
+      debugPrint('Device: ${deviceInfoService.getManufacturer()} ${deviceInfoService.getModel()} (${deviceCategory.name})');
 
       // 1. Check microphone permission
       final hasPermission =
           await permissionService.isMicrophonePermissionGranted();
       if (!hasPermission) {
-        debugPrint('❌ Microphone permission not granted');
+        debugPrint('Microphone permission not granted');
         final isPermanent =
             await permissionService.isMicrophonePermissionPermanentlyDenied();
         if (isPermanent) {
@@ -46,28 +46,28 @@ class SpeechRepositoryImpl implements SpeechRepository {
         }
         return const Left(PermissionDeniedFailure());
       }
-      debugPrint('✅ Microphone permission granted');
+      debugPrint('Microphone permission granted');
 
       // 2. Check Google Speech Services availability
       final googleServicesAvailable =
           await deviceInfoService.isGoogleSpeechServicesAvailable();
       if (!googleServicesAvailable) {
-        debugPrint('❌ Google Speech Services not available');
+        debugPrint('Google Speech Services not available');
         return Left(GoogleSpeechServicesMissingFailure(
           deviceCategory: deviceCategory,
         ));
       }
-      debugPrint('✅ Google Speech Services available');
+      debugPrint('Google Speech Services available');
 
       // 3. Check OEM-specific requirements (only for Chinese OEMs)
       if (deviceInfoService.isChineseOEM()) {
-        debugPrint('📱 Chinese OEM detected, checking additional permissions...');
+        debugPrint('Chinese OEM detected, checking additional permissions...');
         final speechPermStatus =
             await permissionService.checkSpeechPermissions();
 
         if (!speechPermStatus.isReady) {
-          debugPrint('❌ OEM-specific permissions not satisfied');
-          debugPrint('   Issues: ${speechPermStatus.issues.length}');
+          debugPrint('OEM-specific permissions not satisfied');
+          debugPrint('Issues: ${speechPermStatus.issues.length}');
           for (final issue in speechPermStatus.issues) {
             debugPrint('   - ${issue.title}: ${issue.description}');
           }
@@ -76,13 +76,13 @@ class SpeechRepositoryImpl implements SpeechRepository {
             issues: speechPermStatus.issues,
           ));
         }
-        debugPrint('✅ OEM-specific permissions satisfied');
+        debugPrint('OEM-specific permissions satisfied');
       }
 
       // 4. Test actual speech service initialization
       final available = await dataSource.isAvailable();
       if (!available) {
-        debugPrint('❌ Speech data source not available');
+        debugPrint('Speech data source not available');
 
         // Get error message from the appropriate data source type
         String? error;
@@ -98,10 +98,10 @@ class SpeechRepositoryImpl implements SpeechRepository {
         return const Left(SpeechNotAvailableFailure());
       }
 
-      debugPrint('✅ Speech recognition fully available');
+      debugPrint('Speech recognition fully available');
       return Right(available);
     } catch (e) {
-      debugPrint('❌ Error checking speech availability: $e');
+      debugPrint('Error checking speech availability: $e');
       return Left(SpeechRecognitionFailure(
         message: 'Failed to check speech availability: $e',
       ));
@@ -231,10 +231,10 @@ class SpeechRepositoryImpl implements SpeechRepository {
       if (geminiService != null) {
         final aiCommand = await _parseWithGemini(text);
         if (aiCommand != null && aiCommand.isValid) {
-          debugPrint('✅ Using AI-parsed command');
+          debugPrint('Using AI-parsed command');
           return Right(aiCommand);
         }
-        debugPrint('⚠️ AI parsing failed or invalid, falling back to local parser');
+        debugPrint('AI parsing failed or invalid, falling back to local parser');
       }
 
       // Fallback to local rule-based parsing
@@ -255,17 +255,22 @@ class SpeechRepositoryImpl implements SpeechRepository {
   }
 
   /// Parse voice command using Gemini AI
-  /// Uses a 5-second timeout to prevent blocking the fallback parser
+  /// Uses a 10-second timeout to prevent blocking the fallback parser
   Future<SpeechCommand?> _parseWithGemini(String text) async {
     try {
+      debugPrint('Starting Gemini parsing for: $text');
       final result = await geminiService!
           .parseVoiceCommand(text)
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 10));
 
       if (result == null) return null;
 
       final amount = (result['amount'] as num?)?.toDouble();
-      if (amount == null || amount <= 0) return null;
+      if (amount == null || amount <= 0) {
+        debugPrint('Gemini returned invalid amount: $amount');
+        return null;
+      }
+      debugPrint('Gemini parsed amount: $amount, isIncome: ${result['isIncome']}');
 
       // Parse date if provided
       DateTime? parsedDate;
@@ -273,23 +278,24 @@ class SpeechRepositoryImpl implements SpeechRepository {
         try {
           parsedDate = DateTime.parse(result['date']);
         } catch (e) {
-          debugPrint('⚠️ Failed to parse date: ${result['date']}');
+          debugPrint('Failed to parse date: ${result['date']}');
         }
       }
 
       return SpeechCommand(
         amount: amount,
         categoryName: result['category'] as String?,
+        title: result['title'] as String?,
         description: result['description'] as String?,
         isIncome: result['isIncome'] as bool? ?? false,
         date: parsedDate,
         confidence: (result['confidence'] as num?)?.toDouble() ?? 0.8,
       );
     } on TimeoutException {
-      debugPrint('⚠️ Gemini parsing timed out, falling back to local parser');
+      debugPrint('Gemini parsing timed out, falling back to local parser');
       return null;
     } catch (e) {
-      debugPrint('❌ Gemini parsing failed: $e');
+      debugPrint('Gemini parsing failed: $e');
       return null;
     }
   }

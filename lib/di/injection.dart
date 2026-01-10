@@ -313,13 +313,8 @@ Future<void> configureDependencies() async {
   // Gemini Service (Singleton)
   sl.registerLazySingleton<GeminiService>(() => GeminiService.instance);
 
-  // Device Info Service (no dependencies)
-  sl.registerLazySingleton<DeviceInfoService>(() => DeviceInfoService());
-
-  // Permission Service (depends on DeviceInfoService)
-  sl.registerLazySingleton<PermissionService>(
-    () => PermissionService(deviceInfoService: sl<DeviceInfoService>()),
-  );
+  // Device Info Service and Permission Service are registered in injection_container.dart
+  // for speech feature with conditional checks
 
   // AI Insights Feature
   sl.registerLazySingleton<AIInsightsDataSource>(
@@ -379,12 +374,12 @@ Future<void> configureDependencies() async {
 
       // Use native implementation for Vivo/Oppo devices as speech_to_text plugin fails
       if (deviceInfoService.isVivoDevice() || deviceInfoService.isOppoDevice()) {
-        debugPrint('📱 Using native speech recognition for ${deviceInfoService.getManufacturer()} device');
+        debugPrint('Using native speech recognition for ${deviceInfoService.getManufacturer()} device');
         return NativeSpeechDataSource(sl<NativeVoiceRecognitionService>());
       }
 
       // Use standard speech_to_text plugin for other devices
-      debugPrint('📱 Using speech_to_text plugin for ${deviceInfoService.getManufacturer()} device');
+      debugPrint('Using speech_to_text plugin for ${deviceInfoService.getManufacturer()} device');
       return SpeechRemoteDataSourceImpl();
     },
   );

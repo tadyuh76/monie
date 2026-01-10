@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 class SpeechCommand extends Equatable {
   final double amount;
   final String? categoryName;
+  final String? title;
   final String? description;
   final bool isIncome;
   final String? accountId;
@@ -13,6 +14,7 @@ class SpeechCommand extends Equatable {
   const SpeechCommand({
     required this.amount,
     this.categoryName,
+    this.title,
     this.description,
     this.isIncome = false,
     this.accountId,
@@ -24,6 +26,7 @@ class SpeechCommand extends Equatable {
   List<Object?> get props => [
         amount,
         categoryName,
+        title,
         description,
         isIncome,
         accountId,
@@ -37,7 +40,7 @@ class SpeechCommand extends Equatable {
   /// Convert to transaction data map for form pre-filling
   Map<String, dynamic> toTransactionData() {
     return {
-      'title': description ?? (isIncome ? 'Income' : 'Expense'),
+      'title': title ?? description ?? (isIncome ? 'Income' : 'Expense'),
       'description': description,
       'amount': isIncome ? amount : -amount,
       'date': date ?? DateTime.now(),

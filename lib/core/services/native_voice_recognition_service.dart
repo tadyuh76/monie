@@ -11,6 +11,7 @@ class NativeVoiceRecognitionService {
   StreamController<String>? _resultController;
   StreamController<String>? _statusController;
   bool _isListening = false;
+  String? _lastPartialResult; // Store last partial result for fallback
 
   NativeVoiceRecognitionService() {
     // Set up method call handler for callbacks from native side
@@ -23,21 +24,23 @@ class NativeVoiceRecognitionService {
       case 'onResult':
         final args = call.arguments as Map?;
         if (args == null) {
-          debugPrint('⚠️ Voice result: null args received');
+          debugPrint('Voice result: null args received');
           return;
         }
         final text = args['text'] as String? ?? '';
         final isFinal = args['isFinal'] as bool? ?? false;
 
-        debugPrint('🎤 Voice result: $text (final: $isFinal)');
+        debugPrint('Voice result: $text (final: $isFinal)');
 
-        // Only add if controller exists and is not closed
-        final controller = _resultController;
-        if (controller != null && !controller.isClosed) {
-          controller.add(text);
-        }
-
+        // Only add final results to avoid triggering multiple parse commands
+        // Partial results are logged but not processed
         if (isFinal) {
+          // Only add if controller exists and is not closed
+          final controller = _resultController;
+          if (controller != null && !controller.isClosed && text.isNotEmpty) {
+            controller.add(text);
+          }
+
           // Delay closing to allow listeners to process the result
           // This prevents the race condition where stream closes before listeners receive data
           await Future.delayed(const Duration(milliseconds: 100));
@@ -46,20 +49,27 @@ class NativeVoiceRecognitionService {
             await _resultController?.close();
           }
           _resultController = null;
-          debugPrint('✅ Stream closed after result delivery');
+          _lastPartialResult = null;
+          debugPrint('Stream closed after final result delivery');
+        } else {
+          // Store partial result as fallback in case onResults is not called
+          if (text.isNotEmpty) {
+            _lastPartialResult = text;
+          }
+          debugPrint('Skipping partial result, waiting for final...');
         }
         break;
 
       case 'onError':
         final args = call.arguments as Map?;
         if (args == null) {
-          debugPrint('⚠️ Voice error: null args received');
+          debugPrint('Voice error: null args received');
           return;
         }
         final error = args['error'] as String? ?? 'Unknown error';
         final errorCode = args['errorCode'] as int? ?? -1;
 
-        debugPrint('❌ Voice error: $error (code: $errorCode)');
+        debugPrint('Voice error: $error (code: $errorCode)');
 
         // Only add error if controller exists and is not closed
         final errorController = _resultController;
@@ -79,21 +89,45 @@ class NativeVoiceRecognitionService {
       case 'onStatus':
         final args = call.arguments as Map?;
         if (args == null) {
-          debugPrint('⚠️ Voice status: null args received');
+          debugPrint('Voice status: null args received');
           return;
         }
         final status = args['status'] as String? ?? 'unknown';
 
-        debugPrint('📊 Voice status: $status');
+        debugPrint('Voice status: $status');
 
-        // Only add if controller exists and is not closed
+        // Only add status if controller exists and is not closed
         final statusController = _statusController;
         if (statusController != null && !statusController.isClosed) {
           statusController.add(status);
         }
 
+        // When recognition is done but no final result was received,
+        // use the last partial result as the final result
         if (status == 'done') {
           _isListening = false;
+          
+          // Wait a bit for any final partial result that might come after 'done' status
+          await Future.delayed(const Duration(milliseconds: 200));
+          
+          // If we have a partial result but no final result was sent, emit it now
+          if (_lastPartialResult != null && _lastPartialResult!.isNotEmpty) {
+            final controller = _resultController;
+            if (controller != null && !controller.isClosed) {
+              debugPrint('Emitting last partial result as final: $_lastPartialResult');
+              controller.add(_lastPartialResult!);
+              
+              // Delay closing to allow listeners to process
+              await Future.delayed(const Duration(milliseconds: 100));
+            }
+          }
+          
+          // Close the stream
+          if (_resultController != null && !_resultController!.isClosed) {
+            await _resultController?.close();
+          }
+          _resultController = null;
+          _lastPartialResult = null;
         }
         break;
     }
@@ -106,12 +140,12 @@ class NativeVoiceRecognitionService {
           await _channel.invokeMethod<Map>('checkAvailability') ?? {};
       final details = Map<String, dynamic>.from(result);
 
-      debugPrint('📱 Native voice recognition availability: $details');
+      debugPrint('Native voice recognition availability: $details');
 
       return details['isAvailable'] == true &&
           details['hasMicrophonePermission'] == true;
     } on PlatformException catch (e) {
-      debugPrint('❌ Error checking native voice availability: ${e.message}');
+      debugPrint('Error checking native voice availability: ${e.message}');
       return false;
     }
   }
@@ -123,7 +157,7 @@ class NativeVoiceRecognitionService {
           await _channel.invokeMethod<Map>('checkAvailability') ?? {};
       return Map<String, dynamic>.from(result);
     } on PlatformException catch (e) {
-      debugPrint('❌ Error getting availability details: ${e.message}');
+      debugPrint('Error getting availability details: ${e.message}');
       return {
         'isAvailable': false,
         'error': e.message,
@@ -136,11 +170,11 @@ class NativeVoiceRecognitionService {
   Future<Stream<String>> startListening({String localeId = 'vi_VN'}) async {
     // Clean up any existing session first
     if (_isListening) {
-      debugPrint('⚠️ Already listening, cleaning up previous session...');
+      debugPrint('Already listening, cleaning up previous session...');
       try {
         await cancel();
       } catch (e) {
-        debugPrint('⚠️ Error during cancel, continuing anyway: $e');
+        debugPrint('Error during cancel, continuing anyway: $e');
       }
     }
 
@@ -149,12 +183,13 @@ class NativeVoiceRecognitionService {
       _resultController?.close();
       _statusController?.close();
     } catch (e) {
-      debugPrint('⚠️ Error closing old controllers: $e');
+      debugPrint('Error closing old controllers: $e');
     }
 
     // Reset to null after closing
     _resultController = null;
     _statusController = null;
+    _lastPartialResult = null; // Reset partial result tracker
 
     try {
       // Create fresh stream controllers
@@ -174,7 +209,7 @@ class NativeVoiceRecognitionService {
 
       if (success) {
         _isListening = true;
-        debugPrint('✅ Started native voice recognition');
+        debugPrint('Started native voice recognition');
 
         // Safe check before returning stream
         final controller = _resultController;
@@ -195,14 +230,14 @@ class NativeVoiceRecognitionService {
       _resultController = null;
       _statusController?.close();
       _statusController = null;
-      debugPrint('❌ Error starting native voice recognition: ${e.message}');
+      debugPrint('Error starting native voice recognition: ${e.message}');
       rethrow;
     } catch (e) {
       _resultController?.close();
       _resultController = null;
       _statusController?.close();
       _statusController = null;
-      debugPrint('❌ Unexpected error starting native voice recognition: $e');
+      debugPrint('Unexpected error starting native voice recognition: $e');
       rethrow;
     }
   }
@@ -218,9 +253,10 @@ class NativeVoiceRecognitionService {
       _resultController = null;
       _statusController?.close();
       _statusController = null;
-      debugPrint('⏹️ Stopped native voice recognition');
+      _lastPartialResult = null;
+      debugPrint('Stopped native voice recognition');
     } on PlatformException catch (e) {
-      debugPrint('❌ Error stopping native voice recognition: ${e.message}');
+      debugPrint('Error stopping native voice recognition: ${e.message}');
     }
   }
 
@@ -233,15 +269,17 @@ class NativeVoiceRecognitionService {
       _resultController = null;
       _statusController?.close();
       _statusController = null;
-      debugPrint('❌ Cancelled native voice recognition');
+      _lastPartialResult = null;
+      debugPrint('Cancelled native voice recognition');
     } on PlatformException catch (e) {
-      debugPrint('❌ Error cancelling native voice recognition: ${e.message}');
+      debugPrint('Error cancelling native voice recognition: ${e.message}');
       // Even if cancel fails, reset state
       _isListening = false;
       _resultController?.close();
       _resultController = null;
       _statusController?.close();
       _statusController = null;
+      _lastPartialResult = null;
     }
   }
 

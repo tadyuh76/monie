@@ -25,7 +25,7 @@ void _openTransactionFormWithCommand(
 ) {
   // Create pre-fill transaction map (dynamic type that AddTransactionForm expects)
   final preFillTransaction = {
-    'title': command.description ?? (command.isIncome ? 'Income' : 'Expense'),
+    'title': command.title ?? command.description ?? (command.isIncome ? 'Income' : 'Expense'),
     'amount': command.isIncome ? command.amount : -command.amount,
     'description': command.description,
     'date': command.date ?? DateTime.now(),
@@ -92,10 +92,6 @@ class _SpeechToCommandDialogState extends State<SpeechToCommandDialog> {
   // Track whether we're closing to open a form (intentional close)
   // vs user-initiated close (back button, X button)
   bool _isClosingForForm = false;
-
-  // Selected language for speech recognition
-  // 'en_US' = English, 'vi_VN' = Vietnamese
-  String _selectedLocale = 'en_US';
 
   @override
   Widget build(BuildContext context) {
@@ -194,22 +190,15 @@ class _SpeechToCommandDialogState extends State<SpeechToCommandDialog> {
 
                 // Content
                 Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
                   child: Column(
                     children: [
-                      // Language Toggle
-                      _buildLanguageToggle(),
-
-                      const SizedBox(height: 16),
-
                       // Instructions
                       BlocBuilder<SpeechBloc, SpeechState>(
                         builder: (context, state) {
                           String instruction = 'Tap the microphone to start';
                           if (state is SpeechListening) {
-                            instruction = _selectedLocale == 'vi_VN'
-                                ? 'Đang nghe... Hãy nói lệnh của bạn'
-                                : 'Listening... Speak your command';
+                            instruction = 'Listening... Speak your command';
                           } else if (state is CommandParsing) {
                             instruction = 'Processing with AI...';
                           } else if (state is CommandParsed) {
@@ -308,52 +297,6 @@ class _SpeechToCommandDialogState extends State<SpeechToCommandDialog> {
     );
   }
 
-  /// Build language toggle widget
-  Widget _buildLanguageToggle() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildLanguageOption('en_US', '🇺🇸 EN'),
-          const SizedBox(width: 4),
-          _buildLanguageOption('vi_VN', '🇻🇳 VI'),
-        ],
-      ),
-    );
-  }
-
-  /// Build individual language option button
-  Widget _buildLanguageOption(String localeId, String label) {
-    final isSelected = _selectedLocale == localeId;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedLocale = localeId;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Build speech button with locale support
   Widget _buildSpeechButton() {
     return BlocBuilder<SpeechBloc, SpeechState>(
@@ -371,7 +314,7 @@ class _SpeechToCommandDialogState extends State<SpeechToCommandDialog> {
                     context.read<SpeechBloc>().add(const StopListeningEvent());
                   } else {
                     context.read<SpeechBloc>().add(
-                          StartListeningEvent(localeId: _selectedLocale),
+                          const StartListeningEvent(localeId: 'en_US'),
                         );
                   }
                 },

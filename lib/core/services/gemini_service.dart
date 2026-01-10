@@ -50,12 +50,12 @@ class GeminiService {
   /// Generate content from a prompt
   Future<String?> generateContent(String prompt) async {
     try {
-      debugPrint('🤖 GeminiService: Generating content...');
+      debugPrint('GeminiService: Generating content...');
       final response = await _model.generateContent([Content.text(prompt)]);
-      debugPrint('✅ GeminiService: Content generated successfully');
+      debugPrint('GeminiService: Content generated successfully');
       return response.text;
     } catch (e) {
-      debugPrint('❌ GeminiService Error: $e');
+      debugPrint('GeminiService Error: $e');
       return null;
     }
   }
@@ -66,7 +66,7 @@ class GeminiService {
     String expectedFormat,
   ) async {
     try {
-      debugPrint('🤖 GeminiService: Generating structured content...');
+      debugPrint('GeminiService: Generating structured content...');
 
       final fullPrompt = '''
 $prompt
@@ -82,7 +82,7 @@ Just return the raw JSON object.
       final text = response.text;
 
       if (text == null || text.isEmpty) {
-        debugPrint('❌ GeminiService: Empty response');
+        debugPrint('GeminiService: Empty response');
         return null;
       }
 
@@ -98,17 +98,17 @@ Just return the raw JSON object.
       }
       cleanedText = cleanedText.trim();
 
-      debugPrint('✅ GeminiService: Parsing JSON response...');
+      debugPrint('GeminiService: Parsing JSON response...');
       return jsonDecode(cleanedText) as Map<String, dynamic>;
     } catch (e) {
-      debugPrint('❌ GeminiService Error: $e');
+      debugPrint('GeminiService Error: $e');
       return null;
     }
   }
 
   /// Start a new chat session with system context
   void startChatSession(String systemContext) {
-    debugPrint('🤖 GeminiService: Starting chat session...');
+    debugPrint('GeminiService: Starting chat session...');
     _chatSession = _chatModel.startChat(
       history: [
         Content.text('''
@@ -129,32 +129,32 @@ Guidelines:
         Content.model([TextPart('Understood! I\'m ready to help with your financial questions. How can I assist you today?')]),
       ],
     );
-    debugPrint('✅ GeminiService: Chat session started');
+    debugPrint('GeminiService: Chat session started');
   }
 
   /// Send a message in the current chat session
   Future<String?> sendChatMessage(String message) async {
     if (_chatSession == null) {
-      debugPrint('⚠️ GeminiService: No active chat session, creating one...');
+      debugPrint('GeminiService: No active chat session, creating one...');
       // Create a basic session if none exists
       startChatSession('No financial data available yet.');
     }
 
     try {
-      debugPrint('🤖 GeminiService: Sending chat message: $message');
+      debugPrint('GeminiService: Sending chat message: $message');
       final response = await _chatSession!.sendMessage(Content.text(message));
-      debugPrint('✅ GeminiService: Chat response received: ${response.text?.substring(0, 50)}...');
+      debugPrint('GeminiService: Chat response received: ${response.text?.substring(0, 50)}...');
       return response.text;
     } catch (e) {
-      debugPrint('❌ GeminiService Chat Error: $e');
+      debugPrint('GeminiService Chat Error: $e');
       // Try to recreate session and retry once
       try {
-        debugPrint('🔄 GeminiService: Retrying with new session...');
+        debugPrint('GeminiService: Retrying with new session...');
         startChatSession('Financial assistant ready to help.');
         final retryResponse = await _chatSession!.sendMessage(Content.text(message));
         return retryResponse.text;
       } catch (retryError) {
-        debugPrint('❌ GeminiService Retry Error: $retryError');
+        debugPrint('GeminiService Retry Error: $retryError');
         return null;
       }
     }
@@ -163,7 +163,7 @@ Guidelines:
   /// Clear the current chat session
   void clearChatSession() {
     _chatSession = null;
-    debugPrint('🤖 GeminiService: Chat session cleared');
+    debugPrint('GeminiService: Chat session cleared');
   }
 
   /// Analyze spending patterns
@@ -315,37 +315,46 @@ CRITICAL - Amount Parsing Rules:
 - "nghìn", "ngàn", "thousand" = multiply by 1,000 (e.g., "50 nghìn" = 50,000, "100 thousand" = 100,000)
 - "tr", "triệu", "m", "M", "million" = multiply by 1,000,000 (e.g., "1tr" = 1,000,000, "2 triệu" = 2,000,000)
 - "trăm", "hundred" = multiply by 100 (e.g., "5 trăm" = 500)
+- Numbers without multipliers should be taken literally (e.g., "1000" = 1000, "5000" = 5000)
 - Numbers with dots as thousand separators: "50.000" = 50,000
 
 CRITICAL - Transaction Type Detection:
-- EXPENSE keywords (isIncome = false): chi, tiêu, mua, thanh toán, trả, spend, spent, paid, bought, purchased, pay
-- INCOME keywords (isIncome = true): thu, nhận, lương, tiền về, receive, received, got, earned, salary, income, bonus
+- EXPENSE keywords (isIncome = false): chi, tiêu, mua, thanh toán, trả, spend, spent, paid, bought, purchased, pay, expense
+- INCOME keywords (isIncome = true): thu, nhận, lương, tiền về, receive, received, got, get, earned, salary, income, bonus, from
+
+CRITICAL - Title vs Description:
+- title: SHORT transaction name (2-4 words max) - what was the transaction for?
+- description: DETAILED notes/context (can be longer) - additional information or same as title if no extra context
 
 Examples:
-- "chi 50k cho ăn uống" → amount: 50000, isIncome: false, category: "Dining"
-- "thu 500 nghìn tiền lương" → amount: 500000, isIncome: true, category: "Salary"
-- "spend 100 thousand on groceries" → amount: 100000, isIncome: false, category: "Groceries"
-- "received 1 million salary" → amount: 1000000, isIncome: true, category: "Salary"
-- "mua 200k đồ ăn" → amount: 200000, isIncome: false, category: "Dining"
-- "nhận 2 triệu học bổng" → amount: 2000000, isIncome: true, category: "Scholarship"
+- "chi 50k cho ăn uống" → amount: 50000, title: "Ăn uống", description: "Chi tiêu cho ăn uống", isIncome: false, category: "Dining"
+- "thu 500 nghìn tiền lương" → amount: 500000, title: "Lương tháng", description: "Thu nhập tiền lương", isIncome: true, category: "Salary"
+- "spend 100 thousand on groceries" → amount: 100000, title: "Groceries", description: "Spent on groceries shopping", isIncome: false, category: "Groceries"
+- "received 1 million salary" → amount: 1000000, title: "Monthly Salary", description: "Received 1 million from salary", isIncome: true, category: "Salary"
+- "Get 1000 from salary" → amount: 1000, title: "Salary Income", description: "Received 1000 from salary", isIncome: true, category: "Salary"
+- "mua 200k đồ ăn" → amount: 200000, title: "Đồ ăn", description: "Mua đồ ăn", isIncome: false, category: "Dining"
+- "nhận 2 triệu học bổng" → amount: 2000000, title: "Học bổng", description: "Nhận 2 triệu học bổng", isIncome: true, category: "Scholarship"
+- "for eating" → amount: 0, title: "Eating", description: "For eating", isIncome: false, category: "Dining"
 
 Available EXPENSE categories: Bills, Debt, Dining, Donate, Education, Electricity, Entertainment, Gifts, Groceries, Healthcare, Housing, Insurance, Investment, Loans, Pets, Rent, Saving, Shopping, Tax, Technology, Transport, Travel
 
 Available INCOME categories: Salary, Scholarship, Insurance Payout, Family Support, Stock, Commission, Allowance
 
 Parse the command and extract:
-1. amount: The FULL numerical amount after applying multipliers (NEVER return the base number without multiplier)
+1. amount: The FULL numerical amount after applying multipliers (NEVER return the base number without multiplier). If no amount mentioned, use 0.
 2. category: Best matching category from the available lists above (use exact category name)
-3. description: A clean, short title/description for the transaction (what was bought/received)
-4. isIncome: true if it's income (thu, nhận, receive, earned, salary), false if expense (chi, tiêu, mua, spend, paid)
-5. date: The date mentioned (use ISO format YYYY-MM-DD), or null if not mentioned. Handle relative dates like "yesterday", "hôm qua", "last week", "tuần trước"
-6. confidence: Your confidence in this parsing (0.0 to 1.0)
+3. title: SHORT transaction name (2-4 words) - the main purpose of the transaction
+4. description: DETAILED notes with more context - can include amount and category details
+5. isIncome: true if it's income (thu, nhận, receive, get, earned, salary, from), false if expense (chi, tiêu, mua, spend, paid, for)
+6. date: The date mentioned (use ISO format YYYY-MM-DD), or null if not mentioned. Handle relative dates like "yesterday", "hôm qua", "last week", "tuần trước"
+7. confidence: Your confidence in this parsing (0.0 to 1.0)
 ''';
 
     final expectedFormat = '''
 {
   "amount": number,
   "category": "string or null",
+  "title": "string",
   "description": "string",
   "isIncome": boolean,
   "date": "YYYY-MM-DD or null",

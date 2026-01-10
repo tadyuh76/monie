@@ -229,31 +229,6 @@ void _setupSpeechFeature() {
     );
   }
 
-  // Data sources
-  sl.registerLazySingleton<SpeechRemoteDataSource>(
-    () => SpeechRemoteDataSourceImpl(),
-  );
-
-  // Repository
-  sl.registerLazySingleton<SpeechRepository>(
-    () => SpeechRepositoryImpl(
-      dataSource: sl(),
-      permissionService: sl(),
-      deviceInfoService: sl(),
-      geminiService: GeminiService.instance,
-    ),
-  );
-
-  // Use cases
-  sl.registerLazySingleton(() => RecognizeSpeech(sl()));
-  sl.registerLazySingleton(() => ParseCommand(sl()));
-
-  // BLoC
-  sl.registerFactory(
-    () => SpeechBloc(
-      recognizeSpeech: sl(),
-      parseCommand: sl(),
-      permissionService: sl(),
-    ),
-  );
+  // All other speech-related services (DataSource, Repository, UseCases, BLoC)
+  // are registered in injection.dart with device-specific logic and full feature setup
 }

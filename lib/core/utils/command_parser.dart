@@ -161,16 +161,17 @@ class CommandParser {
       return amountWithMultiplier;
     }
 
-    // Fallback: Pattern for Vietnamese number format: "50000", "50.000", "50 000"
+    // Fallback: Pattern for number formats: "50000", "50.000", "50 000", "50,000"
     final patterns = [
-      RegExp(r'(\d{1,3}(?:[.\s]\d{3})*(?:\.\d+)?)'),
+      RegExp(r'(\d{1,3}(?:[.,\s]\d{3})*(?:\.\d+)?)'),
       RegExp(r'(\d+(?:\.\d+)?)'),
     ];
 
     for (final pattern in patterns) {
       final matches = pattern.allMatches(text);
       for (final match in matches) {
-        final numberStr = match.group(1)?.replaceAll(RegExp(r'[.\s]'), '');
+        // Remove thousand separators (dots, commas, spaces)
+        final numberStr = match.group(1)?.replaceAll(RegExp(r'[.,\s]'), '');
         if (numberStr != null) {
           final amount = double.tryParse(numberStr);
           if (amount != null && amount > 0) {
